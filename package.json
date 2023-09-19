@@ -1,0 +1,13 @@
+{
+  "name": "@ccmjs/minify",
+  "version": "1.0.0",
+  "description": "modules to minify css/js/mjs files",
+  "main": "./build",
+  "keywords": ["ccmjs", "minify"],
+  "author": "André Kless <andre.kless@web.de> (https://github.com/akless) 2023",
+  "license": "MIT",
+  "dependencies": {
+    "csso-cli": "^4.0.2",
+    "terser": "^5.17.6"
+  }
+}

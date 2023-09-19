@@ -1,0 +1,79 @@
+#!/bin/bash
+
+# Creates a versions folder with latest version and specific version folders.
+# Relative paths are replaced by absolute paths.
+# In addition, CSS/JS/MJS files are minimized and the paths adjusted accordingly.
+# author: André Kless <andre.kless@web.de> (https://github.com/akless)
+# version: 1.0.0
+
+# create versions folder if not exists
+mkdir -p versions
+
+# create empty subfolder for latest version
+rm -rf versions/latest
+mkdir versions/latest
+
+# copy relevant folders/files to this subfolder
+shopt -s extglob
+cp -R !(docs|node_modules|tests|versions|build|favicon.ico|*.html|LICENSE|README.md|package.json|package-lock.json) versions/latest
+shopt -u extglob
+
+# replace locale paths that start with '././' with absolute paths
+domain=$(awk '/@domain/{print $3}' ccm*.js)
+str=s\/\\.\\/\\.\\//${domain//\//\\\/}versions\\/latest\\//g
+find ./versions/latest -type f -print0 | xargs -0 perl -pi -e "$str"
+
+# help function for update paths where minified type of files are used
+min() {
+  file=${1:1}.${2}
+  file=${file////\\/}
+  min=${1:1}.min.${2}
+  min=${min////\\/}
+  str=s/${file}/${min}/g
+  find ./versions/latest -type f -print0 | xargs -0 perl -pi -e "$str"
+}
+
+# minify css files
+for i in $(find ./versions/latest -name \*.css)
+do
+  i="${i%.*}"
+  csso -i ${i}.css -o ${i}.min.css
+
+  # update paths where minified CSS files are used
+  min $i css
+done
+
+# help function to minify all files with terser
+minify() {
+  for i in $(find versions/latest -name \*."$1")
+  do
+    dir="$PWD"
+    name=$(basename -- "$i")
+    name="${name%.*}"
+    cd "$(dirname -- "$i")"
+    terser "${name}.${1}" -o "${name}.min.${1}" --source-map "url='${name}.min.${1}.map'" --comments false
+    cd "$dir"
+
+    # update paths where minified JS files are used
+    i="${i%.*}"
+    min "./$i" "$1"
+  done
+}
+
+# minify js/mjs files
+minify js
+minify mjs
+
+# create empty subfolder for specific version
+version=$(awk '/@version/{print $3}' ccm*.js)
+version=v${version%.*.*}
+
+rm -rf "versions/${version}"
+mkdir "versions/${version}"
+
+# copy folders/files from latest version to specific version
+cp -R versions/latest/* "versions/${version}"
+
+# change folder name in absolute paths
+str=s/"versions\/latest/versions\/${version}"/g
+find "./versions/${version}" -type f -print0 | xargs -0 perl -pi -e "$str"
