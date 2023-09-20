@@ -318,9 +318,10 @@
           return val;
         });
       },
-      html: (html, values, settings) => {
+      html: (html, values, settings = {}) => {
         html = ccm.helper.html2json(html);
-        if (values?.length) html = ccm.helper.format(html, values);
+        if (!ccm.helper.isObject(html)) return document.createTextNode(html);
+        if (values) html = ccm.helper.format(html, values);
         if (html.tag === "svg")
           settings.namespace_uri = "http://www.w3.org/2000/svg";
         const element = settings.namespace_uri
@@ -359,7 +360,9 @@
               else {
                 const children = Array.isArray(value) ? value : [value];
                 children.forEach((child) =>
-                  element.appendChild(this.html(child, undefined, settings))
+                  element.appendChild(
+                    ccm.helper.html(child, undefined, settings)
+                  )
                 );
               }
               break;
@@ -396,7 +399,6 @@
           if (!html.children.length) return html.textContent;
           [...html.childNodes].forEach((child) => {
             if (child.nodeValue) {
-              child.nodeValue = child.nodeValue.trim();
               if (!child.nodeValue || child.nodeType === Node.COMMENT_NODE)
                 child.parentNode.removeChild(child);
             }
@@ -406,7 +408,7 @@
         if (!ccm.helper.isElement(html)) return html;
         if (html.tagName) json.tag = html.tagName.toLowerCase();
         if (json.tag === "div") delete json.tag;
-        html.attributes &&
+        if (html.attributes)
           [...html.attributes].forEach(
             (attr) =>
               (json[attr.name] =
@@ -417,7 +419,7 @@
             return child.parentNode.removeChild(child);
           if (child.nodeValue && !child.parentElement?.closest("pre"))
             child.nodeValue = child.nodeValue.replace(/\s+/g, " ");
-          if (ccm.helper.isElement(child) || child.nodeValue.trim())
+          if (ccm.helper.isElement(child) || child.nodeValue)
             json.inner.push(
               ccm.helper.isElement(child)
                 ? ccm.helper.html2json(child)
@@ -431,6 +433,9 @@
       isComponent: (value) => value?.Instance && value.ccm && true,
       isCore: (value) => value?.components && value.version && true,
       isDatastore: (value) => value?.get && value.local && value.source && true,
+      isElement: (value) => {
+        return value instanceof Element || value instanceof DocumentFragment;
+      },
       isInstance: (value) => ccm.helper.isComponent(value?.component),
       isJQuery: (value) => window.jQuery && value instanceof jQuery,
       isNode: (value) => value instanceof Node,
