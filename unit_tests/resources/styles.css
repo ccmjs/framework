@@ -1,0 +1,110 @@
+/**
+ * @overview layout of ccmjs-based web component for unit testing
+ * @author André Kless <andre.kless@web.de> (https://github.com/akless) 2016-2017, 2019
+ * @license The MIT License (MIT)
+ */
+
+#element {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  overflow-x: auto;
+}
+
+#summary {
+  display: flex;
+}
+
+#executed,
+#passed,
+#failed {
+  padding: 0.5em;
+}
+
+#executed .ccm_loading {
+  display: inline-block;
+  padding-left: 0.2em;
+}
+
+#passed {
+  color: green;
+}
+
+#failed {
+  color: red;
+}
+
+#executed:before {
+  content: "executed: ";
+}
+
+#passed:before {
+  content: "passed: ";
+}
+
+#failed:before {
+  content: "failed: ";
+}
+
+#packages {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.package {
+  padding: 0.5em;
+}
+
+.label {
+  padding: 0.3em 0;
+  font-weight: bold;
+}
+
+.table {
+  display: table;
+  border-collapse: collapse;
+}
+
+.tr {
+  display: table-row;
+}
+
+.td {
+  display: table-cell;
+  border: 0.1em solid black;
+  padding: 0.2em;
+  white-space: nowrap;
+}
+
+.result {
+  text-align: center;
+}
+
+.passed {
+  color: green;
+}
+
+.failed {
+  color: red;
+}
+
+.details {
+  border: 0.1em solid white;
+  background-color: silver;
+}
+
+.comparison div {
+  display: inline-block;
+}
+
+.expected:before {
+  content: "expected";
+  margin-right: 0.2em;
+  background-color: lime;
+  padding: 0 0.1em;
+}
+
+.actual:before {
+  content: "but was";
+  margin: 0 0.2em;
+  background-color: tomato;
+  padding: 0 0.1em;
+}
