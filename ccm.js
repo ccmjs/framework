@@ -1,5 +1,6 @@
 "use strict";
 /**
+ * @version 28.0.0
  * @changes
  * Version 28.0.0
  * - ccm.load: resource data is no longer cloned
