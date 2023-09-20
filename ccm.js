@@ -258,6 +258,18 @@
       });
     },
     helper: {
+      compareVersions: (a, b) => {
+        if (a === b) return 0;
+        const a_arr = a.split(".");
+        const b_arr = b.split(".");
+        for (let i = 0; i < 3; i++) {
+          const x = parseInt(a_arr[i]);
+          const y = parseInt(b_arr[i]);
+          if (x < y) return -1;
+          else if (x > y) return 1;
+        }
+        return 0;
+      },
       format: (data, values) => {
         const temp = [[], [], {}];
         const obj_mode = ccm.helper.isObject(data);
@@ -478,4 +490,10 @@
     },
   };
   if (!window.ccm) window.ccm = { callbacks: {}, files: {} };
+  if (!window.ccm[ccm.version()]) window.ccm[ccm.version()] = ccm;
+  if (
+    !window.ccm.version ||
+    ccm.helper.compareVersions(ccm.version(), window.ccm.version()) > 0
+  )
+    Object.assign(window.ccm, ccm);
 })();
