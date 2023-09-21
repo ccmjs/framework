@@ -252,6 +252,8 @@
     helper: {
       compareVersions: (a, b) => {
         if (a === b) return 0;
+        if (!a) return a;
+        if (!b) return b;
         const a_arr = a.split(".");
         const b_arr = b.split(".");
         for (let i = 0; i < 3; i++) {
@@ -488,9 +490,6 @@
   };
   if (!window.ccm) window.ccm = { callbacks: {}, files: {} };
   if (!window.ccm[ccm.version()]) window.ccm[ccm.version()] = ccm;
-  if (
-    !window.ccm.version ||
-    ccm.helper.compareVersions(ccm.version(), window.ccm.version()) > 0
-  )
+  if (ccm.helper.compareVersions(ccm.version(), window.ccm.version()) > 0)
     Object.assign(window.ccm, ccm);
 })();

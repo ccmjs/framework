@@ -99,6 +99,42 @@ ccm.files["tests.js"] = {
         let actual = await suite.uut.load(url);
         suite.assertEquals(expected, actual);
       },
+      async function loadJS(suite) {
+        const url = "./dummy/script.min.js";
+        let expected = { foo: "bar" };
+        let actual = await suite.uut.load(url);
+        suite.assertEquals(expected, actual);
+
+        const query = `script[src="${url}"]`;
+        expected = null;
+        actual = document.head.querySelector(query);
+        suite.assertEquals(expected, actual);
+
+        actual = "";
+        expected = `loading of ${url} failed`;
+        try {
+          await suite.uut.load({
+            url,
+            attr: {
+              integrity: "sha384-x",
+              crossorigin: "",
+            },
+          });
+        } catch (error) {
+          actual = error.message;
+        }
+        suite.assertEquals(expected, actual);
+
+        await suite.uut.load({
+          url,
+          attr: {
+            integrity:
+              "sha384-6wt5L34ia4nMOnVRL++defJ1AQii2ChOENX3oLFIT3pUDLmaA1U3RwPFBgjGPulG",
+            crossorigin: "",
+          },
+        });
+        suite.passed();
+      },
     ],
   },
 };
