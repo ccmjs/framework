@@ -95,8 +95,8 @@ ccm.files["tests.js"] = {
       },
       async function loadImage(suite) {
         const url = "./dummy/image.png";
-        let expected = url;
-        let actual = await suite.uut.load(url);
+        const expected = url;
+        const actual = await suite.uut.load(url);
         suite.assertEquals(expected, actual);
       },
       async function loadJS(suite) {
@@ -151,6 +151,22 @@ ccm.files["tests.js"] = {
 
         expected = { data: { foo: "bar" }, name: "John" };
         actual = await suite.uut.load(url + "#data#name");
+        suite.assertEquals(expected, actual);
+      },
+      async function loadJSON(suite) {
+        const url = "./dummy/data.json";
+        const expected = { foo: "bar" };
+        const actual = await suite.uut.load(url);
+        suite.assertEquals(expected, actual);
+      },
+      async function loadXML(suite) {
+        const url = "./dummy/note.xml";
+        let expected = XMLDocument;
+        let actual = await suite.uut.load(url);
+        suite.assertTrue(actual instanceof expected);
+
+        expected = "bar";
+        actual = actual.querySelector("foo").textContent;
         suite.assertEquals(expected, actual);
       },
     ],

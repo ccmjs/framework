@@ -89,7 +89,6 @@
 
           function loadHTML() {
             resource.type = "html";
-            resource.method = "GET";
             loadJSON();
           }
 
@@ -218,6 +217,24 @@
             }
           }
 
+          function loadXML() {
+            resource.type = "xml";
+            loadJSON();
+
+            return;
+            if (!resource.method) resource.method = "post";
+            const request = new XMLHttpRequest();
+            request.overrideMimeType("text/xml");
+            request.onreadystatechange = () => {
+              if (request.readyState === 4)
+                request.status === 200
+                  ? successData(request.responseXML)
+                  : error(request);
+            };
+            request.open(resource.method, resource.url, true);
+            request.send();
+          }
+
           function success(data) {
             if (data === undefined) return check();
             try {
@@ -231,6 +248,8 @@
               while ((array = regex.exec(data))) result[array[1]] = array[2];
               if (Object.keys(result).length) data = result;
             }
+            if (resource.type === "xml")
+              data = new window.DOMParser().parseFromString(data, "text/xml");
             results[i] = data;
             check();
           }
