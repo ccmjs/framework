@@ -93,6 +93,12 @@ ccm.files["tests.js"] = {
         actual = document.head.querySelectorAll(query).length;
         suite.assertEquals(expected, actual);
       },
+      async function loadImage(suite) {
+        const url = "./dummy/image.png";
+        let expected = url;
+        let actual = await suite.uut.load(url);
+        suite.assertEquals(expected, actual);
+      },
     ],
   },
 };

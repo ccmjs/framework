@@ -110,7 +110,7 @@
           function loadImage() {
             const image = new Image();
             image.src = resource.url;
-            image.onload = success;
+            image.onload = () => success(resource.url);
             image.onerror = error;
           }
 
