@@ -56,8 +56,8 @@ ccm.files["tests.js"] = {
         let actual = await suite.uut.load(url);
         suite.assertEquals(expected, actual);
 
-        const query = `link[rel="stylesheet"][type="text/css"][href="${url}"]`;
-        actual = document.head.querySelector(query);
+        const query = `head > link[rel="stylesheet"][type="text/css"][href="${url}"]`;
+        actual = document.querySelector(query);
         suite.assertTrue(suite.uut.helper.isElement(actual));
 
         expected = "0px";
@@ -105,9 +105,9 @@ ccm.files["tests.js"] = {
         let actual = await suite.uut.load(url);
         suite.assertEquals(expected, actual);
 
-        const query = `script[src="${url}"]`;
+        const query = `head > script[src="${url}"]`;
         expected = null;
-        actual = document.head.querySelector(query);
+        actual = document.querySelector(query);
         suite.assertEquals(expected, actual);
 
         actual = "";
@@ -195,8 +195,8 @@ ccm.files["tests.js"] = {
         await suite.uut.load({ url, context: document.body });
         suite.assertTrue(
           suite.uut.helper.isElement(
-            document.body.querySelector(
-              `link[rel="stylesheet"][type="text/css"][href="${url}"]`
+            document.querySelector(
+              `body > link[rel="stylesheet"][type="text/css"][href="${url}"]`
             )
           )
         );
