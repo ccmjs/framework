@@ -169,6 +169,38 @@ ccm.files["tests.js"] = {
         actual = actual.querySelector("foo").textContent;
         suite.assertEquals(expected, actual);
       },
+      async function loadMultiple(suite) {
+        const expected = [
+          "Hello, <b>World</b>!",
+          [
+            "./dummy/style.css",
+            [{ foo: "bar" }, { foo: "bar" }],
+            { foo: "bar" },
+          ],
+          "./dummy/image.png",
+        ];
+        const actual = await suite.uut.load(
+          "./dummy/hello.html",
+          [
+            "./dummy/style.css",
+            ["./dummy/module.mjs#data", "./dummy/data.json"],
+            "./dummy/script.min.js",
+          ],
+          "./dummy/image.png"
+        );
+        suite.assertEquals(expected, actual);
+      },
+      async function loadContext(suite) {
+        const url = "./dummy/style.css";
+        await suite.uut.load({ url, context: document.body });
+        suite.assertTrue(
+          suite.uut.helper.isElement(
+            document.body.querySelector(
+              `link[rel="stylesheet"][type="text/css"][href="${url}"]`
+            )
+          )
+        );
+      },
     ],
   },
 };
