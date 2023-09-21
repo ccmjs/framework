@@ -135,6 +135,24 @@ ccm.files["tests.js"] = {
         });
         suite.passed();
       },
+      async function loadModule(suite) {
+        const url = "./dummy/module.mjs";
+        let expected = { data: { foo: "bar" }, name: "John", valid: true };
+        let actual = await suite.uut.load(url);
+        suite.assertEquals(expected, actual);
+
+        expected = { foo: "bar" };
+        actual = await suite.uut.load(url + "#data");
+        suite.assertEquals(expected, actual);
+
+        expected = "bar";
+        actual = await suite.uut.load(url + "#data.foo");
+        suite.assertEquals(expected, actual);
+
+        expected = { data: { foo: "bar" }, name: "John" };
+        actual = await suite.uut.load(url + "#data#name");
+        suite.assertEquals(expected, actual);
+      },
     ],
   },
 };

@@ -57,12 +57,12 @@
                 return loadXML;
             }
             const suffix = resource.url
-              .split(".")
-              .pop()
               .split("?")
               .shift()
               .split("#")
               .shift()
+              .split(".")
+              .pop()
               .toLowerCase();
             switch (suffix) {
               case "html":
@@ -152,7 +152,8 @@
                 location.href.substring(0, location.href.lastIndexOf("/") + 1)
               );
             import(url).then((result) => {
-              if (keys.length === 1) result = result[keys[0]];
+              if (keys.length === 1)
+                result = ccm.helper.deepValue(result, keys[0]);
               if (keys.length > 1) {
                 const obj = {};
                 keys.forEach((key) => (obj[key] = result[key]));
@@ -263,6 +264,18 @@
           else if (x > y) return 1;
         }
         return 0;
+      },
+      deepValue: function (obj, key, value) {
+        return recursive(obj, key.split("."), value);
+        function recursive(obj, key, value) {
+          if (!obj) return;
+          const next = key.shift();
+          if (key.length === 0)
+            return value !== undefined ? (obj[next] = value) : obj[next];
+          if (!obj[next] && value !== undefined)
+            obj[next] = isNaN(key[0]) ? {} : [];
+          return recursive(obj[next], key, value);
+        }
       },
       format: (data, values) => {
         const temp = [[], [], {}];
