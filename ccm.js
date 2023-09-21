@@ -94,12 +94,6 @@
           }
 
           function loadCSS() {
-            if (
-              resource.context.querySelector(
-                `link[rel="stylesheet"][type="text/css"][href="${resource.url}"]`
-              )
-            )
-              return success();
             let element = {
               tag: "link",
               rel: "stylesheet",
@@ -108,11 +102,8 @@
             };
             if (resource.attr) element = Object.assign(element, resource.attr);
             element = ccm.helper.html(element);
-            element.onload = success;
-            element.onerror = () => {
-              element.parentNode.removeChild(element);
-              error();
-            };
+            element.onload = () => success(resource.url);
+            element.onerror = error;
             resource.context.appendChild(element);
           }
 
@@ -253,7 +244,7 @@
 
         function check() {
           if (--counter) return;
-          if (results.length === 1) results = results[0];
+          if (results.length <= 1) results = results[0];
           (failed ? reject : resolve)(results);
         }
       });
