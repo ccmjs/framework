@@ -5,11 +5,11 @@
  */
 
 ccm.files["tests.js"] = {
+  setup: async (suite) => {
+    await suite.ccm.load("./../ccm.js");
+    suite.uut = ccm;
+  },
   "ccm.load": {
-    setup: async (suite) => {
-      await suite.ccm.load("./../ccm.js");
-      suite.uut = ccm;
-    },
     tests: [
       async function loadHTML(suite) {
         let expected = "Hello, <b>World</b>!";
@@ -200,6 +200,34 @@ ccm.files["tests.js"] = {
             )
           )
         );
+      },
+    ],
+  },
+  "ccm.helper": {
+    tests: [
+      function compareVersions(suite) {
+        let expected = 1;
+        let actual = suite.uut.helper.compareVersions("3.0.0", "2.10.0");
+        suite.assertEquals(expected, actual);
+
+        expected = -1;
+        actual = suite.uut.helper.compareVersions("8.0.1", "8.0.10");
+        suite.assertEquals(expected, actual);
+      },
+      function deepValue(suite) {
+        let obj = { foo: { bar: [{ abc: "xyz" }] } };
+        let expected = "xyz";
+        let actual = suite.uut.helper.deepValue(obj, "foo.bar.0.abc");
+        suite.assertEquals(expected, actual);
+
+        expected = { foo: { bar: "abc" } };
+        actual = {};
+        const result = suite.uut.helper.deepValue(actual, "foo.bar", "abc");
+        suite.assertEquals(expected, actual);
+
+        expected = "abc";
+        actual = result;
+        suite.assertEquals(expected, actual);
       },
     ],
   },
