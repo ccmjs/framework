@@ -1,5 +1,10 @@
 "use strict";
+
 /**
+ * @overview
+ * Creates the global namespace [window.ccm]{@link ccm}.
+ * @author André Kless <andre.kless@web.de> (https://github.com/akless) 2014-2023
+ * @license The MIT License (MIT)
  * @version 28.0.0
  * @changes
  * Version 28.0.0
@@ -11,8 +16,25 @@
  * - ccm.helper.html: dynamic parameters must be passed via an object
  */
 (() => {
+  /**
+   * Encapsulates everything related to _ccmjs_.
+   * See [this wiki]{@link https://github.com/ccmjs/framework/wiki/} to learn everything about this web technology.
+   * @global
+   * @namespace
+   */
   const ccm = {
+    /**
+     * @description Returns the _ccmjs_ framework version.
+     * @returns {ccm.types.version_nr}
+     */
     version: () => "28.0.0",
+
+    /**
+     * @summary Asynchronous Loading of Resources
+     * @description See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Loading-of-Resources} to learn everything about this method. There are also examples how to use it.
+     * @param {...(string|ccm.types.resource_obj)} resources - Resources to load. Either the URL or a [resource object]{@link ccm.types.resource_obj} can be passed for a resource.
+     * @returns {Promise<*>}
+     */
     load: async (...resources) => {
       let results = [];
       let counter = 1;
@@ -220,19 +242,6 @@
           function loadXML() {
             resource.type = "xml";
             loadJSON();
-
-            return;
-            if (!resource.method) resource.method = "post";
-            const request = new XMLHttpRequest();
-            request.overrideMimeType("text/xml");
-            request.onreadystatechange = () => {
-              if (request.readyState === 4)
-                request.status === 200
-                  ? successData(request.responseXML)
-                  : error(request);
-            };
-            request.open(resource.method, resource.url, true);
-            request.send();
           }
 
           function success(data) {
@@ -269,7 +278,22 @@
         }
       });
     },
+
+    /**
+     * @description
+     * Contains framework-relevant helper functions.
+     * These are also useful for component developers.
+     * @namespace
+     */
     helper: {
+      /**
+       * @description Compares two version numbers.
+       * @param {ccm.types.version_nr} a - 1st version number
+       * @param {ccm.types.version_nr} b - 2nd version number
+       * @returns {number} -1: a < b, 0: a = b, 1: a > b
+       * @example console.log( compareVersions( '3.0.0', '2.10.0' ) ); // => 1
+       * @example console.log( compareVersions( '8.0.1', '8.0.10' ) ); // => -1
+       */
       compareVersions: (a, b) => {
         if (a === b) return 0;
         if (!a) return a;
@@ -284,8 +308,25 @@
         }
         return 0;
       },
-      deepValue: function (obj, key, value) {
-        return recursive(obj, key.split("."), value);
+
+      /**
+       * @description Returns or modifies a value contained in a nested data structure.
+       * @param {Object} obj - Nested data structure
+       * @param {string} path - Path to the property whose value is to be returned or changed.
+       * @param {*} [value] - New value to be set. If not specified, the value of the property is returned.
+       * @returns {*} - Existing or updated value of the property.
+       * @example // Get value
+       * const obj = { foo: { bar: [{ abc: "xyz" }] } };
+       * const result = ccm.helper.deepValue(obj, "foo.bar.0.abc");
+       * console.log(result); // => 'xyz'
+       * @example // Set value
+       * var obj = {};
+       * var result = ccm.helper.deepValue(obj, "foo.bar", "abc");
+       * console.log(obj);    // => { foo: { bar: "abc" } }
+       * console.log(result); // => "abc"
+       */
+      deepValue: function (obj, path, value) {
+        return recursive(obj, path.split("."), value);
         function recursive(obj, key, value) {
           if (!obj) return;
           const next = key.shift();
@@ -296,6 +337,7 @@
           return recursive(obj[next], key, value);
         }
       },
+
       format: (data, values) => {
         const temp = [[], [], {}];
         const obj_mode = ccm.helper.isObject(data);
@@ -520,8 +562,63 @@
       },
     },
   };
-  if (!window.ccm) window.ccm = { callbacks: {}, files: {} };
+
+  // Is this the first ccmjs framework version loaded in this webpage? => Initialize global namespace.
+  if (!window.ccm)
+    window.ccm = {
+      /**
+       * @description
+       * This namespace is only used internally.
+       * JSONP callbacks for loading data via {@link ccm.load} are temporarily stored here (is always emptied directly).
+       * @namespace ccm.callbacks
+       * @type {Object.<string,function>}
+       */
+      callbacks: {},
+
+      /**
+       * @description
+       * This namespace is only used internally.
+       * Result data of loaded JavaScript files via {@link ccm.load} are temporarily stored here (is always emptied directly).
+       * @namespace ccm.files
+       * @type {Object}
+       */
+      files: {},
+    };
+
+  // Is this the first time this specific ccmjs framework version is loaded in this webpage? => Initialize version specific namespace.
   if (!window.ccm[ccm.version()]) window.ccm[ccm.version()] = ccm;
+
+  // Is this the latest ccmjs framework version loaded on this website so far? => Update global namespace.
   if (ccm.helper.compareVersions(ccm.version(), window.ccm.version()) > 0)
     Object.assign(window.ccm, ccm);
 })();
+
+/**
+ * @namespace ccm.types
+ * @description _ccmjs_-specific Type Definitions
+ */
+
+/**
+ * @typedef {Object} ccm.types.resource_obj
+ * @description
+ * Instead of a URL, a resource object can be passed to the method {@link ccm.load}, which then contains other information besides the URL, via which the loading of the resource is even more flexible controllable.
+ * In the case of HTML, JSON and XML, the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch) is used to load the ressource. All properties in the resource object are also spread into the <code>options</code> object (2nd parameter of [fetch()](https://developer.mozilla.org/en-US/docs/Web/API/fetch)). This means that, for example, HTTP headers can also be set here.
+ * @property {string} url - URL from which the resource should be loaded.
+ * @property {Element|ccm.types.instance} [context] - Context in which the resource is loaded (default is <code>\<head></code>). Only relevant when loading CSS or JavaScript. CSS is loaded via <code>\<link></code> and JavaScript is loaded via <code>\<script></code>. When a [_ccmjs_ component instance]{@link ccm.types.instance} is passed, the resource is loaded in the Shadow DOM of that instance.
+ * @property {string} [type] - Resource is loaded as <code>'css'</code>, <code>'html'</code>, <code>'image'</code>, <code>'js'</code>, <code>'module'</code>, <code>'json'</code> or <code>'xml'</code>. If not specified, the type is automatically recognized by the file extension. If the file extension is unknown, <code>'json'</code> is used by default.
+ * @property {string} [attr] - Additional HTML attributes to be set for the HTML tag that loads the resource. Only relevant when loading CSS or JavaScript. CSS is loaded via <code>\<link></code> and JavaScript is loaded via <code>\<script></code>. With the additional attributes <code>integrity</code> and <code>crossorigin</code> the resource can be loaded with Subresource Integrity (SRI).
+ * @property {string} [method] - The request method, e.g., <code>"GET"</code>, <code>"POST"</code>. The default is <code>"GET"</code>. Only relevant when loading data. <code>"JSONP"</code> is also supported.
+ * @property {string} [params] - HTTP parameters to send. Only relevant when loading data.
+ * @tutorial loading-of-resources
+ */
+
+/**
+ * @typedef {string} ccm.types.version_nr
+ * @description A version number that is conformed with Semantic Versioning 2.0.0 ({@link http://semver.org}).
+ * @example "1.0.0"
+ * @example "2.1.3"
+ */
+
+/**
+ * @typedef {Object} ccm.types.instance
+ */
