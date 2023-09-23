@@ -313,8 +313,8 @@
        * @description Returns or modifies a value contained in a nested data structure.
        * @param {Object} obj - Nested data structure
        * @param {string} path - Path to the property whose value is to be returned or changed.
-       * @param {*} [value] - New value to be set. If not specified, the value of the property is returned.
-       * @returns {*} - Existing or updated value of the property.
+       * @param {any} [value] - New value to be set. If not specified, the value of the property is returned.
+       * @returns {any} - Existing or updated value of the property.
        * @example // Get value
        * const obj = { foo: { bar: [{ abc: "xyz" }] } };
        * const result = ccm.helper.deepValue(obj, "foo.bar.0.abc");
@@ -338,52 +338,35 @@
         }
       },
 
+      /**
+       * @description Replaces placeholders in data with values (e.g. in a string or object).
+       * @param {any} data
+       * @param {Object} values
+       * @returns {any} - Deep copy of data with replaced placeholders.
+       * @example // Replace placeholders in a string
+       * const string = "Hello, %name%!";
+       * const values = { name: "World" };
+       * const result = ccm.helper.format(string, values);
+       * console.log(result); // => "Hello, World!"
+       * @example // Replace placeholders in an object
+       * const object = { hello: "Hello, %name%!" };
+       * const values = { name: "World" };
+       * const result = ccm.helper.format(object, values);
+       * console.log(result); // => { hello: "Hello, World!" }
+       */
       format: (data, values) => {
-        const temp = [[], [], {}];
-        const obj_mode = ccm.helper.isObject(data);
-        data = ccm.helper.stringify(data, (key, val) => {
-          if (typeof val === "function") {
-            temp[0].push(val);
-            return "%$0%";
-          }
-          return val;
-        });
-        for (let i = 0; i < values.length; i++) {
-          if (typeof values[i] === "object") {
-            for (const key in values[i]) {
-              if (typeof values[i][key] !== "string" && obj_mode) {
-                temp[2][key] = values[i][key];
-                values[i][key] = `%$2%${key}%`;
-              }
-              if (typeof values[i][key] !== "string") continue;
-              data = data.replace(
-                new RegExp(`%${key}%`, "g"),
-                values[i][key].replace(/"/g, '\\"')
-              );
-            }
-          } else {
-            if (typeof values[i] !== "string" && obj_mode) {
-              temp[1].push(values[i]);
-              values[i] = "%$1%";
-            }
-            data = data.replace(/%%/, values[i].replace(/"/g, '\\"'));
-          }
-        }
-        return ccm.helper.parse(data, (key, val) => {
-          if (val === "%$0%") return temp[0].shift();
-          if (val === "%$1%") return temp[1].shift();
-          if (typeof val === "string") {
-            if (val.indexOf("%$2%") === 0 && val.split("%")[3] === "")
-              return temp[2][val.split("%")[2]];
-            else
-              for (const key in temp[2])
-                val = val.replace(
-                  new RegExp(`%\\$2%${key}%`, "g"),
-                  temp[2][key]
-                );
-          }
-          return val;
-        });
+        // convert data to string (if not already)
+        data = ccm.helper.stringify(data);
+
+        // replace placeholders with values
+        for (const key in values)
+          data = data.replace(
+            new RegExp(`%${key}%`, "g"),
+            values[key].replace(/"/g, '\\"')
+          );
+
+        // convert the data back to its original format and return it
+        return ccm.helper.parse(data);
       },
       html: (html, values, settings = {}) => {
         html = ccm.helper.html2json(html);

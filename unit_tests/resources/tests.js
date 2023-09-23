@@ -239,6 +239,16 @@
           actual = result;
           suite.assertEquals(expected, actual);
         },
+        function format(suite) {
+          expected = "Hello, World!";
+          actual = uut.helper.format("Hello, %name%!", { name: "World" });
+          suite.assertEquals(expected, actual);
+
+          const obj = { hello: "Hello, %name%!" };
+          expected = { hello: "Hello, World!" };
+          actual = uut.helper.format(obj, { name: "World" });
+          suite.assertEquals(expected, actual);
+        },
       ],
     },
   };
