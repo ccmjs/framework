@@ -23,12 +23,15 @@
    * @namespace
    */
   const ccm = {
+    /**
+     * @description Returns the _ccmjs_ framework version.
+     * @returns {ccm.types.version_nr}
+     */
     version: () => "28.0.0",
 
     /**
      * @summary Asynchronous Loading of Resources
      * @description See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Loading-of-Resources} to learn everything about this method. There are also examples how to use it.
-     * @see https://github.com/ccmjs/framework/wiki/Loading-of-Resources
      * @param {...(string|ccm.types.resource_obj)} resources - Resources to load. Either the URL or a [resource object]{@link ccm.types.resource_obj} can be passed for a resource.
      * @returns {Promise<*>}
      */
@@ -276,7 +279,21 @@
       });
     },
 
+    /**
+     * @description
+     * Contains framework-relevant helper functions.
+     * These are also useful for component developers.
+     * @namespace
+     */
     helper: {
+      /**
+       * @description Compares two version numbers.
+       * @param {ccm.types.version_nr} a - 1st version number
+       * @param {ccm.types.version_nr} b - 2nd version number
+       * @returns {number} -1: a < b, 0: a = b, 1: a > b
+       * @example console.log( compareVersions( '3.0.0', '2.10.0' ) ); // => 1
+       * @example console.log( compareVersions( '8.0.1', '8.0.10' ) ); // => -1
+       */
       compareVersions: (a, b) => {
         if (a === b) return 0;
         if (!a) return a;
@@ -291,8 +308,25 @@
         }
         return 0;
       },
-      deepValue: function (obj, key, value) {
-        return recursive(obj, key.split("."), value);
+
+      /**
+       * @description Returns or modifies a value contained in a nested data structure.
+       * @param {Object} obj - Nested data structure
+       * @param {string} path - Path to the property whose value is to be returned or changed.
+       * @param {*} [value] - New value to be set. If not specified, the value of the property is returned.
+       * @returns {*} - Existing or updated value of the property.
+       * @example // Get value
+       * const obj = { foo: { bar: [{ abc: "xyz" }] } };
+       * const result = ccm.helper.deepValue(obj, "foo.bar.0.abc");
+       * console.log(result); // => 'xyz'
+       * @example // Set value
+       * var obj = {};
+       * var result = ccm.helper.deepValue(obj, "foo.bar", "abc");
+       * console.log(obj);    // => { foo: { bar: "abc" } }
+       * console.log(result); // => "abc"
+       */
+      deepValue: function (obj, path, value) {
+        return recursive(obj, path.split("."), value);
         function recursive(obj, key, value) {
           if (!obj) return;
           const next = key.shift();
@@ -303,6 +337,7 @@
           return recursive(obj[next], key, value);
         }
       },
+
       format: (data, values) => {
         const temp = [[], [], {}];
         const obj_mode = ccm.helper.isObject(data);
@@ -315,18 +350,17 @@
         });
         for (let i = 0; i < values.length; i++) {
           if (typeof values[i] === "object") {
-            for (const key in values[i])
-              if (values[i].hasOwnProperty(key)) {
-                if (typeof values[i][key] !== "string" && obj_mode) {
-                  temp[2][key] = values[i][key];
-                  values[i][key] = `%$2%${key}%`;
-                }
-                if (typeof values[i][key] !== "string") continue;
-                data = data.replace(
-                  new RegExp(`%${key}%`, "g"),
-                  values[i][key].replace(/"/g, '\\"')
-                );
+            for (const key in values[i]) {
+              if (typeof values[i][key] !== "string" && obj_mode) {
+                temp[2][key] = values[i][key];
+                values[i][key] = `%$2%${key}%`;
               }
+              if (typeof values[i][key] !== "string") continue;
+              data = data.replace(
+                new RegExp(`%${key}%`, "g"),
+                values[i][key].replace(/"/g, '\\"')
+              );
+            }
           } else {
             if (typeof values[i] !== "string" && obj_mode) {
               temp[1].push(values[i]);
@@ -527,8 +561,33 @@
       },
     },
   };
-  if (!window.ccm) window.ccm = { callbacks: {}, files: {} };
+
+  // Is this the first ccmjs framework version loaded in this webpage? => Initialize global namespace.
+  if (!window.ccm)
+    window.ccm = {
+      /**
+       * @description
+       * This namespace is only used internally.
+       * JSONP callbacks for loading data via {@link ccm.load} are temporarily stored here (is always emptied directly).
+       * @namespace ccm.callbacks
+       * @type {Object.<string,function>}
+       */
+      callbacks: {},
+
+      /**
+       * @description
+       * This namespace is only used internally.
+       * Result data of loaded JavaScript files via {@link ccm.load} are temporarily stored here (is always emptied directly).
+       * @namespace ccm.files
+       * @type {Object}
+       */
+      files: {},
+    };
+
+  // Is this the first time this specific ccmjs framework version is loaded in this webpage? => Initialize version specific namespace.
   if (!window.ccm[ccm.version()]) window.ccm[ccm.version()] = ccm;
+
+  // Is this the latest ccmjs framework version loaded on this website so far? => Update global namespace.
   if (ccm.helper.compareVersions(ccm.version(), window.ccm.version()) > 0)
     Object.assign(window.ccm, ccm);
 })();
@@ -550,6 +609,13 @@
  * @property {string} [method] - The request method, e.g., <code>"GET"</code>, <code>"POST"</code>. The default is <code>"GET"</code>. Only relevant when loading data. <code>"JSONP"</code> is also supported.
  * @property {string} [params] - HTTP parameters to send. Only relevant when loading data.
  * @tutorial loading-of-resources
+ */
+
+/**
+ * @typedef {string} ccm.types.version_nr
+ * @description A version number that is conformed with Semantic Versioning 2.0.0 ({@link http://semver.org}).
+ * @example "1.0.0"
+ * @example "2.1.3"
  */
 
 /**
