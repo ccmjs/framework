@@ -350,18 +350,17 @@
         });
         for (let i = 0; i < values.length; i++) {
           if (typeof values[i] === "object") {
-            for (const key in values[i])
-              if (values[i].hasOwnProperty(key)) {
-                if (typeof values[i][key] !== "string" && obj_mode) {
-                  temp[2][key] = values[i][key];
-                  values[i][key] = `%$2%${key}%`;
-                }
-                if (typeof values[i][key] !== "string") continue;
-                data = data.replace(
-                  new RegExp(`%${key}%`, "g"),
-                  values[i][key].replace(/"/g, '\\"')
-                );
+            for (const key in values[i]) {
+              if (typeof values[i][key] !== "string" && obj_mode) {
+                temp[2][key] = values[i][key];
+                values[i][key] = `%$2%${key}%`;
               }
+              if (typeof values[i][key] !== "string") continue;
+              data = data.replace(
+                new RegExp(`%${key}%`, "g"),
+                values[i][key].replace(/"/g, '\\"')
+              );
+            }
           } else {
             if (typeof values[i] !== "string" && obj_mode) {
               temp[1].push(values[i]);
