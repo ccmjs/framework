@@ -355,28 +355,46 @@
        * console.log(result); // => { hello: "Hello, World!" }
        */
       format: (data, values) => {
+        const functions = {};
+
         // convert data to string (if not already)
         data = ccm.helper.stringify(data);
 
-        // replace placeholders with values
+        // replace placeholders with values (functions are stored in a separate object)
         for (const key in values)
-          data = data.replace(
-            new RegExp(`%${key}%`, "g"),
-            values[key].replace(/"/g, '\\"')
-          );
+          if (typeof values[key] !== "function")
+            data = data.replace(
+              new RegExp(`%${key}%`, "g"),
+              values[key].replace(/"/g, '\\"')
+            );
+          else functions[`%${key}%`] = values[key];
 
-        // convert the data back to its original format and return it
-        return ccm.helper.parse(data);
+        // convert the data back to its original format and return it (replace placeholders for functions)
+        return ccm.helper.parse(data, (key, val) =>
+          Object.keys(functions).includes(val) ? functions[val] : val
+        );
       },
+
       html: (html, values, settings = {}) => {
+        // convert HTML to JSON
         html = ccm.helper.html2json(html);
+
+        // HTML is a primitive value (e.g. a string)? => convert it to a text node
         if (!ccm.helper.isObject(html)) return document.createTextNode(html);
+
+        // replace placeholders in the HTML with values, if given
         if (values) html = ccm.helper.format(html, values);
+
+        // is a svg element? => set namespace URI
         if (html.tag === "svg")
           settings.namespace_uri = "http://www.w3.org/2000/svg";
+
+        // create HTML element
         const element = settings.namespace_uri
           ? document.createElementNS(settings.namespace_uri, html.tag || "div")
           : document.createElement(html.tag || "div");
+
+        // set attributes, inner HTML and event listeners
         delete html.tag;
         for (const key in html) {
           const value = html[key];
@@ -411,6 +429,7 @@
                 const children = Array.isArray(value) ? value : [value];
                 children.forEach((child) =>
                   element.appendChild(
+                    // recursive call for each child
                     ccm.helper.html(child, undefined, settings)
                   )
                 );

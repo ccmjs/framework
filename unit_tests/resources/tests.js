@@ -249,6 +249,52 @@
           actual = uut.helper.format(obj, { name: "World" });
           suite.assertEquals(expected, actual);
         },
+        function html(suite) {
+          let html;
+
+          // content without HTML tag
+          html = "Hello, World!";
+          expected = Text;
+          actual = uut.helper.html(html);
+          suite.assertTrue(actual instanceof expected);
+
+          expected = "Hello, World!";
+          actual = actual.textContent;
+          suite.assertEquals(expected, actual);
+
+          // content with HTML tag
+          html = "Hello, <b>World</b>!";
+          expected = HTMLElement;
+          actual = uut.helper.html(html);
+          suite.assertTrue(actual instanceof expected);
+
+          expected = "Hello, <b>World</b>!";
+          actual = actual.innerHTML;
+          suite.assertEquals(expected, actual);
+
+          // content with HTML tag and placeholder
+          html = "Hello, <b>%name%</b>!";
+          html = uut.helper.html(html, { name: "World" });
+          actual = html.innerHTML;
+          expected = "Hello, <b>World</b>!";
+          suite.assertEquals(expected, actual);
+
+          // content with HTML tags, placeholder and click event
+          html =
+            '<p>Hello, <b>%name%</b>! <button onclick="%click%"></button></p>';
+          html = uut.helper.html(html, {
+            name: "World",
+            click: () => (actual = "World"),
+          });
+          expected = "Hello, <b>World</b>! <button></button>";
+          actual = html.innerHTML;
+          suite.assertEquals(expected, actual);
+
+          expected = "World";
+          actual = "";
+          html.querySelector("button").click();
+          suite.assertEquals(expected, actual);
+        },
       ],
     },
   };
