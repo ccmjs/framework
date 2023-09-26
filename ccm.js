@@ -170,7 +170,7 @@
             if (url.startsWith("./"))
               url = url.replace(
                 "./",
-                location.href.substring(0, location.href.lastIndexOf("/") + 1)
+                location.href.substring(0, location.href.lastIndexOf("/") + 1),
               );
             import(url).then((result) => {
               if (keys.length === 1)
@@ -365,13 +365,13 @@
           if (typeof values[key] !== "function")
             data = data.replace(
               new RegExp(`%${key}%`, "g"),
-              values[key].replace(/"/g, '\\"')
+              values[key].replace(/"/g, '\\"'),
             );
           else functions[`%${key}%`] = values[key];
 
         // convert the data back to its original format and return it (replace placeholders for functions)
         return ccm.helper.parse(data, (key, val) =>
-          Object.keys(functions).includes(val) ? functions[val] : val
+          Object.keys(functions).includes(val) ? functions[val] : val,
         );
       },
 
@@ -430,8 +430,8 @@
                 children.forEach((child) =>
                   element.appendChild(
                     // recursive call for each child
-                    ccm.helper.html(child, undefined, settings)
-                  )
+                    ccm.helper.html(child, undefined, settings),
+                  ),
                 );
               }
               break;
@@ -447,7 +447,7 @@
               ? element.getAttribute("component")
               : element.tagName.substring(4).toLowerCase(),
             ccm.helper.generateConfig(element),
-            element
+            element,
           );
         return element;
       },
@@ -481,7 +481,7 @@
           [...html.attributes].forEach(
             (attr) =>
               (json[attr.name] =
-                attr.value === "" && attr.name !== "value" ? true : attr.value)
+                attr.value === "" && attr.name !== "value" ? true : attr.value),
           );
         [...html.childNodes].forEach((child) => {
           if (child.nodeType === Node.COMMENT_NODE)
@@ -492,7 +492,7 @@
             json.inner.push(
               ccm.helper.isElement(child)
                 ? ccm.helper.html2json(child)
-                : child.textContent
+                : child.textContent,
             );
         });
         if (!json.inner.length) delete json.inner;
@@ -534,7 +534,7 @@
             .replace(/\\b/g, "\\b")
             .replace(/\\f/g, "\\f")
             .replace(/[\u0000-\u0019]+/g, ""),
-          reviver
+          reviver,
         );
       },
       regex: (index) => {
@@ -558,7 +558,7 @@
               value = null;
             return replacer ? replacer(key, value) : value;
           },
-          space
+          space,
         );
       },
     },
