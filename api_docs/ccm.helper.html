@@ -810,6 +810,350 @@ console.log(result); // =&gt; { hello: &quot;Hello, World!&quot; }</pre>
     
 </dd>
 
+        
+            
+<hr>
+<dt>
+    <h4 class="name" id=".html"><span class="type-signature">&lt;static> </span>html(html, values, settings)</h4>
+    
+    
+</dt>
+<dd>
+
+    
+    <div class="description">
+        <p>Converts HTML given as a string or JSON into HTML elements.</p>
+    </div>
+    
+
+    
+
+    
+
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params table table-striped">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>html</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+|
+
+<span class="param-type">html_data</span>
+
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>values</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Placeholders contained in the HTML are replaced by these values.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>settings</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">
+                <h6 class="method-params-label method-subparams-label">Properties</h6>
+                
+
+<table class="params table table-striped">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Argument</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>ignore_apps</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>No evaluation of &lt;ccm-app&gt; tags.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>namespace_uri</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>Namespace URI for HTML elements.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+    
+
+    
+<dl class="details">
+    
+
+	
+
+	
+
+	
+
+    
+
+    
+
+    
+
+    
+
+	
+
+	
+
+	
+
+	
+
+	
+
+
+
+	
+	<dt class="tag-source method-doc-label method-doc-details-label">Source:</dt>
+	<dd class="tag-source">
+		<ul class="dummy">
+			<li>
+				<a href="ccm.js.html">ccm.js</a>,
+				 <a href="ccm.js.html#sunlight-1-line-417">line 417</a>
+			</li>
+		</ul>
+	</dd>
+	
+
+	
+
+	
+
+	
+</dl>
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <h5>Returns:</h5>
+    
+            
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Element</span>
+|
+
+<span class="param-type">Text</span>
+
+
+
+    </dd>
+</dl>
+
+
+        
+
+    
+        <h5>Examples</h5>
+        
+    <pre class="sunlight-highlight-javascript">// Converting an HTML string
+const str = &#x27;&lt;p&gt;Hello, &lt;b&gt;%name%&lt;/b&gt;! &lt;button onclick=&quot;%click%&quot;&gt;&lt;/button&gt;&lt;/p&gt;&#x27;;
+const values = {
+  name: &quot;World&quot;,
+  click: () =&gt; console.log(&quot;click!&quot;)
+};
+const elem = ccm.helper.html(str, values);
+document.body.appendChild(elem);</pre>
+
+    <pre class="sunlight-highlight-javascript">// Converting HTML data
+const json = {
+  inner: [
+    &quot;Hello, &quot;,
+    {
+      inner: &quot;%name%&quot;,
+      tag: &quot;b&quot;,
+    },
+    &quot;! &quot;,
+    {
+      tag: &quot;button&quot;,
+      onclick: &quot;%click%&quot;,
+    },
+  ],
+  tag: &quot;p&quot;,
+};
+const values = {
+  name: &quot;World&quot;,
+  click: () =&gt; console.log(&quot;click!&quot;)
+};
+const elem = window.ccm.helper.html(json, values);
+document.body.appendChild(elem);</pre>
+
+
+    
+</dd>
+
         </dl>
     
 
@@ -866,7 +1210,7 @@ console.log(result); // =&gt; { hello: &quot;Hello, World!&quot; }</pre>
 <span class="jsdoc-message">
 	Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.6</a>
 	
-		on 2023-09-23T15:25:01+02:00
+		on 2023-09-27T17:53:38+02:00
 	
 	using the <a href="https://github.com/docstrap/docstrap">DocStrap template</a>.
 </span>

@@ -242,7 +242,7 @@
             if (url.startsWith("./"))
               url = url.replace(
                 "./",
-                location.href.substring(0, location.href.lastIndexOf("/") + 1)
+                location.href.substring(0, location.href.lastIndexOf("/") + 1),
               );
             import(url).then((result) => {
               if (keys.length === 1)
@@ -427,28 +427,85 @@
        * console.log(result); // => { hello: "Hello, World!" }
        */
       format: (data, values) => {
+        const functions = {};
+
         // convert data to string (if not already)
         data = ccm.helper.stringify(data);
 
-        // replace placeholders with values
+        // replace placeholders with values (functions are stored in a separate object)
         for (const key in values)
-          data = data.replace(
-            new RegExp(`%${key}%`, "g"),
-            values[key].replace(/"/g, '\\"')
-          );
+          if (typeof values[key] !== "function")
+            data = data.replace(
+              new RegExp(`%${key}%`, "g"),
+              values[key].replace(/"/g, '\\"'),
+            );
+          else functions[`%${key}%`] = values[key];
 
-        // convert the data back to its original format and return it
-        return ccm.helper.parse(data);
+        // convert the data back to its original format and return it (replace placeholders for functions)
+        return ccm.helper.parse(data, (key, val) =>
+          Object.keys(functions).includes(val) ? functions[val] : val,
+        );
       },
+
+      /**
+       * Converts HTML given as a string or JSON into HTML elements.
+       * @param {string|html_data} html
+       * @param {Object} values - Placeholders contained in the HTML are replaced by these values.
+       * @param {Object} settings
+       * @param {boolean} [settings.ignore_apps] - No evaluation of \&lt;ccm-app> tags.
+       * @param {string} [settings.namespace_uri] - Namespace URI for HTML elements.
+       * @returns {Element|Text}
+       * @example // Converting an HTML string
+       * const str = '&lt;p>Hello, &lt;b>%name%&lt;/b>! &lt;button onclick="%click%">&lt;/button>&lt;/p>';
+       * const values = {
+       *   name: "World",
+       *   click: () => console.log("click!")
+       * };
+       * const elem = ccm.helper.html(str, values);
+       * document.body.appendChild(elem);
+       * @example // Converting HTML data
+       * const json = {
+       *   inner: [
+       *     "Hello, ",
+       *     {
+       *       inner: "%name%",
+       *       tag: "b",
+       *     },
+       *     "! ",
+       *     {
+       *       tag: "button",
+       *       onclick: "%click%",
+       *     },
+       *   ],
+       *   tag: "p",
+       * };
+       * const values = {
+       *   name: "World",
+       *   click: () => console.log("click!")
+       * };
+       * const elem = window.ccm.helper.html(json, values);
+       * document.body.appendChild(elem);
+       */
       html: (html, values, settings = {}) => {
+        // convert HTML to JSON
         html = ccm.helper.html2json(html);
+
+        // HTML is a primitive value (e.g. a string)? => convert it to a text node
         if (!ccm.helper.isObject(html)) return document.createTextNode(html);
+
+        // replace placeholders in the HTML with values, if given
         if (values) html = ccm.helper.format(html, values);
+
+        // is a svg element? => set namespace URI
         if (html.tag === "svg")
           settings.namespace_uri = "http://www.w3.org/2000/svg";
+
+        // create HTML element
         const element = settings.namespace_uri
           ? document.createElementNS(settings.namespace_uri, html.tag || "div")
           : document.createElement(html.tag || "div");
+
+        // set attributes, inner HTML and event listeners
         delete html.tag;
         for (const key in html) {
           const value = html[key];
@@ -483,8 +540,9 @@
                 const children = Array.isArray(value) ? value : [value];
                 children.forEach((child) =>
                   element.appendChild(
-                    ccm.helper.html(child, undefined, settings)
-                  )
+                    // recursive call for each child
+                    ccm.helper.html(child, undefined, settings),
+                  ),
                 );
               }
               break;
@@ -500,7 +558,7 @@
               ? element.getAttribute("component")
               : element.tagName.substring(4).toLowerCase(),
             ccm.helper.generateConfig(element),
-            element
+            element,
           );
         return element;
       },
@@ -510,12 +568,6 @@
           const template = document.createElement("template");
           template.innerHTML = html;
           html = template.content;
-        }
-        if (ccm.helper.isJQuery(html)) {
-          html = html.get();
-          const fragment = document.createDocumentFragment();
-          html.forEach((elem) => fragment.appendChild(elem));
-          html = fragment;
         }
         if (html instanceof DocumentFragment) {
           if (!html.children.length) return html.textContent;
@@ -534,7 +586,7 @@
           [...html.attributes].forEach(
             (attr) =>
               (json[attr.name] =
-                attr.value === "" &amp;&amp; attr.name !== "value" ? true : attr.value)
+                attr.value === "" &amp;&amp; attr.name !== "value" ? true : attr.value),
           );
         [...html.childNodes].forEach((child) => {
           if (child.nodeType === Node.COMMENT_NODE)
@@ -545,7 +597,7 @@
             json.inner.push(
               ccm.helper.isElement(child)
                 ? ccm.helper.html2json(child)
-                : child.textContent
+                : child.textContent,
             );
         });
         if (!json.inner.length) delete json.inner;
@@ -559,7 +611,6 @@
         return value instanceof Element || value instanceof DocumentFragment;
       },
       isInstance: (value) => ccm.helper.isComponent(value?.component),
-      isJQuery: (value) => window.jQuery &amp;&amp; value instanceof jQuery,
       isNode: (value) => value instanceof Node,
       isObject: (value) => {
         return value &amp;&amp; typeof value === "object" &amp;&amp; !Array.isArray(value);
@@ -571,8 +622,7 @@
           ccm.helper.isCore(value) ||
           ccm.helper.isInstance(value) ||
           ccm.helper.isComponent(value) ||
-          ccm.helper.isDatastore(value) ||
-          ccm.helper.isJQuery(value)
+          ccm.helper.isDatastore(value)
         );
       },
       parse: (string, reviver) => {
@@ -587,7 +637,7 @@
             .replace(/\\b/g, "\\b")
             .replace(/\\f/g, "\\f")
             .replace(/[\u0000-\u0019]+/g, ""),
-          reviver
+          reviver,
         );
       },
       regex: (index) => {
@@ -611,7 +661,7 @@
               value = null;
             return replacer ? replacer(key, value) : value;
           },
-          space
+          space,
         );
       },
     },
@@ -643,7 +693,10 @@
   if (!window.ccm[ccm.version()]) window.ccm[ccm.version()] = ccm;
 
   // Is this the latest ccmjs framework version loaded on this website so far? => Update global namespace.
-  if (ccm.helper.compareVersions(ccm.version(), window.ccm.version()) > 0)
+  if (
+    !window.ccm.version ||
+    ccm.helper.compareVersions(ccm.version(), window.ccm.version()) > 0
+  )
     Object.assign(window.ccm, ccm);
 })();
 
@@ -723,7 +776,7 @@
 <span class="jsdoc-message">
 	Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.6</a>
 	
-		on 2023-09-23T15:25:01+02:00
+		on 2023-09-27T17:53:38+02:00
 	
 	using the <a href="https://github.com/docstrap/docstrap">DocStrap template</a>.
 </span>

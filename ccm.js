@@ -375,6 +375,45 @@
         );
       },
 
+      /**
+       * Converts HTML given as a string or JSON into HTML elements.
+       * @param {string|html_data} html
+       * @param {Object} values - Placeholders contained in the HTML are replaced by these values.
+       * @param {Object} settings
+       * @param {boolean} [settings.ignore_apps] - No evaluation of \<ccm-app> tags.
+       * @param {string} [settings.namespace_uri] - Namespace URI for HTML elements.
+       * @returns {Element|Text}
+       * @example // Converting an HTML string
+       * const str = '<p>Hello, <b>%name%</b>! <button onclick="%click%"></button></p>';
+       * const values = {
+       *   name: "World",
+       *   click: () => console.log("click!")
+       * };
+       * const elem = ccm.helper.html(str, values);
+       * document.body.appendChild(elem);
+       * @example // Converting HTML data
+       * const json = {
+       *   inner: [
+       *     "Hello, ",
+       *     {
+       *       inner: "%name%",
+       *       tag: "b",
+       *     },
+       *     "! ",
+       *     {
+       *       tag: "button",
+       *       onclick: "%click%",
+       *     },
+       *   ],
+       *   tag: "p",
+       * };
+       * const values = {
+       *   name: "World",
+       *   click: () => console.log("click!")
+       * };
+       * const elem = window.ccm.helper.html(json, values);
+       * document.body.appendChild(elem);
+       */
       html: (html, values, settings = {}) => {
         // convert HTML to JSON
         html = ccm.helper.html2json(html);
@@ -458,12 +497,6 @@
           template.innerHTML = html;
           html = template.content;
         }
-        if (ccm.helper.isJQuery(html)) {
-          html = html.get();
-          const fragment = document.createDocumentFragment();
-          html.forEach((elem) => fragment.appendChild(elem));
-          html = fragment;
-        }
         if (html instanceof DocumentFragment) {
           if (!html.children.length) return html.textContent;
           [...html.childNodes].forEach((child) => {
@@ -506,7 +539,6 @@
         return value instanceof Element || value instanceof DocumentFragment;
       },
       isInstance: (value) => ccm.helper.isComponent(value?.component),
-      isJQuery: (value) => window.jQuery && value instanceof jQuery,
       isNode: (value) => value instanceof Node,
       isObject: (value) => {
         return value && typeof value === "object" && !Array.isArray(value);
@@ -518,8 +550,7 @@
           ccm.helper.isCore(value) ||
           ccm.helper.isInstance(value) ||
           ccm.helper.isComponent(value) ||
-          ccm.helper.isDatastore(value) ||
-          ccm.helper.isJQuery(value)
+          ccm.helper.isDatastore(value)
         );
       },
       parse: (string, reviver) => {
@@ -590,7 +621,10 @@
   if (!window.ccm[ccm.version()]) window.ccm[ccm.version()] = ccm;
 
   // Is this the latest ccmjs framework version loaded on this website so far? => Update global namespace.
-  if (ccm.helper.compareVersions(ccm.version(), window.ccm.version()) > 0)
+  if (
+    !window.ccm.version ||
+    ccm.helper.compareVersions(ccm.version(), window.ccm.version()) > 0
+  )
     Object.assign(window.ccm, ccm);
 })();
 
