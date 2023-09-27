@@ -170,7 +170,7 @@
             if (url.startsWith("./"))
               url = url.replace(
                 "./",
-                location.href.substring(0, location.href.lastIndexOf("/") + 1),
+                location.href.substring(0, location.href.lastIndexOf("/") + 1)
               );
             import(url).then((result) => {
               if (keys.length === 1)
@@ -365,19 +365,20 @@
           if (typeof values[key] !== "function")
             data = data.replace(
               new RegExp(`%${key}%`, "g"),
-              values[key].replace(/"/g, '\\"'),
+              values[key].replace(/"/g, '\\"')
             );
           else functions[`%${key}%`] = values[key];
 
         // convert the data back to its original format and return it (replace placeholders for functions)
         return ccm.helper.parse(data, (key, val) =>
-          Object.keys(functions).includes(val) ? functions[val] : val,
+          Object.keys(functions).includes(val) ? functions[val] : val
         );
       },
 
       /**
-       * Converts HTML given as a string or JSON into HTML elements.
-       * @param {string|html_data} html
+       * @summary Converts HTML given as a string or JSON into HTML elements.
+       * @description Placeholders marked with <code>%%</code> in the HTML are replaced with <code>values</code>.
+       * @param {string|ccm.types.html_data} html - HTML as string or JSON
        * @param {Object} values - Placeholders contained in the HTML are replaced by these values.
        * @param {Object} settings
        * @param {boolean} [settings.ignore_apps] - No evaluation of \<ccm-app> tags.
@@ -387,7 +388,7 @@
        * const str = '<p>Hello, <b>%name%</b>! <button onclick="%click%"></button></p>';
        * const values = {
        *   name: "World",
-       *   click: () => console.log("click!")
+       *   click: () => console.log("click!"),
        * };
        * const elem = ccm.helper.html(str, values);
        * document.body.appendChild(elem);
@@ -409,7 +410,7 @@
        * };
        * const values = {
        *   name: "World",
-       *   click: () => console.log("click!")
+       *   click: () => console.log("click!"),
        * };
        * const elem = window.ccm.helper.html(json, values);
        * document.body.appendChild(elem);
@@ -469,8 +470,8 @@
                 children.forEach((child) =>
                   element.appendChild(
                     // recursive call for each child
-                    ccm.helper.html(child, undefined, settings),
-                  ),
+                    ccm.helper.html(child, undefined, settings)
+                  )
                 );
               }
               break;
@@ -486,10 +487,11 @@
               ? element.getAttribute("component")
               : element.tagName.substring(4).toLowerCase(),
             ccm.helper.generateConfig(element),
-            element,
+            element
           );
         return element;
       },
+
       html2json: (html) => {
         const json = { inner: [] };
         if (typeof html === "string") {
@@ -514,7 +516,7 @@
           [...html.attributes].forEach(
             (attr) =>
               (json[attr.name] =
-                attr.value === "" && attr.name !== "value" ? true : attr.value),
+                attr.value === "" && attr.name !== "value" ? true : attr.value)
           );
         [...html.childNodes].forEach((child) => {
           if (child.nodeType === Node.COMMENT_NODE)
@@ -525,7 +527,7 @@
             json.inner.push(
               ccm.helper.isElement(child)
                 ? ccm.helper.html2json(child)
-                : child.textContent,
+                : child.textContent
             );
         });
         if (!json.inner.length) delete json.inner;
@@ -565,7 +567,7 @@
             .replace(/\\b/g, "\\b")
             .replace(/\\f/g, "\\f")
             .replace(/[\u0000-\u0019]+/g, ""),
-          reviver,
+          reviver
         );
       },
       regex: (index) => {
@@ -589,7 +591,7 @@
               value = null;
             return replacer ? replacer(key, value) : value;
           },
-          space,
+          space
         );
       },
     },
@@ -634,6 +636,39 @@
  */
 
 /**
+ * @typedef {Object|string} ccm.types.html_data
+ * @summary JSON representation of HTML
+ * @description
+ * Other properties besides <code>tag</code> and <code>inner</code> are used to define HTML attributes.
+ * A string instead of an object represents pure text content without HTML tags.
+ * The HTML data can also contain placeholders marked with <code>%%</code>, which can be dynamically replaced with values via {@link ccm.helper.html} or {@link ccm.helper.format}.
+ * @property {string} [tag="div"] - HTML tag name
+ * @property {ccm.types.html_data} [inner] - inner HTML
+ * @example
+ * {
+ *   tag: "p",
+ *   inner: [
+ *     "Hello, ",
+ *     {
+ *       tag: "b",
+ *       inner: "%name%",
+ *     },
+ *     "! ",
+ *     {
+ *       tag: "button",
+ *       onclick: "%click%",
+ *     },
+ *   ]
+ * }
+ * // represents the following HTML:
+ * // <p>Hello, <b>%name%</b>! <button onclick="%click%"></button></p>
+ */
+
+/**
+ * @typedef {Object} ccm.types.instance
+ */
+
+/**
  * @typedef {Object} ccm.types.resource_obj
  * @description
  * Instead of a URL, a resource object can be passed to the method {@link ccm.load}, which then contains other information besides the URL, via which the loading of the resource is even more flexible controllable.
@@ -652,8 +687,4 @@
  * @description A version number that is conformed with Semantic Versioning 2.0.0 ({@link http://semver.org}).
  * @example "1.0.0"
  * @example "2.1.3"
- */
-
-/**
- * @typedef {Object} ccm.types.instance
  */
