@@ -295,6 +295,24 @@
           html.querySelector("button").click();
           suite.assertEquals(expected, actual);
         },
+        function html2json(suite) {
+          let html;
+
+          // content without HTML tag
+          html = "Hello, World!";
+          expected = "Hello, World!";
+          actual = uut.helper.html2json(html);
+          suite.assertEquals(expected, actual);
+
+          // content with HTML tag
+          html = "<p>Hello, <b>World</b>!</p>";
+          expected = {
+            inner: ["Hello, ", { inner: "World", tag: "b" }, "!"],
+            tag: "p",
+          };
+          actual = uut.helper.html2json(html);
+          suite.assertEquals(expected, actual);
+        },
       ],
     },
   };

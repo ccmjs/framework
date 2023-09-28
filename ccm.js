@@ -287,7 +287,7 @@
      */
     helper: {
       /**
-       * @description Compares two version numbers.
+       * @summary Compares two version numbers.
        * @param {ccm.types.version_nr} a - 1st version number
        * @param {ccm.types.version_nr} b - 2nd version number
        * @returns {number} -1: a < b, 0: a = b, 1: a > b
@@ -310,7 +310,7 @@
       },
 
       /**
-       * @description Returns or modifies a value contained in a nested data structure.
+       * @summary Returns or modifies a value contained in a nested data structure.
        * @param {Object} obj - Nested data structure
        * @param {string} path - Path to the property whose value is to be returned or changed.
        * @param {any} [value] - New value to be set. If not specified, the value of the property is returned.
@@ -339,7 +339,7 @@
       },
 
       /**
-       * @description Replaces placeholders in data with values (e.g. in a string or object).
+       * @summary Replaces placeholders in data with values (e.g. in a string or object).
        * @param {any} data
        * @param {Object} values
        * @returns {any} - Deep copy of data with replaced placeholders.
@@ -394,11 +394,12 @@
        * document.body.appendChild(elem);
        * @example // Converting HTML data
        * const json = {
+       *   tag: "p",
        *   inner: [
        *     "Hello, ",
        *     {
-       *       inner: "%name%",
        *       tag: "b",
+       *       inner: "%name%",
        *     },
        *     "! ",
        *     {
@@ -406,7 +407,6 @@
        *       onclick: "%click%",
        *     },
        *   ],
-       *   tag: "p",
        * };
        * const values = {
        *   name: "World",
@@ -492,6 +492,27 @@
         return element;
       },
 
+      /**
+       * @summary Converts HTML to JSON
+       * @description Comments contained in the HTML will be removed.
+       * @param {string|Element|DocumentFragment} html - HTML as string, Element or DocumentFragment
+       * @returns {ccm.types.html_data} JSON representation of the HTML
+       * @example // Converting an HTML string
+       * const html = '<p>Hello, <b>World</b>!';
+       * const json = ccm.helper.html2json(html);
+       * console.log(json);
+       * //{
+       * //  tag: "p",
+       * //  inner: [
+       * //    "Hello, ",
+       * //    {
+       * //      tag: "b",
+       * //      inner: "World",
+       * //    },
+       * //    "!",
+       * //  ],
+       * //};
+       */
       html2json: (html) => {
         const json = { inner: [] };
         if (typeof html === "string") {
@@ -534,6 +555,7 @@
         else if (json.inner.length === 1) json.inner = json.inner[0];
         return json;
       },
+
       isComponent: (value) => value?.Instance && value.ccm && true,
       isCore: (value) => value?.components && value.version && true,
       isDatastore: (value) => value?.get && value.local && value.source && true,
