@@ -313,6 +313,22 @@
           actual = uut.helper.html2json(html);
           suite.assertEquals(expected, actual);
         },
+        async function isComponent(suite) {
+          const component = await uut.component({
+            name: "component",
+            ccm: "./../ccm.js",
+            config: {},
+            Instance: function () {
+              this.start = async () => {};
+            },
+          });
+          actual = uut.helper.isComponent(component);
+          suite.assertTrue(actual);
+
+          const instance = await uut.instance(component);
+          actual = uut.helper.isComponent(instance);
+          suite.assertFalse(actual);
+        },
       ],
     },
   };

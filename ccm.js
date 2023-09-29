@@ -556,7 +556,26 @@
         return json;
       },
 
+      /**
+       * Checks whether a value is a _ccmjs_ component object.
+       * @param {any} value - Value to be checked.
+       * @returns {boolean}
+       * @example
+       * const component = await ccm.component({
+       *   name: "component",
+       *   ccm: "./libs/ccm/ccm.js",
+       *   config: {},
+       *   Instance: function () {
+       *     this.start = async () => {};
+       *   },
+       * });
+       * uut.helper.isComponent(component); // => true
+       *
+       * const instance = await ccm.instance(component);
+       * ccm.helper.isComponent(instance);  // => false
+       */
       isComponent: (value) => value?.Instance && value.ccm && true,
+
       isCore: (value) => value?.components && value.version && true,
       isDatastore: (value) => value?.get && value.local && value.source && true,
       isElement: (value) => {
