@@ -561,7 +561,7 @@
        * @param {any} value - Value to be checked.
        * @returns {boolean}
        * @example
-       * const component = await ccm.component({
+       * const value = await ccm.component({
        *   name: "component",
        *   ccm: "./libs/ccm/ccm.js",
        *   config: {},
@@ -569,14 +569,20 @@
        *     this.start = async () => {};
        *   },
        * });
-       * uut.helper.isComponent(component); // => true
-       *
-       * const instance = await ccm.instance(component);
-       * ccm.helper.isComponent(instance);  // => false
+       * ccm.helper.isComponent(value); // => true
        */
       isComponent: (value) => value?.Instance && value.ccm && true,
 
-      isCore: (value) => value?.components && value.version && true,
+      /**
+       * Checks whether a value is a _ccmjs_ framework object.
+       * @param {any} value - Value to be checked.
+       * @returns {boolean}
+       * @example
+       * const value = window.ccm;
+       * ccm.helper.isFramework(value); // => true
+       */
+      isFramework: (value) => value?.components && value.version && true,
+
       isDatastore: (value) => value?.get && value.local && value.source && true,
       isElement: (value) => {
         return value instanceof Element || value instanceof DocumentFragment;
@@ -590,7 +596,7 @@
         return !!(
           value === window ||
           ccm.helper.isNode(value) ||
-          ccm.helper.isCore(value) ||
+          ccm.helper.isFramework(value) ||
           ccm.helper.isInstance(value) ||
           ccm.helper.isComponent(value) ||
           ccm.helper.isDatastore(value)

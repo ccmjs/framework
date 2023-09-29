@@ -314,7 +314,10 @@
           suite.assertEquals(expected, actual);
         },
         async function isComponent(suite) {
-          const component = await uut.component({
+          let value;
+
+          /*
+          value = await uut.component({
             name: "component",
             ccm: "./../ccm.js",
             config: {},
@@ -322,12 +325,18 @@
               this.start = async () => {};
             },
           });
-          actual = uut.helper.isComponent(component);
+           */
+          actual = uut.helper.isComponent(value);
           suite.assertTrue(actual);
 
-          const instance = await uut.instance(component);
-          actual = uut.helper.isComponent(instance);
+          value = await uut.instance(value);
+          actual = uut.helper.isComponent(value);
           suite.assertFalse(actual);
+        },
+        function isFramework(suite) {
+          const value = window.ccm;
+          actual = uut.helper.isFramework(value);
+          suite.assertTrue(actual);
         },
       ],
     },
