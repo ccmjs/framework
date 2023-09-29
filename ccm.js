@@ -287,29 +287,6 @@
      */
     helper: {
       /**
-       * @summary Compares two version numbers.
-       * @param {ccm.types.version_nr} a - 1st version number
-       * @param {ccm.types.version_nr} b - 2nd version number
-       * @returns {number} -1: a < b, 0: a = b, 1: a > b
-       * @example console.log( compareVersions( '3.0.0', '2.10.0' ) ); // => 1
-       * @example console.log( compareVersions( '8.0.1', '8.0.10' ) ); // => -1
-       */
-      compareVersions: (a, b) => {
-        if (a === b) return 0;
-        if (!a) return a;
-        if (!b) return b;
-        const a_arr = a.split(".");
-        const b_arr = b.split(".");
-        for (let i = 0; i < 3; i++) {
-          const x = parseInt(a_arr[i]);
-          const y = parseInt(b_arr[i]);
-          if (x < y) return -1;
-          else if (x > y) return 1;
-        }
-        return 0;
-      },
-
-      /**
        * @summary Returns or modifies a value contained in a nested data structure.
        * @param {Object} obj - Nested data structure
        * @param {string} path - Path to the property whose value is to be returned or changed.
@@ -574,6 +551,34 @@
       isComponent: (value) => value?.Instance && value.ccm && true,
 
       /**
+       * Checks whether a value is a _ccmjs_ datastore object.
+       * @param {any} value - Value to be checked.
+       * @returns {boolean}
+       * @example
+       * const value = await ccm.store();
+       * ccm.helper.isDatastore(value); // => true
+       */
+      isDatastore: (value) => value?.get && value.local && value.source && true,
+
+      /**
+       * Checks whether a value is a DOM element or a DocumentFragment.
+       * @param {any} value - Value to be checked.
+       * @returns {boolean}
+       * @example
+       * const value = document.body;
+       * ccm.helper.isElement(value); // => true
+       * @example
+       * const value = document.createElement("div");
+       * ccm.helper.isElement(value); // => true
+       * @example
+       * const value = document.createDocumentFragment();
+       * ccm.helper.isElement(value); // => true
+       */
+      isElement: (value) => {
+        return value instanceof Element || value instanceof DocumentFragment;
+      },
+
+      /**
        * Checks whether a value is a _ccmjs_ framework object.
        * @param {any} value - Value to be checked.
        * @returns {boolean}
@@ -583,10 +588,6 @@
        */
       isFramework: (value) => value?.components && value.version && true,
 
-      isDatastore: (value) => value?.get && value.local && value.source && true,
-      isElement: (value) => {
-        return value instanceof Element || value instanceof DocumentFragment;
-      },
       isInstance: (value) => ccm.helper.isComponent(value?.component),
       isNode: (value) => value instanceof Node,
       isObject: (value) => {
@@ -668,13 +669,6 @@
 
   // Is this the first time this specific ccmjs framework version is loaded in this webpage? => Initialize version specific namespace.
   if (!window.ccm[ccm.version()]) window.ccm[ccm.version()] = ccm;
-
-  // Is this the latest ccmjs framework version loaded on this website so far? => Update global namespace.
-  if (
-    !window.ccm.version ||
-    ccm.helper.compareVersions(ccm.version(), window.ccm.version()) > 0
-  )
-    Object.assign(window.ccm, ccm);
 })();
 
 /**

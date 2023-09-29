@@ -161,198 +161,6 @@ These are also useful for component developers.</p></div>
             
 <hr>
 <dt>
-    <h4 class="name" id=".compareVersions"><span class="type-signature">&lt;static> </span>compareVersions(a, b)</h4>
-    
-    
-    <p class="summary"><p>Compares two version numbers.</p></p>
-    
-</dt>
-<dd>
-
-    
-
-    
-
-    
-
-    
-    
-        <h5>Parameters:</h5>
-        
-
-<table class="params table table-striped">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>a</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type"><a href="ccm.types.html#.version_nr">ccm.types.version_nr</a></span>
-
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>1st version number</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>b</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type"><a href="ccm.types.html#.version_nr">ccm.types.version_nr</a></span>
-
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>2nd version number</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-    
-
-    
-<dl class="details">
-    
-
-	
-
-	
-
-	
-
-    
-
-    
-
-    
-
-    
-
-	
-
-	
-
-	
-
-	
-
-	
-
-
-
-	
-	<dt class="tag-source method-doc-label method-doc-details-label">Source:</dt>
-	<dd class="tag-source">
-		<ul class="dummy">
-			<li>
-				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-297">line 297</a>
-			</li>
-		</ul>
-	</dd>
-	
-
-	
-
-	
-
-	
-</dl>
-
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <h5>Returns:</h5>
-    
-            
-<div class="param-desc">
-    <p>-1: a &lt; b, 0: a = b, 1: a &gt; b</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">number</span>
-
-
-
-    </dd>
-</dl>
-
-
-        
-
-    
-        <h5>Examples</h5>
-        
-    <pre class="sunlight-highlight-javascript">console.log( compareVersions( &#x27;3.0.0&#x27;, &#x27;2.10.0&#x27; ) ); // =&gt; 1</pre>
-
-    <pre class="sunlight-highlight-javascript">console.log( compareVersions( &#x27;8.0.1&#x27;, &#x27;8.0.10&#x27; ) ); // =&gt; -1</pre>
-
-
-    
-</dd>
-
-        
-            
-<hr>
-<dt>
     <h4 class="name" id=".deepValue"><span class="type-signature">&lt;static> </span>deepValue(obj, path [, value])</h4>
     
     
@@ -532,7 +340,7 @@ These are also useful for component developers.</p></div>
 		<ul class="dummy">
 			<li>
 				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-328">line 328</a>
+				 <a href="ccm.js.html#sunlight-1-line-305">line 305</a>
 			</li>
 		</ul>
 	</dd>
@@ -733,7 +541,7 @@ console.log(result); // =&gt; &quot;abc&quot;</pre>
 		<ul class="dummy">
 			<li>
 				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-357">line 357</a>
+				 <a href="ccm.js.html#sunlight-1-line-334">line 334</a>
 			</li>
 		</ul>
 	</dd>
@@ -1062,7 +870,7 @@ console.log(result); // =&gt; { hello: &quot;Hello, World!&quot; }</pre>
 		<ul class="dummy">
 			<li>
 				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-418">line 418</a>
+				 <a href="ccm.js.html#sunlight-1-line-395">line 395</a>
 			</li>
 		</ul>
 	</dd>
@@ -1267,7 +1075,7 @@ document.body.appendChild(elem);</pre>
 		<ul class="dummy">
 			<li>
 				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-516">line 516</a>
+				 <a href="ccm.js.html#sunlight-1-line-493">line 493</a>
 			</li>
 		</ul>
 	</dd>
@@ -1449,7 +1257,7 @@ console.log(json);
 		<ul class="dummy">
 			<li>
 				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-574">line 574</a>
+				 <a href="ccm.js.html#sunlight-1-line-551">line 551</a>
 			</li>
 		</ul>
 	</dd>
@@ -1507,6 +1315,342 @@ console.log(json);
   },
 });
 ccm.helper.isComponent(value); // =&gt; true</pre>
+
+
+    
+</dd>
+
+        
+            
+<hr>
+<dt>
+    <h4 class="name" id=".isDatastore"><span class="type-signature">&lt;static> </span>isDatastore(value)</h4>
+    
+    
+</dt>
+<dd>
+
+    
+    <div class="description">
+        <p>Checks whether a value is a <em>ccmjs</em> datastore object.</p>
+    </div>
+    
+
+    
+
+    
+
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params table table-striped">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>value</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">any</span>
+
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Value to be checked.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+    
+
+    
+<dl class="details">
+    
+
+	
+
+	
+
+	
+
+    
+
+    
+
+    
+
+    
+
+	
+
+	
+
+	
+
+	
+
+	
+
+
+
+	
+	<dt class="tag-source method-doc-label method-doc-details-label">Source:</dt>
+	<dd class="tag-source">
+		<ul class="dummy">
+			<li>
+				<a href="ccm.js.html">ccm.js</a>,
+				 <a href="ccm.js.html#sunlight-1-line-561">line 561</a>
+			</li>
+		</ul>
+	</dd>
+	
+
+	
+
+	
+
+	
+</dl>
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <h5>Returns:</h5>
+    
+            
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">boolean</span>
+
+
+
+    </dd>
+</dl>
+
+
+        
+
+    
+        <h5>Example</h5>
+        
+    <pre class="sunlight-highlight-javascript">const value = await ccm.store();
+ccm.helper.isDatastore(value); // =&gt; true</pre>
+
+
+    
+</dd>
+
+        
+            
+<hr>
+<dt>
+    <h4 class="name" id=".isElement"><span class="type-signature">&lt;static> </span>isElement(value)</h4>
+    
+    
+</dt>
+<dd>
+
+    
+    <div class="description">
+        <p>Checks whether a value is a DOM element or a DocumentFragment.</p>
+    </div>
+    
+
+    
+
+    
+
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params table table-striped">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>value</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">any</span>
+
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Value to be checked.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+    
+
+    
+<dl class="details">
+    
+
+	
+
+	
+
+	
+
+    
+
+    
+
+    
+
+    
+
+	
+
+	
+
+	
+
+	
+
+	
+
+
+
+	
+	<dt class="tag-source method-doc-label method-doc-details-label">Source:</dt>
+	<dd class="tag-source">
+		<ul class="dummy">
+			<li>
+				<a href="ccm.js.html">ccm.js</a>,
+				 <a href="ccm.js.html#sunlight-1-line-577">line 577</a>
+			</li>
+		</ul>
+	</dd>
+	
+
+	
+
+	
+
+	
+</dl>
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <h5>Returns:</h5>
+    
+            
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">boolean</span>
+
+
+
+    </dd>
+</dl>
+
+
+        
+
+    
+        <h5>Examples</h5>
+        
+    <pre class="sunlight-highlight-javascript">const value = document.body;
+ccm.helper.isElement(value); // =&gt; true</pre>
+
+    <pre class="sunlight-highlight-javascript">const value = document.createElement(&quot;div&quot;);
+ccm.helper.isElement(value); // =&gt; true</pre>
+
+    <pre class="sunlight-highlight-javascript">const value = document.createDocumentFragment();
+ccm.helper.isElement(value); // =&gt; true</pre>
 
 
     
@@ -1621,7 +1765,7 @@ ccm.helper.isComponent(value); // =&gt; true</pre>
 		<ul class="dummy">
 			<li>
 				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-584">line 584</a>
+				 <a href="ccm.js.html#sunlight-1-line-589">line 589</a>
 			</li>
 		</ul>
 	</dd>
@@ -1733,7 +1877,7 @@ ccm.helper.isFramework(value); // =&gt; true</pre>
 <span class="jsdoc-message">
 	Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.6</a>
 	
-		on 2023-09-29T09:10:16+02:00
+		on 2023-09-29T09:54:29+02:00
 	
 	using the <a href="https://github.com/docstrap/docstrap">DocStrap template</a>.
 </span>

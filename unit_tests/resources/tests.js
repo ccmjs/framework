@@ -9,7 +9,7 @@
   ccm.files["tests.js"] = {
     setup: async (suite) => {
       await suite.ccm.load("./../ccm.js");
-      uut = ccm;
+      uut = ccm["28.0.0"];
       expected = actual = undefined;
     },
     tests: [
@@ -215,15 +215,6 @@
     },
     "ccm.helper": {
       tests: [
-        function compareVersions(suite) {
-          expected = 1;
-          actual = uut.helper.compareVersions("3.0.0", "2.10.0");
-          suite.assertEquals(expected, actual);
-
-          expected = -1;
-          actual = uut.helper.compareVersions("8.0.1", "8.0.10");
-          suite.assertEquals(expected, actual);
-        },
         function deepValue(suite) {
           const obj = { foo: { bar: [{ abc: "xyz" }] } };
           expected = "xyz";
@@ -316,7 +307,6 @@
         async function isComponent(suite) {
           let value;
 
-          /*
           value = await uut.component({
             name: "component",
             ccm: "./../ccm.js",
@@ -325,13 +315,32 @@
               this.start = async () => {};
             },
           });
-           */
           actual = uut.helper.isComponent(value);
           suite.assertTrue(actual);
 
           value = await uut.instance(value);
           actual = uut.helper.isComponent(value);
           suite.assertFalse(actual);
+        },
+        async function isDatastore(suite) {
+          const value = await uut.store();
+          actual = uut.helper.isDatastore(value);
+          suite.assertTrue(actual);
+        },
+        function isElement(suite) {
+          let value;
+
+          value = document.body;
+          actual = uut.helper.isElement(value);
+          suite.assertTrue(actual);
+
+          value = document.createElement("div");
+          actual = uut.helper.isElement(value);
+          suite.assertTrue(actual);
+
+          value = document.createDocumentFragment();
+          actual = uut.helper.isElement(value);
+          suite.assertTrue(actual);
         },
         function isFramework(suite) {
           const value = window.ccm;
