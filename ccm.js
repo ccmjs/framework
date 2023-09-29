@@ -649,16 +649,6 @@
         return value && typeof value === "object" && !Array.isArray(value);
       },
 
-      isSpecialObject: (value) => {
-        return !!(
-          value === window ||
-          ccm.helper.isNode(value) ||
-          ccm.helper.isFramework(value) ||
-          ccm.helper.isInstance(value) ||
-          ccm.helper.isComponent(value) ||
-          ccm.helper.isDatastore(value)
-        );
-      },
       parse: (string, reviver) => {
         return JSON.parse(
           string
@@ -674,6 +664,22 @@
           reviver
         );
       },
+
+      /**
+       * @summary Checks whether a value is a plain object.
+       * @param {any} value - Value to be checked.
+       * @returns {boolean}
+       * @example
+       * const value = {};
+       * ccm.helper.isPlainObject(value); // => true
+       * @example
+       * const value = function () {};
+       * ccm.helper.isPlainObject(value); // => false
+       */
+      isPlainObject: (value) => {
+        return Object.getPrototypeOf(value) === Object.prototype;
+      },
+
       regex: (index) => {
         switch (index) {
           case "filename":
@@ -688,10 +694,7 @@
         return JSON.stringify(
           value,
           (key, value) => {
-            if (
-              typeof value === "function" ||
-              ccm.helper.isSpecialObject(value)
-            )
+            if (ccm.helper.isObject(value) && !ccm.helper.isPlainObject(value))
               value = null;
             return replacer ? replacer(key, value) : value;
           },
@@ -730,6 +733,14 @@
 /**
  * @namespace ccm.types
  * @description _ccmjs_-specific Type Definitions
+ */
+
+/**
+ * @typedef {Object} ccm.types.component
+ */
+
+/**
+ * @typedef {Object} ccm.types.framework
  */
 
 /**
@@ -777,6 +788,10 @@
  * @property {string} [method] - The request method, e.g., <code>"GET"</code>, <code>"POST"</code>. The default is <code>"GET"</code>. Only relevant when loading data. <code>"JSONP"</code> is also supported.
  * @property {string} [params] - HTTP parameters to send. Only relevant when loading data.
  * @tutorial loading-of-resources
+ */
+
+/**
+ * @typedef {Object} ccm.types.store
  */
 
 /**

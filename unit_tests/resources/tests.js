@@ -407,6 +407,17 @@
           actual = uut.helper.isObject(value);
           suite.assertTrue(actual);
         },
+        function isPlainObject(suite) {
+          let value;
+
+          value = {};
+          actual = uut.helper.isPlainObject(value);
+          suite.assertTrue(actual);
+
+          value = function () {};
+          actual = uut.helper.isPlainObject(value);
+          suite.assertFalse(actual);
+        },
       ],
     },
   };
