@@ -1155,13 +1155,11 @@ console.log(json);
     <h4 class="name" id=".isComponent"><span class="type-signature">&lt;static> </span>isComponent(value)</h4>
     
     
+    <p class="summary"><p>Checks whether a value is a <em>ccmjs</em> component object.</p></p>
+    
 </dt>
 <dd>
 
-    
-    <div class="description">
-        <p>Checks whether a value is a <em>ccmjs</em> component object.</p>
-    </div>
     
 
     
@@ -1327,13 +1325,11 @@ ccm.helper.isComponent(value); // =&gt; true</pre>
     <h4 class="name" id=".isDatastore"><span class="type-signature">&lt;static> </span>isDatastore(value)</h4>
     
     
+    <p class="summary"><p>Checks whether a value is a <em>ccmjs</em> datastore object.</p></p>
+    
 </dt>
 <dd>
 
-    
-    <div class="description">
-        <p>Checks whether a value is a <em>ccmjs</em> datastore object.</p>
-    </div>
     
 
     
@@ -1492,13 +1488,11 @@ ccm.helper.isDatastore(value); // =&gt; true</pre>
     <h4 class="name" id=".isElement"><span class="type-signature">&lt;static> </span>isElement(value)</h4>
     
     
+    <p class="summary"><p>Checks whether a value is a DOM element or a DocumentFragment.</p></p>
+    
 </dt>
 <dd>
 
-    
-    <div class="description">
-        <p>Checks whether a value is a DOM element or a DocumentFragment.</p>
-    </div>
     
 
     
@@ -1663,13 +1657,11 @@ ccm.helper.isElement(value); // =&gt; true</pre>
     <h4 class="name" id=".isFramework"><span class="type-signature">&lt;static> </span>isFramework(value)</h4>
     
     
+    <p class="summary"><p>Checks whether a value is a <em>ccmjs</em> framework object.</p></p>
+    
 </dt>
 <dd>
 
-    
-    <div class="description">
-        <p>Checks whether a value is a <em>ccmjs</em> framework object.</p>
-    </div>
     
 
     
@@ -1828,13 +1820,11 @@ ccm.helper.isFramework(value); // =&gt; true</pre>
     <h4 class="name" id=".isInstance"><span class="type-signature">&lt;static> </span>isInstance(value)</h4>
     
     
+    <p class="summary"><p>Checks whether a value is a <em>ccmjs</em> component instance.</p></p>
+    
 </dt>
 <dd>
 
-    
-    <div class="description">
-        <p>Checks whether a value is a <em>ccmjs</em> component instance.</p>
-    </div>
     
 
     
@@ -2000,13 +1990,11 @@ ccm.helper.isInstance(value); // =&gt; true</pre>
     <h4 class="name" id=".isNode"><span class="type-signature">&lt;static> </span>isNode(value)</h4>
     
     
+    <p class="summary"><p>Checks whether a value is a DOM Node.</p></p>
+    
 </dt>
 <dd>
 
-    
-    <div class="description">
-        <p>Checks whether a value is a DOM Node.</p>
-    </div>
     
 
     
@@ -2173,6 +2161,179 @@ ccm.helper.isNode(value); // =&gt; true</pre>
     
 </dd>
 
+        
+            
+<hr>
+<dt>
+    <h4 class="name" id=".isObject"><span class="type-signature">&lt;static> </span>isObject(value)</h4>
+    
+    
+    <p class="summary"><p>Checks whether a value is an object.</p></p>
+    
+</dt>
+<dd>
+
+    
+    <div class="description">
+        <p>Also returns <code>false</code> for <code>null</code> and array.</p>
+    </div>
+    
+
+    
+
+    
+
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params table table-striped">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>value</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">any</span>
+
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Value to be checked.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+    
+
+    
+<dl class="details">
+    
+
+	
+
+	
+
+	
+
+    
+
+    
+
+    
+
+    
+
+	
+
+	
+
+	
+
+	
+
+	
+
+
+
+	
+	<dt class="tag-source method-doc-label method-doc-details-label">Source:</dt>
+	<dd class="tag-source">
+		<ul class="dummy">
+			<li>
+				<a href="ccm.js.html">ccm.js</a>,
+				 <a href="ccm.js.html#sunlight-1-line-648">line 648</a>
+			</li>
+		</ul>
+	</dd>
+	
+
+	
+
+	
+
+	
+</dl>
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <h5>Returns:</h5>
+    
+            
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">boolean</span>
+
+
+
+    </dd>
+</dl>
+
+
+        
+
+    
+        <h5>Examples</h5>
+        
+    <pre class="sunlight-highlight-javascript">const value = null;
+ccm.helper.isObject(value); // =&gt; false</pre>
+
+    <pre class="sunlight-highlight-javascript">const value = [];
+ccm.helper.isObject(value); // =&gt; false</pre>
+
+    <pre class="sunlight-highlight-javascript">const value = {};
+ccm.helper.isObject(value); // =&gt; true</pre>
+
+
+    
+</dd>
+
         </dl>
     
 
@@ -2229,7 +2390,7 @@ ccm.helper.isNode(value); // =&gt; true</pre>
 <span class="jsdoc-message">
 	Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.6</a>
 	
-		on 2023-09-29T10:08:25+02:00
+		on 2023-09-29T10:16:22+02:00
 	
 	using the <a href="https://github.com/docstrap/docstrap">DocStrap template</a>.
 </span>

@@ -534,7 +534,7 @@
       },
 
       /**
-       * Checks whether a value is a _ccmjs_ component object.
+       * @summary Checks whether a value is a _ccmjs_ component object.
        * @param {any} value - Value to be checked.
        * @returns {boolean}
        * @example
@@ -551,7 +551,7 @@
       isComponent: (value) => value?.Instance && value.ccm && true,
 
       /**
-       * Checks whether a value is a _ccmjs_ datastore object.
+       * @summary Checks whether a value is a _ccmjs_ datastore object.
        * @param {any} value - Value to be checked.
        * @returns {boolean}
        * @example
@@ -561,7 +561,7 @@
       isDatastore: (value) => value?.get && value.local && value.source && true,
 
       /**
-       * Checks whether a value is a DOM element or a DocumentFragment.
+       * @summary Checks whether a value is a DOM element or a DocumentFragment.
        * @param {any} value - Value to be checked.
        * @returns {boolean}
        * @example
@@ -579,7 +579,7 @@
       },
 
       /**
-       * Checks whether a value is a _ccmjs_ framework object.
+       * @summary Checks whether a value is a _ccmjs_ framework object.
        * @param {any} value - Value to be checked.
        * @returns {boolean}
        * @example
@@ -589,7 +589,7 @@
       isFramework: (value) => value?.components && value.version && true,
 
       /**
-       * Checks whether a value is a _ccmjs_ component instance.
+       * @summary Checks whether a value is a _ccmjs_ component instance.
        * @param {any} value - Value to be checked.
        * @returns {boolean}
        * @example
@@ -606,7 +606,7 @@
       isInstance: (value) => ccm.helper.isComponent(value?.component),
 
       /**
-       * Checks whether a value is a DOM Node.
+       * @summary Checks whether a value is a DOM Node.
        * @param {any} value - Value to be checked.
        * @returns {boolean}
        * @example
@@ -630,9 +630,25 @@
        */
       isNode: (value) => value instanceof Node,
 
+      /**
+       * @summary Checks whether a value is an object.
+       * @description Also returns <code>false</code> for <code>null</code> and array.
+       * @param {any} value - Value to be checked.
+       * @returns {boolean}
+       * @example
+       * const value = null;
+       * ccm.helper.isObject(value); // => false
+       * @example
+       * const value = [];
+       * ccm.helper.isObject(value); // => false
+       * @example
+       * const value = {};
+       * ccm.helper.isObject(value); // => true
+       */
       isObject: (value) => {
         return value && typeof value === "object" && !Array.isArray(value);
       },
+
       isSpecialObject: (value) => {
         return !!(
           value === window ||

@@ -392,6 +392,21 @@
           actual = uut.helper.isNode(value);
           suite.assertTrue(actual);
         },
+        function isObject(suite) {
+          let value;
+
+          value = null;
+          actual = uut.helper.isObject(value);
+          suite.assertFalse(actual);
+
+          value = [];
+          actual = uut.helper.isObject(value);
+          suite.assertFalse(actual);
+
+          value = {};
+          actual = uut.helper.isObject(value);
+          suite.assertTrue(actual);
+        },
       ],
     },
   };
