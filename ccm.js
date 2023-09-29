@@ -214,7 +214,7 @@
               if (resource.params)
                 resource.method === "GET"
                   ? (resource.url = buildURL(resource.url, resource.params))
-                  : (resource.body = ccm.helper.stringify(resource.params));
+                  : (resource.body = JSON.stringify(resource.params));
               fetch(resource.url, { ...resource })
                 .then((response) => response.text())
                 .then(success)
@@ -223,7 +223,7 @@
 
             function buildURL(url, data) {
               if (ccm.helper.isObject(data.json))
-                data.json = ccm.helper.stringify(data.json);
+                data.json = JSON.stringify(data.json);
               return data ? url + "?" + params(data).slice(0, -1) : url;
               function params(obj, prefix) {
                 let result = "";
@@ -247,7 +247,7 @@
           function success(data) {
             if (data === undefined) return check();
             try {
-              if (typeof data !== "object") data = ccm.helper.parse(data);
+              if (typeof data !== "object") data = JSON.parse(data);
             } catch (e) {}
             if (resource.type === "html") {
               const regex =
@@ -335,7 +335,7 @@
         const functions = {};
 
         // convert data to string (if not already)
-        data = ccm.helper.stringify(data);
+        data = JSON.stringify(data);
 
         // replace placeholders with values (functions are stored in a separate object)
         for (const key in values)
@@ -347,7 +347,7 @@
           else functions[`%${key}%`] = values[key];
 
         // convert the data back to its original format and return it (replace placeholders for functions)
-        return ccm.helper.parse(data, (key, val) =>
+        return JSON.parse(data, (key, val) =>
           Object.keys(functions).includes(val) ? functions[val] : val
         );
       },
@@ -649,22 +649,6 @@
         return value && typeof value === "object" && !Array.isArray(value);
       },
 
-      parse: (string, reviver) => {
-        return JSON.parse(
-          string
-            .replace(/\\n/g, "\\n")
-            .replace(/\\'/g, "\\'")
-            .replace(/\\"/g, '\\"')
-            .replace(/\\&/g, "\\&")
-            .replace(/\\r/g, "\\r")
-            .replace(/\\t/g, "\\t")
-            .replace(/\\b/g, "\\b")
-            .replace(/\\f/g, "\\f")
-            .replace(/[\u0000-\u0019]+/g, ""),
-          reviver
-        );
-      },
-
       /**
        * @summary Checks whether a value is a plain object.
        * @param {any} value - Value to be checked.
@@ -689,17 +673,6 @@
           case "json":
             return /^(({(.|\n)*})|(\[(.|\n)*])|true|false|null)$/;
         }
-      },
-      stringify: (value, replacer, space) => {
-        return JSON.stringify(
-          value,
-          (key, value) => {
-            if (ccm.helper.isObject(value) && !ccm.helper.isPlainObject(value))
-              value = null;
-            return replacer ? replacer(key, value) : value;
-          },
-          space
-        );
       },
     },
   };
@@ -748,8 +721,8 @@
  * @summary JSON representation of HTML
  * @description
  * Other properties besides <code>tag</code> and <code>inner</code> are used to define HTML attributes.
- * A string instead of an object represents pure text content without HTML tags.
  * The HTML data can also contain placeholders marked with <code>%%</code>, which can be dynamically replaced with values via {@link ccm.helper.html} or {@link ccm.helper.format}.
+ * A string instead of an object represents pure text content without HTML tags.
  * @property {string} [tag="div"] - HTML tag name
  * @property {ccm.types.html_data} [inner] - inner HTML
  * @example
