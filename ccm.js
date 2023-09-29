@@ -663,17 +663,6 @@
       isPlainObject: (value) => {
         return Object.getPrototypeOf(value) === Object.prototype;
       },
-
-      regex: (index) => {
-        switch (index) {
-          case "filename":
-            return /^ccm\.([a-z][a-z_0-9]*)(-(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))?(\.min)?(\.js)$/;
-          case "key":
-            return /^[a-zA-Z0-9_-]+$/;
-          case "json":
-            return /^(({(.|\n)*})|(\[(.|\n)*])|true|false|null)$/;
-        }
-      },
     },
   };
 
