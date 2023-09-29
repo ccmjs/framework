@@ -588,8 +588,48 @@
        */
       isFramework: (value) => value?.components && value.version && true,
 
+      /**
+       * Checks whether a value is a _ccmjs_ component instance.
+       * @param {any} value - Value to be checked.
+       * @returns {boolean}
+       * @example
+       * const value = await ccm.instance({
+       *   name: "component",
+       *   ccm: "./libs/ccm/ccm.js",
+       *   config: {},
+       *   Instance: function () {
+       *     this.start = async () => {};
+       *   },
+       * });
+       * ccm.helper.isInstance(value); // => true
+       */
       isInstance: (value) => ccm.helper.isComponent(value?.component),
+
+      /**
+       * Checks whether a value is a DOM Node.
+       * @param {any} value - Value to be checked.
+       * @returns {boolean}
+       * @example
+       * const value = document.body;
+       * ccm.helper.isNode(value); // => true
+       * @example
+       * const value = document.createElement("div");
+       * ccm.helper.isNode(value); // => true
+       * @example
+       * const value = document.createDocumentFragment();
+       * ccm.helper.isNode(value); // => true
+       * @example
+       * const value = document.createTextNode("Hello, World!");
+       * ccm.helper.isNode(value); // => true
+       * @example
+       * const value = document.createAttribute("disabled");
+       * ccm.helper.isNode(value); // => true
+       * @example
+       * const value = document.createComment("Hello, World!");
+       * ccm.helper.isNode(value); // => true
+       */
       isNode: (value) => value instanceof Node,
+
       isObject: (value) => {
         return value && typeof value === "object" && !Array.isArray(value);
       },

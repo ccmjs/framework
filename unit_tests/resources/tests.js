@@ -347,6 +347,51 @@
           actual = uut.helper.isFramework(value);
           suite.assertTrue(actual);
         },
+        async function isInstance(suite) {
+          let value;
+
+          value = await uut.component({
+            name: "component",
+            ccm: "./../ccm.js",
+            config: {},
+            Instance: function () {
+              this.start = async () => {};
+            },
+          });
+          actual = uut.helper.isComponent(value);
+          suite.assertFalse(actual);
+
+          value = await uut.instance(value);
+          actual = uut.helper.isComponent(value);
+          suite.assertTrue(actual);
+        },
+        function isNode(suite) {
+          let value;
+
+          value = document.body;
+          actual = uut.helper.isNode(value);
+          suite.assertTrue(actual);
+
+          value = document.createElement("div");
+          actual = uut.helper.isNode(value);
+          suite.assertTrue(actual);
+
+          value = document.createDocumentFragment();
+          actual = uut.helper.isNode(value);
+          suite.assertTrue(actual);
+
+          value = document.createTextNode("Hello, World!");
+          actual = uut.helper.isNode(value);
+          suite.assertTrue(actual);
+
+          value = document.createAttribute("disabled");
+          actual = uut.helper.isNode(value);
+          suite.assertTrue(actual);
+
+          value = document.createComment("Hello, World!");
+          actual = uut.helper.isNode(value);
+          suite.assertTrue(actual);
+        },
       ],
     },
   };
