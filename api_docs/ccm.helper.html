@@ -84,8 +84,7 @@
     <div class="container-overview">
     
         
-            <div class="description"><p>Contains framework-relevant helper functions.
-These are also useful for component developers.</p></div>
+            <div class="description"><p>These are also useful for component developers.</p></div>
         
 
         
@@ -124,7 +123,7 @@ These are also useful for component developers.</p></div>
 		<ul class="dummy">
 			<li>
 				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-288">line 288</a>
+				 <a href="ccm.js.html#sunlight-1-line-368">line 368</a>
 			</li>
 		</ul>
 	</dd>
@@ -229,7 +228,7 @@ These are also useful for component developers.</p></div>
 
             
 
-            <td class="description last"><p>Nested data structure</p></td>
+            <td class="description last"><p>nested data structure</p></td>
         </tr>
 
     
@@ -261,7 +260,7 @@ These are also useful for component developers.</p></div>
 
             
 
-            <td class="description last"><p>Path to the property whose value is to be returned or changed.</p></td>
+            <td class="description last"><p>path to the property whose value has to be returned or changed</p></td>
         </tr>
 
     
@@ -295,7 +294,7 @@ These are also useful for component developers.</p></div>
 
             
 
-            <td class="description last"><p>New value to be set. If not specified, the value of the property is returned.</p></td>
+            <td class="description last"><p>new value to be set (if not specified, the value of the property is returned)</p></td>
         </tr>
 
     
@@ -340,7 +339,7 @@ These are also useful for component developers.</p></div>
 		<ul class="dummy">
 			<li>
 				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-305">line 305</a>
+				 <a href="ccm.js.html#sunlight-1-line-385">line 385</a>
 			</li>
 		</ul>
 	</dd>
@@ -370,7 +369,7 @@ These are also useful for component developers.</p></div>
             
 <div class="param-desc">
     <ul>
-<li>Existing or updated value of the property.</li>
+<li>existing or updated value of the property</li>
 </ul>
 </div>
 
@@ -417,7 +416,7 @@ console.log(result); // =&gt; &quot;abc&quot;</pre>
     <h4 class="name" id=".format"><span class="type-signature">&lt;static> </span>format(data, values)</h4>
     
     
-    <p class="summary"><p>Replaces placeholders in data with values (e.g. in a string or object).</p></p>
+    <p class="summary"><p>Replaces placeholders in data with values.</p></p>
     
 </dt>
 <dd>
@@ -461,7 +460,13 @@ console.log(result); // =&gt; &quot;abc&quot;</pre>
             <td class="type">
             
                 
-<span class="param-type">any</span>
+<span class="param-type">string</span>
+|
+
+<span class="param-type">Array</span>
+|
+
+<span class="param-type">Object</span>
 
 
 
@@ -541,7 +546,7 @@ console.log(result); // =&gt; &quot;abc&quot;</pre>
 		<ul class="dummy">
 			<li>
 				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-334">line 334</a>
+				 <a href="ccm.js.html#sunlight-1-line-419">line 419</a>
 			</li>
 		</ul>
 	</dd>
@@ -571,7 +576,7 @@ console.log(result); // =&gt; &quot;abc&quot;</pre>
             
 <div class="param-desc">
     <ul>
-<li>Deep copy of data with replaced placeholders.</li>
+<li>deep copy of data with replaced placeholders</li>
 </ul>
 </div>
 
@@ -583,7 +588,13 @@ console.log(result); // =&gt; &quot;abc&quot;</pre>
     </dt>
     <dd>
         
-<span class="param-type">any</span>
+<span class="param-type">string</span>
+|
+
+<span class="param-type">Array</span>
+|
+
+<span class="param-type">Object</span>
 
 
 
@@ -596,17 +607,23 @@ console.log(result); // =&gt; &quot;abc&quot;</pre>
     
         <h5>Examples</h5>
         
-    <pre class="sunlight-highlight-javascript">// Replace placeholders in a string
+    <pre class="sunlight-highlight-javascript">// replace placeholders in a string
 const string = &quot;Hello, %name%!&quot;;
 const values = { name: &quot;World&quot; };
 const result = ccm.helper.format(string, values);
 console.log(result); // =&gt; &quot;Hello, World!&quot;</pre>
 
-    <pre class="sunlight-highlight-javascript">// Replace placeholders in an object
-const object = { hello: &quot;Hello, %name%!&quot; };
-const values = { name: &quot;World&quot; };
+    <pre class="sunlight-highlight-javascript">// replace placeholders in an array
+const array = [&quot;Hello&quot;, &quot;%name%&quot;];
+const values = {name: &quot;World&quot;};
+const result = ccm.helper.format(string, values);
+console.log(result); // =&gt; [&quot;Hello&quot;, &quot;World&quot;]</pre>
+
+    <pre class="sunlight-highlight-javascript">// replace placeholders in an object
+const object = { hello: &quot;Hello, %name%!&quot;, onclick: &quot;%click%&quot; };
+const values = { name: &quot;World&quot;, click: () =&gt; console.log(&quot;click!&quot;) };
 const result = ccm.helper.format(object, values);
-console.log(result); // =&gt; { hello: &quot;Hello, World!&quot; }</pre>
+console.log(result); // =&gt; { hello: &quot;Hello, World!&quot;, onclick: () =&gt; console.log(&quot;click!&quot;)}</pre>
 
 
     
@@ -616,7 +633,123 @@ console.log(result); // =&gt; { hello: &quot;Hello, World!&quot; }</pre>
             
 <hr>
 <dt>
-    <h4 class="name" id=".html"><span class="type-signature">&lt;static> </span>html(html, values, settings)</h4>
+    <h4 class="name" id=".generateKey"><span class="type-signature">&lt;static> </span>generateKey()</h4>
+    
+    
+    <p class="summary"><p>Generates a unique identifier.</p></p>
+    
+</dt>
+<dd>
+
+    
+
+    
+
+    
+
+    
+    
+
+    
+<dl class="details">
+    
+
+	
+
+	
+
+	
+
+    
+
+    
+
+    
+
+    
+
+	
+
+	
+
+	
+
+	
+
+	
+
+
+
+	
+	<dt class="tag-source method-doc-label method-doc-details-label">Source:</dt>
+	<dd class="tag-source">
+		<ul class="dummy">
+			<li>
+				<a href="ccm.js.html">ccm.js</a>,
+				 <a href="ccm.js.html#sunlight-1-line-445">line 445</a>
+			</li>
+		</ul>
+	</dd>
+	
+
+	
+
+	
+
+	
+</dl>
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <h5>Returns:</h5>
+    
+            
+<div class="param-desc">
+    <p>Universally Unique Identifier (<a href="https://developer.mozilla.org/en-US/docs/Glossary/UUID">UUID</a>) without dashes</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">ccm.types.key</span>
+
+
+
+    </dd>
+</dl>
+
+
+        
+
+    
+        <h5>Example</h5>
+        
+    <pre class="sunlight-highlight-javascript">console.log(ccm.helper.generateKey()); // =&gt; 8aacc6ad149047eaa2a89096ecc5a95b</pre>
+
+
+    
+</dd>
+
+        
+            
+<hr>
+<dt>
+    <h4 class="name" id=".html"><span class="type-signature">&lt;static> </span>html(html [, values] [, settings])</h4>
     
     
     <p class="summary"><p>Converts HTML given as a string or JSON into HTML elements.</p></p>
@@ -649,6 +782,8 @@ console.log(result); // =&gt; { hello: &quot;Hello, World!&quot; }</pre>
         <th>Type</th>
 
         
+        <th>Argument</th>
+        
 
         
 
@@ -678,6 +813,14 @@ console.log(result); // =&gt; { hello: &quot;Hello, World!&quot; }</pre>
             </td>
 
             
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
 
             
 
@@ -702,10 +845,20 @@ console.log(result); // =&gt; { hello: &quot;Hello, World!&quot; }</pre>
             </td>
 
             
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
 
             
 
-            <td class="description last"><p>Placeholders contained in the HTML are replaced by these values.</p></td>
+            <td class="description last"><p>placeholders contained in the HTML are replaced by these values</p></td>
         </tr>
 
     
@@ -725,6 +878,16 @@ console.log(result); // =&gt; { hello: &quot;Hello, World!&quot; }</pre>
             
             </td>
 
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
             
 
             
@@ -784,7 +947,7 @@ console.log(result); // =&gt; { hello: &quot;Hello, World!&quot; }</pre>
 
             
 
-            <td class="description last"><p>No evaluation of &lt;ccm-app&gt; tags.</p></td>
+            <td class="description last"><p>no evaluation of &lt;ccm-app&gt; tags</p></td>
         </tr>
 
     
@@ -818,7 +981,7 @@ console.log(result); // =&gt; { hello: &quot;Hello, World!&quot; }</pre>
 
             
 
-            <td class="description last"><p>Namespace URI for HTML elements.</p></td>
+            <td class="description last"><p>namespace URI for HTML elements</p></td>
         </tr>
 
     
@@ -870,7 +1033,7 @@ console.log(result); // =&gt; { hello: &quot;Hello, World!&quot; }</pre>
 		<ul class="dummy">
 			<li>
 				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-395">line 395</a>
+				 <a href="ccm.js.html#sunlight-1-line-487">line 487</a>
 			</li>
 		</ul>
 	</dd>
@@ -922,7 +1085,7 @@ console.log(result); // =&gt; { hello: &quot;Hello, World!&quot; }</pre>
     
         <h5>Examples</h5>
         
-    <pre class="sunlight-highlight-javascript">// Converting an HTML string
+    <pre class="sunlight-highlight-javascript">// converting HTML from string
 const str = &#x27;&lt;p&gt;Hello, &lt;b&gt;%name%&lt;/b&gt;! &lt;button onclick=&quot;%click%&quot;&gt;&lt;/button&gt;&lt;/p&gt;&#x27;;
 const values = {
   name: &quot;World&quot;,
@@ -931,7 +1094,7 @@ const values = {
 const elem = ccm.helper.html(str, values);
 document.body.appendChild(elem);</pre>
 
-    <pre class="sunlight-highlight-javascript">// Converting HTML data
+    <pre class="sunlight-highlight-javascript">// converting HTML from JSON
 const json = {
   tag: &quot;p&quot;,
   inner: [
@@ -965,14 +1128,14 @@ document.body.appendChild(elem);</pre>
     <h4 class="name" id=".html2json"><span class="type-signature">&lt;static> </span>html2json(html)</h4>
     
     
-    <p class="summary"><p>Converts HTML to JSON</p></p>
+    <p class="summary"><p>Converts HTML to JSON.</p></p>
     
 </dt>
 <dd>
 
     
     <div class="description">
-        <p>Comments contained in the HTML will be removed.</p>
+        <p>Contained HTML comments will be removed.</p>
     </div>
     
 
@@ -1075,7 +1238,7 @@ document.body.appendChild(elem);</pre>
 		<ul class="dummy">
 			<li>
 				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-493">line 493</a>
+				 <a href="ccm.js.html#sunlight-1-line-587">line 587</a>
 			</li>
 		</ul>
 	</dd>
@@ -1155,7 +1318,7 @@ console.log(json);
     <h4 class="name" id=".isComponent"><span class="type-signature">&lt;static> </span>isComponent(value)</h4>
     
     
-    <p class="summary"><p>Checks whether a value is a <em>ccmjs</em> component object.</p></p>
+    <p class="summary"><p>Checks whether a value is a <a href="ccm.types.html#.component"><em>ccm</em> component object</a>.</p></p>
     
 </dt>
 <dd>
@@ -1210,7 +1373,7 @@ console.log(json);
 
             
 
-            <td class="description last"><p>Value to be checked.</p></td>
+            <td class="description last"></td>
         </tr>
 
     
@@ -1255,7 +1418,7 @@ console.log(json);
 		<ul class="dummy">
 			<li>
 				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-551">line 551</a>
+				 <a href="ccm.js.html#sunlight-1-line-665">line 665</a>
 			</li>
 		</ul>
 	</dd>
@@ -1325,7 +1488,7 @@ ccm.helper.isComponent(value); // =&gt; true</pre>
     <h4 class="name" id=".isDatastore"><span class="type-signature">&lt;static> </span>isDatastore(value)</h4>
     
     
-    <p class="summary"><p>Checks whether a value is a <em>ccmjs</em> datastore object.</p></p>
+    <p class="summary"><p>Checks whether a value is a <a href="ccm.types.html#.store"><em>ccm</em> datastore object</a>.</p></p>
     
 </dt>
 <dd>
@@ -1380,7 +1543,7 @@ ccm.helper.isComponent(value); // =&gt; true</pre>
 
             
 
-            <td class="description last"><p>Value to be checked.</p></td>
+            <td class="description last"></td>
         </tr>
 
     
@@ -1425,7 +1588,7 @@ ccm.helper.isComponent(value); // =&gt; true</pre>
 		<ul class="dummy">
 			<li>
 				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-561">line 561</a>
+				 <a href="ccm.js.html#sunlight-1-line-675">line 675</a>
 			</li>
 		</ul>
 	</dd>
@@ -1488,7 +1651,7 @@ ccm.helper.isDatastore(value); // =&gt; true</pre>
     <h4 class="name" id=".isElement"><span class="type-signature">&lt;static> </span>isElement(value)</h4>
     
     
-    <p class="summary"><p>Checks whether a value is a DOM element or a DocumentFragment.</p></p>
+    <p class="summary"><p>Checks whether a value is a DOM element (or a DocumentFragment).</p></p>
     
 </dt>
 <dd>
@@ -1543,7 +1706,7 @@ ccm.helper.isDatastore(value); // =&gt; true</pre>
 
             
 
-            <td class="description last"><p>Value to be checked.</p></td>
+            <td class="description last"></td>
         </tr>
 
     
@@ -1588,7 +1751,7 @@ ccm.helper.isDatastore(value); // =&gt; true</pre>
 		<ul class="dummy">
 			<li>
 				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-577">line 577</a>
+				 <a href="ccm.js.html#sunlight-1-line-691">line 691</a>
 			</li>
 		</ul>
 	</dd>
@@ -1657,7 +1820,7 @@ ccm.helper.isElement(value); // =&gt; true</pre>
     <h4 class="name" id=".isFramework"><span class="type-signature">&lt;static> </span>isFramework(value)</h4>
     
     
-    <p class="summary"><p>Checks whether a value is a <em>ccmjs</em> framework object.</p></p>
+    <p class="summary"><p>Checks whether a value is a <a href="ccm.types.html#.framework"><em>ccm</em> framework object</a>.</p></p>
     
 </dt>
 <dd>
@@ -1712,7 +1875,7 @@ ccm.helper.isElement(value); // =&gt; true</pre>
 
             
 
-            <td class="description last"><p>Value to be checked.</p></td>
+            <td class="description last"></td>
         </tr>
 
     
@@ -1757,7 +1920,7 @@ ccm.helper.isElement(value); // =&gt; true</pre>
 		<ul class="dummy">
 			<li>
 				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-589">line 589</a>
+				 <a href="ccm.js.html#sunlight-1-line-703">line 703</a>
 			</li>
 		</ul>
 	</dd>
@@ -1820,7 +1983,7 @@ ccm.helper.isFramework(value); // =&gt; true</pre>
     <h4 class="name" id=".isInstance"><span class="type-signature">&lt;static> </span>isInstance(value)</h4>
     
     
-    <p class="summary"><p>Checks whether a value is a <em>ccmjs</em> component instance.</p></p>
+    <p class="summary"><p>Checks whether a value is a <a href="ccm.types.html#.instance"><em>ccmjs</em> component instance</a>.</p></p>
     
 </dt>
 <dd>
@@ -1875,7 +2038,7 @@ ccm.helper.isFramework(value); // =&gt; true</pre>
 
             
 
-            <td class="description last"><p>Value to be checked.</p></td>
+            <td class="description last"></td>
         </tr>
 
     
@@ -1920,7 +2083,7 @@ ccm.helper.isFramework(value); // =&gt; true</pre>
 		<ul class="dummy">
 			<li>
 				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-606">line 606</a>
+				 <a href="ccm.js.html#sunlight-1-line-720">line 720</a>
 			</li>
 		</ul>
 	</dd>
@@ -2045,7 +2208,7 @@ ccm.helper.isInstance(value); // =&gt; true</pre>
 
             
 
-            <td class="description last"><p>Value to be checked.</p></td>
+            <td class="description last"></td>
         </tr>
 
     
@@ -2090,7 +2253,7 @@ ccm.helper.isInstance(value); // =&gt; true</pre>
 		<ul class="dummy">
 			<li>
 				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-631">line 631</a>
+				 <a href="ccm.js.html#sunlight-1-line-745">line 745</a>
 			</li>
 		</ul>
 	</dd>
@@ -2227,7 +2390,7 @@ ccm.helper.isNode(value); // =&gt; true</pre>
 
             
 
-            <td class="description last"><p>Value to be checked.</p></td>
+            <td class="description last"></td>
         </tr>
 
     
@@ -2272,7 +2435,7 @@ ccm.helper.isNode(value); // =&gt; true</pre>
 		<ul class="dummy">
 			<li>
 				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-648">line 648</a>
+				 <a href="ccm.js.html#sunlight-1-line-762">line 762</a>
 			</li>
 		</ul>
 	</dd>
@@ -2396,7 +2559,7 @@ ccm.helper.isObject(value); // =&gt; true</pre>
 
             
 
-            <td class="description last"><p>Value to be checked.</p></td>
+            <td class="description last"></td>
         </tr>
 
     
@@ -2441,7 +2604,7 @@ ccm.helper.isObject(value); // =&gt; true</pre>
 		<ul class="dummy">
 			<li>
 				<a href="ccm.js.html">ccm.js</a>,
-				 <a href="ccm.js.html#sunlight-1-line-663">line 663</a>
+				 <a href="ccm.js.html#sunlight-1-line-780">line 780</a>
 			</li>
 		</ul>
 	</dd>
@@ -2492,6 +2655,10 @@ ccm.helper.isObject(value); // =&gt; true</pre>
         
     <pre class="sunlight-highlight-javascript">const value = {};
 ccm.helper.isPlainObject(value); // =&gt; true</pre>
+
+    <pre class="sunlight-highlight-javascript">class Test {}
+const value = new Test();
+ccm.helper.isPlainObject(value); // =&gt; false</pre>
 
     <pre class="sunlight-highlight-javascript">const value = function () {};
 ccm.helper.isPlainObject(value); // =&gt; false</pre>
@@ -2556,7 +2723,7 @@ ccm.helper.isPlainObject(value); // =&gt; false</pre>
 <span class="jsdoc-message">
 	Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.6</a>
 	
-		on 2023-09-29T11:56:12+02:00
+		on 2024-05-10T17:33:41+03:00
 	
 	using the <a href="https://github.com/docstrap/docstrap">DocStrap template</a>.
 </span>

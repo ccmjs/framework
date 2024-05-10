@@ -1,2 +1,2 @@
-# ccmjs Framework
-Framework of the ccmjs Web Technology.
+# _ccm_ Framework
+Framework of the _ccm_ Web Technology.

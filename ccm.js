@@ -3,64 +3,107 @@
 /**
  * @overview
  * Creates the global namespace [window.ccm]{@link ccm}.
- * @author André Kless <andre.kless@web.de> (https://github.com/akless) 2014-2023
+ * @author André Kless <andre.kless@web.de> (https://github.com/akless) 2014-2024
  * @license The MIT License (MIT)
  * @version 28.0.0
  * @changes
- * Version 28.0.0
- * - ccm.load: resource data is no longer cloned
- * - ccm.load: removed timeout for loading resources
- * - ccm.load: JSON is loaded either via fetch API or JSONP (no longer via XMLHttpRequest)
- * - ccm.load: used HTTP method must be in upper case
- * - ccm.load: simplified error messages
- * - ccm.helper.html: dynamic parameters must be passed via an object
+ * Version 28.0.0 (10.05.2024)
+ * - refactor(ccm.load)!: resource data is no longer cloned
+ * - refactor(ccm.load)!: removed timeout for loading resources
+ * - refactor(ccm.load)!: JSON is loaded either via fetch API or JSONP and no longer via XMLHttpRequest
+ * - refactor(ccm.load)!: used HTTP method must be in upper case
+ * - refactor(ccm.load): simplified error messages
+ * - refactor(ccm.load): no more counting of same JS files that are loaded in parallel
+ * - refactor(ccm.helper.html)!: dynamic parameters must be passed via object.
+ * - fix(ccm.helper.generateKey): generates a UUID without dashes (avoids bugs when using a UUID in a URL).
  */
 (() => {
   /**
-   * Encapsulates everything related to _ccmjs_.
+   * Encapsulates everything related to _ccm_.
    * See [this wiki]{@link https://github.com/ccmjs/framework/wiki/} to learn everything about this web technology.
    * @global
    * @namespace
    */
   const ccm = {
     /**
-     * @description Returns the _ccmjs_ framework version.
+     * @sumary Returns the _ccm_ framework version.
      * @returns {ccm.types.version_nr}
      */
     version: () => "28.0.0",
 
     /**
      * @summary Asynchronous Loading of Resources
-     * @description See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Loading-of-Resources} to learn everything about this method. There are also examples how to use it.
+     * @description
+     * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Loading-of-Resources}
+     * to learn everything about this method. There are also examples how to use it.
      * @param {...(string|ccm.types.resource_obj)} resources - Resources to load. Either the URL or a [resource object]{@link ccm.types.resource_obj} can be passed for a resource.
      * @returns {Promise<*>}
      */
     load: async (...resources) => {
+      /**
+       * results data of loaded resource(s)
+       * @type {Array}
+       */
       let results = [];
+
+      /**
+       * number of not finished loading resources
+       * @type {number}
+       */
       let counter = 1;
+
+      /**
+       * indicates if loading of at least one resource failed
+       * @type {boolean}
+       */
       let failed = false;
+
       return new Promise((resolve, reject) => {
+        // Iterate through all the resources that should be loaded.
         resources.forEach((resource, i) => {
-          counter++;
+          counter++; // one more not finished loading resource
+
+          // Should several resources be loaded one after the other (i.e. not in parallel)?
           if (Array.isArray(resource)) {
             results[i] = [];
             serial(null);
             return;
           }
+
+          // A string is interpreted as the URL of the resource.
           if (typeof resource === "string") resource = { url: resource };
+
+          // By default, a resource is loaded in the <head> of the webpage.
           if (!resource.context) resource.context = document.head;
+
+          // If the resource should be loaded in the Shadow DOM of a component instance.
           if (ccm.helper.isInstance(resource.context))
             resource.context = resource.context.element.parentNode;
+
+          // load the resource according to its type
           getOperation()();
 
+          /**
+           * When resources should be loaded one after the other.
+           * @param {*} result - result of the last serially loaded resource
+           */
           function serial(result) {
+            // if there is a result value for the last loaded resource
             if (result !== null) results[i].push(result);
+
+            // all resources have been loaded serially
             if (!resource.length) return check();
+
+            // start loading next resource
             let next = resource.shift();
             if (!Array.isArray(next)) next = [next];
-            ccm.load.apply(null, next).then(serial).catch(serial);
+            ccm.load.apply(null, next).then(serial).catch(serial); // recursive call
           }
 
+          /**
+           * returns the operation to load resource according to its type
+           * @returns {Function}
+           */
           function getOperation() {
             switch (resource.type) {
               case "html":
@@ -79,13 +122,10 @@
                 return loadXML;
             }
             const suffix = resource.url
-              .split("?")
-              .shift()
-              .split("#")
-              .shift()
+              .split(/[#?]/)[0]
               .split(".")
               .pop()
-              .toLowerCase();
+              .trim();
             switch (suffix) {
               case "html":
                 return loadHTML;
@@ -109,25 +149,32 @@
             }
           }
 
+          /** loads HTML via Fetch API as HTML string */
           function loadHTML() {
             resource.type = "html";
             loadJSON();
           }
 
+          /** loads CSS via <link> tag */
           function loadCSS() {
+            /** @type {ccm.types.html_data|Element} */
             let element = {
               tag: "link",
               rel: "stylesheet",
               type: "text/css",
               href: resource.url,
             };
+
+            // setup individual HTML attributes for <link> tag
             if (resource.attr) element = Object.assign(element, resource.attr);
-            element = ccm.helper.html(element);
+
+            element = ccm.helper.html(element); // convert to DOM element
             element.onload = () => success(resource.url);
             element.onerror = error;
             resource.context.appendChild(element);
           }
 
+          /** preloads an image */
           function loadImage() {
             const image = new Image();
             image.src = resource.url;
@@ -135,26 +182,30 @@
             image.onerror = error;
           }
 
+          /** loads JavaScript via <script> tag */
           function loadJS() {
+            /**
+             * extracted filename from URL without ".min" infix
+             * @type {string}
+             */
             const filename = resource.url
-              .split("/")
-              .pop()
               .split("?")
               .shift()
+              .split("/")
+              .pop()
               .replace(".min.", ".");
-            window.ccm.files[filename] = null;
-            window.ccm.files["#" + filename] = window.ccm.files["#" + filename]
-              ? window.ccm.files["#" + filename] + 1
-              : 1;
+
+            /** @type {ccm.types.html_data|Element} */
             let element = { tag: "script", src: resource.url, async: true };
+
+            // setup individual HTML attributes for <script> tag
             if (resource.attr) element = Object.assign(element, resource.attr);
-            element = ccm.helper.html(element);
+
+            element = ccm.helper.html(element); // convert to DOM element
             element.onload = () => {
+              // The JS file can pass its result data to the ccm framework via a global variable.
               const data = window.ccm.files[filename];
-              if (!--window.ccm.files["#" + filename]) {
-                delete window.ccm.files[filename];
-                delete window.ccm.files["#" + filename];
-              }
+              delete window.ccm.files[filename];
               element.parentNode.removeChild(element);
               success(data);
             };
@@ -165,39 +216,57 @@
             resource.context.appendChild(element);
           }
 
+          /** loads a JavaScript module via import() */
           function loadModule() {
+            // Use hash signs at the end of URL if only specific properties should be included in the result data.
             let [url, ...keys] = resource.url.split("#");
+
+            // convert relative URL to absolute URL (dynamic imports don't work with relative URL's)
             if (url.startsWith("./"))
               url = url.replace(
                 "./",
-                location.href.substring(0, location.href.lastIndexOf("/") + 1)
+                location.href.substring(0, location.href.lastIndexOf("/") + 1),
               );
+
             import(url).then((result) => {
+              // if only one specific deeper value has to be the result
               if (keys.length === 1)
                 result = ccm.helper.deepValue(result, keys[0]);
+
+              // if more than one specific property has to be included
               if (keys.length > 1) {
                 const obj = {};
                 keys.forEach((key) => (obj[key] = result[key]));
                 result = obj;
               }
+
               success(result);
             });
           }
 
+          /** loads JSON via Fetch API or JSONP */
           function loadJSON() {
             (resource.method === "JSONP" ? jsonp : fetchAPI)();
 
             function jsonp() {
               const callback = "callback" + ccm.helper.generateKey();
+
+              // prepare HTTP GET parameters
               if (!resource.params) resource.params = {};
               resource.params.callback = "window.ccm.callbacks." + callback;
+
+              /** @type {ccm.types.html_data|Element} */
               let element = {
                 tag: "script",
                 src: buildURL(resource.url, resource.params),
               };
+
+              // setup individual HTML attributes for <script> tag
               if (resource.attr)
                 element = Object.assign(element, resource.attr);
-              element = ccm.helper.html(element);
+
+              element = ccm.helper.html(element); // convert to DOM element
+
               element.onerror = () => {
                 element.parentNode.removeChild(element);
                 error();
@@ -207,7 +276,7 @@
                 delete window.ccm.callbacks[callback];
                 success(data);
               };
-              resource.context.appendChild(script);
+              resource.context.appendChild(element);
             }
 
             function fetchAPI() {
@@ -215,7 +284,7 @@
                 resource.method === "GET"
                   ? (resource.url = buildURL(resource.url, resource.params))
                   : (resource.body = JSON.stringify(resource.params));
-              fetch(resource.url, { ...resource })
+              fetch(resource.url, resource)
                 .then((response) => response.text())
                 .then(success)
                 .catch(error);
@@ -239,16 +308,23 @@
             }
           }
 
+          /** loads XML via Fetch API as XML document */
           function loadXML() {
             resource.type = "xml";
             loadJSON();
           }
 
+          /**
+           * callback when loading of a resource was successful
+           * @param {*} data - result data of the loaded resource
+           */
           function success(data) {
             if (data === undefined) return check();
             try {
               if (typeof data !== "object") data = JSON.parse(data);
             } catch (e) {}
+
+            // An HTML file can contain multiple HTML templates via <ccm-template> tags.
             if (resource.type === "html") {
               const regex =
                 /<ccm-template key="(\w*?)">([^]*?)<\/ccm-template>/g;
@@ -257,12 +333,16 @@
               while ((array = regex.exec(data))) result[array[1]] = array[2];
               if (Object.keys(result).length) data = result;
             }
+
+            // XML is loaded as XML document
             if (resource.type === "xml")
               data = new window.DOMParser().parseFromString(data, "text/xml");
+
             results[i] = data;
             check();
           }
 
+          /** callback when loading of a resource failed */
           function error() {
             failed = true;
             results[i] = Error(`loading of ${resource.url} failed`);
@@ -271,8 +351,9 @@
         });
         check();
 
+        /** callback when a resource has been loaded */
         function check() {
-          if (--counter) return;
+          if (--counter) return; // not all resources have been loaded yet
           if (results.length <= 1) results = results[0];
           (failed ? reject : resolve)(results);
         }
@@ -280,18 +361,17 @@
     },
 
     /**
-     * @description
-     * Contains framework-relevant helper functions.
-     * These are also useful for component developers.
+     * @summary Contains framework-relevant helper functions.
+     * @description These are also useful for component developers.
      * @namespace
      */
     helper: {
       /**
        * @summary Returns or modifies a value contained in a nested data structure.
-       * @param {Object} obj - Nested data structure
-       * @param {string} path - Path to the property whose value is to be returned or changed.
-       * @param {any} [value] - New value to be set. If not specified, the value of the property is returned.
-       * @returns {any} - Existing or updated value of the property.
+       * @param {Object} obj - nested data structure
+       * @param {string} path - path to the property whose value has to be returned or changed
+       * @param {any} [value] - new value to be set (if not specified, the value of the property is returned)
+       * @returns {any} - existing or updated value of the property
        * @example // Get value
        * const obj = { foo: { bar: [{ abc: "xyz" }] } };
        * const result = ccm.helper.deepValue(obj, "foo.bar.0.abc");
@@ -316,52 +396,64 @@
       },
 
       /**
-       * @summary Replaces placeholders in data with values (e.g. in a string or object).
-       * @param {any} data
+       * @summary Replaces placeholders in data with values.
+       * @param {string|Array|Object} data
        * @param {Object} values
-       * @returns {any} - Deep copy of data with replaced placeholders.
-       * @example // Replace placeholders in a string
+       * @returns {string|Array|Object} - deep copy of data with replaced placeholders
+       * @example // replace placeholders in a string
        * const string = "Hello, %name%!";
        * const values = { name: "World" };
        * const result = ccm.helper.format(string, values);
        * console.log(result); // => "Hello, World!"
-       * @example // Replace placeholders in an object
-       * const object = { hello: "Hello, %name%!" };
-       * const values = { name: "World" };
+       * @example // replace placeholders in an array
+       * const array = ["Hello", "%name%"];
+       * const values = {name: "World"};
+       * const result = ccm.helper.format(string, values);
+       * console.log(result); // => ["Hello", "World"]
+       * @example // replace placeholders in an object
+       * const object = { hello: "Hello, %name%!", onclick: "%click%" };
+       * const values = { name: "World", click: () => console.log("click!") };
        * const result = ccm.helper.format(object, values);
-       * console.log(result); // => { hello: "Hello, World!" }
+       * console.log(result); // => { hello: "Hello, World!", onclick: () => console.log("click!")}
        */
       format: (data, values) => {
         const functions = {};
 
-        // convert data to string (if not already)
+        // Convert data to string.
         data = JSON.stringify(data);
 
-        // replace placeholders with values (functions are stored in a separate object)
+        // Replace placeholders with values (functions are rescued in a separate object).
         for (const key in values)
           if (typeof values[key] !== "function")
             data = data.replace(
               new RegExp(`%${key}%`, "g"),
-              values[key].replace(/"/g, '\\"')
+              values[key].replace(/"/g, '\\"'),
             );
           else functions[`%${key}%`] = values[key];
 
-        // convert the data back to its original format and return it (replace placeholders for functions)
+        // Convert the data back to its original format and return it (replace placeholders for rescued functions).
         return JSON.parse(data, (key, val) =>
-          Object.keys(functions).includes(val) ? functions[val] : val
+          Object.keys(functions).includes(val) ? functions[val] : val,
         );
       },
+
+      /**
+       * @summary Generates a unique identifier.
+       * @returns {ccm.types.key} Universally Unique Identifier ([UUID](https://developer.mozilla.org/en-US/docs/Glossary/UUID)) without dashes
+       * @example console.log(ccm.helper.generateKey()); // => 8aacc6ad149047eaa2a89096ecc5a95b
+       */
+      generateKey: () => crypto.randomUUID().replaceAll("-", ""),
 
       /**
        * @summary Converts HTML given as a string or JSON into HTML elements.
        * @description Placeholders marked with <code>%%</code> in the HTML are replaced with <code>values</code>.
        * @param {string|ccm.types.html_data} html - HTML as string or JSON
-       * @param {Object} values - Placeholders contained in the HTML are replaced by these values.
-       * @param {Object} settings
-       * @param {boolean} [settings.ignore_apps] - No evaluation of \<ccm-app> tags.
-       * @param {string} [settings.namespace_uri] - Namespace URI for HTML elements.
+       * @param {Object} [values] - placeholders contained in the HTML are replaced by these values
+       * @param {Object} [settings]
+       * @param {boolean} [settings.ignore_apps] - no evaluation of \<ccm-app> tags
+       * @param {string} [settings.namespace_uri] - namespace URI for HTML elements
        * @returns {Element|Text}
-       * @example // Converting an HTML string
+       * @example // converting HTML from string
        * const str = '<p>Hello, <b>%name%</b>! <button onclick="%click%"></button></p>';
        * const values = {
        *   name: "World",
@@ -369,7 +461,7 @@
        * };
        * const elem = ccm.helper.html(str, values);
        * document.body.appendChild(elem);
-       * @example // Converting HTML data
+       * @example // converting HTML from JSON
        * const json = {
        *   tag: "p",
        *   inner: [
@@ -396,10 +488,10 @@
         // convert HTML to JSON
         html = ccm.helper.html2json(html);
 
-        // HTML is a primitive value (e.g. a string)? => convert it to a text node
-        if (!ccm.helper.isObject(html)) return document.createTextNode(html);
+        // HTML is only a string? => convert it to a text node
+        if (typeof html === "string") return document.createTextNode(html);
 
-        // replace placeholders in the HTML with values, if given
+        // replace placeholders with values
         if (values) html = ccm.helper.format(html, values);
 
         // is a svg element? => set namespace URI
@@ -446,9 +538,8 @@
                 const children = Array.isArray(value) ? value : [value];
                 children.forEach((child) =>
                   element.appendChild(
-                    // recursive call for each child
-                    ccm.helper.html(child, undefined, settings)
-                  )
+                    ccm.helper.html(child, undefined, settings), // recursive call for each child
+                  ),
                 );
               }
               break;
@@ -458,20 +549,23 @@
               else element.setAttribute(key, value);
           }
         }
-        if (element.tagName.startsWith("CCM-") && !settings.no_evaluation)
+
+        // evaluate <ccm-app> tags
+        const prefix = "CCM-";
+        if (element.tagName.startsWith(prefix) && !settings.ignore_apps)
           ccm.start(
             element.tagName === "CCM-APP"
               ? element.getAttribute("component")
-              : element.tagName.substring(4).toLowerCase(),
+              : element.tagName.substring(prefix.length).toLowerCase(),
             ccm.helper.generateConfig(element),
-            element
+            element,
           );
         return element;
       },
 
       /**
-       * @summary Converts HTML to JSON
-       * @description Comments contained in the HTML will be removed.
+       * @summary Converts HTML to JSON.
+       * @description Contained HTML comments will be removed.
        * @param {string|Element|DocumentFragment} html - HTML as string, Element or DocumentFragment
        * @returns {ccm.types.html_data} JSON representation of the HTML
        * @example // Converting an HTML string
@@ -492,40 +586,60 @@
        */
       html2json: (html) => {
         const json = { inner: [] };
+
+        // HTML is a string? => convert it to a DocumentFragment
         if (typeof html === "string") {
           const template = document.createElement("template");
           template.innerHTML = html;
           html = template.content;
         }
+
+        // Handle DocumentFragment.
         if (html instanceof DocumentFragment) {
+          // DocumentFragment has no children? => Return text content.
           if (!html.children.length) return html.textContent;
+
+          // Remove HTML comments.
           [...html.childNodes].forEach((child) => {
             if (child.nodeValue) {
               if (!child.nodeValue || child.nodeType === Node.COMMENT_NODE)
                 child.parentNode.removeChild(child);
             }
           });
+
+          // DocumentFragment has only one child? => Return this child.
           if (html.childNodes.length === 1) html = html.firstChild;
         }
+
+        // HTML is not an Element? => Return whatever it is as result.
         if (!ccm.helper.isElement(html)) return html;
-        if (html.tagName) json.tag = html.tagName.toLowerCase();
-        if (json.tag === "div") delete json.tag;
+
+        // Convert the HTML element to JSON.
+        if (html.tagName) json.tag = html.tagName.toLowerCase(); // Handle HTML tag name.
+        if (json.tag === "div") delete json.tag; // Remove default tag name.
+        // Handle HTML attributes.
         if (html.attributes)
           [...html.attributes].forEach(
             (attr) =>
               (json[attr.name] =
-                attr.value === "" && attr.name !== "value" ? true : attr.value)
+                attr.value === "" && attr.name !== "value" ? true : attr.value),
           );
+        // Handle inner HTML.
         [...html.childNodes].forEach((child) => {
+          // Remove HTML comments.
           if (child.nodeType === Node.COMMENT_NODE)
             return child.parentNode.removeChild(child);
+
+          // Remove unnecessary whitespace.
           if (child.nodeValue && !child.parentElement?.closest("pre"))
             child.nodeValue = child.nodeValue.replace(/\s+/g, " ");
+
+          // Convert child elements to JSON.
           if (ccm.helper.isElement(child) || child.nodeValue)
             json.inner.push(
               ccm.helper.isElement(child)
-                ? ccm.helper.html2json(child)
-                : child.textContent
+                ? ccm.helper.html2json(child) // Recursive call
+                : child.textContent,
             );
         });
         if (!json.inner.length) delete json.inner;
@@ -534,8 +648,8 @@
       },
 
       /**
-       * @summary Checks whether a value is a _ccmjs_ component object.
-       * @param {any} value - Value to be checked.
+       * @summary Checks whether a value is a [_ccm_ component object]{@link ccm.types.component}.
+       * @param {any} value
        * @returns {boolean}
        * @example
        * const value = await ccm.component({
@@ -551,8 +665,8 @@
       isComponent: (value) => value?.Instance && value.ccm && true,
 
       /**
-       * @summary Checks whether a value is a _ccmjs_ datastore object.
-       * @param {any} value - Value to be checked.
+       * @summary Checks whether a value is a [_ccm_ datastore object]{@link ccm.types.store}.
+       * @param {any} value
        * @returns {boolean}
        * @example
        * const value = await ccm.store();
@@ -561,8 +675,8 @@
       isDatastore: (value) => value?.get && value.local && value.source && true,
 
       /**
-       * @summary Checks whether a value is a DOM element or a DocumentFragment.
-       * @param {any} value - Value to be checked.
+       * @summary Checks whether a value is a DOM element (or a DocumentFragment).
+       * @param {any} value
        * @returns {boolean}
        * @example
        * const value = document.body;
@@ -579,8 +693,8 @@
       },
 
       /**
-       * @summary Checks whether a value is a _ccmjs_ framework object.
-       * @param {any} value - Value to be checked.
+       * @summary Checks whether a value is a [_ccm_ framework object]{@link ccm.types.framework}.
+       * @param {any} value
        * @returns {boolean}
        * @example
        * const value = window.ccm;
@@ -589,8 +703,8 @@
       isFramework: (value) => value?.components && value.version && true,
 
       /**
-       * @summary Checks whether a value is a _ccmjs_ component instance.
-       * @param {any} value - Value to be checked.
+       * @summary Checks whether a value is a [_ccmjs_ component instance]{@link ccm.types.instance}.
+       * @param {any} value
        * @returns {boolean}
        * @example
        * const value = await ccm.instance({
@@ -607,7 +721,7 @@
 
       /**
        * @summary Checks whether a value is a DOM Node.
-       * @param {any} value - Value to be checked.
+       * @param {any} value
        * @returns {boolean}
        * @example
        * const value = document.body;
@@ -633,7 +747,7 @@
       /**
        * @summary Checks whether a value is an object.
        * @description Also returns <code>false</code> for <code>null</code> and array.
-       * @param {any} value - Value to be checked.
+       * @param {any} value
        * @returns {boolean}
        * @example
        * const value = null;
@@ -645,17 +759,20 @@
        * const value = {};
        * ccm.helper.isObject(value); // => true
        */
-      isObject: (value) => {
-        return value && typeof value === "object" && !Array.isArray(value);
-      },
+      isObject: (value) =>
+        value && typeof value === "object" && !Array.isArray(value),
 
       /**
        * @summary Checks whether a value is a plain object.
-       * @param {any} value - Value to be checked.
+       * @param {any} value
        * @returns {boolean}
        * @example
        * const value = {};
        * ccm.helper.isPlainObject(value); // => true
+       * @example
+       * class Test {}
+       * const value = new Test();
+       * ccm.helper.isPlainObject(value); // => false
        * @example
        * const value = function () {};
        * ccm.helper.isPlainObject(value); // => false
@@ -666,7 +783,7 @@
     },
   };
 
-  // Is this the first ccmjs framework version loaded in this webpage? => Initialize global namespace.
+  // Is this the first ccm framework version loaded in this webpage? => Initialize global namespace.
   if (!window.ccm)
     window.ccm = {
       /**
@@ -688,13 +805,13 @@
       files: {},
     };
 
-  // Is this the first time this specific ccmjs framework version is loaded in this webpage? => Initialize version specific namespace.
+  // Is this the first time this specific ccm framework version is loaded in this webpage? => Initialize version specific namespace.
   if (!window.ccm[ccm.version()]) window.ccm[ccm.version()] = ccm;
 })();
 
 /**
  * @namespace ccm.types
- * @description _ccmjs_-specific Type Definitions
+ * @description _ccm_-specific Type Definitions
  */
 
 /**
