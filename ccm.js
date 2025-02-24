@@ -19,6 +19,14 @@
  */
 (() => {
   /**
+   * Contains the registered components within this _ccm_ framework version.
+   * @memberOf ccm
+   * @private
+   * @type {Object.<ccm.types.component_index, ccm.types.component_obj>}
+   */
+  const _components = {};
+
+  /**
    * Encapsulates everything related to _ccm_.
    * See [this wiki]{@link https://github.com/ccmjs/framework/wiki/} to learn everything about this web technology.
    * @global
@@ -34,7 +42,7 @@
     /**
      * @summary Asynchronous Loading of Resources
      * @description
-     * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Loading-of-Resources}
+     * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Loading-Resources}
      * to learn everything about this method. There are also examples how to use it.
      * @param {...(string|ccm.types.resource_obj)} resources - Resources to load. Either the URL or a [resource object]{@link ccm.types.resource_obj} can be passed for a resource.
      * @returns {Promise<*>}
@@ -63,7 +71,7 @@
         resources.forEach((resource, i) => {
           counter++; // one more not finished loading resource
 
-          // Should several resources be loaded one after the other (i.e. not in parallel)?
+          // Should several resources be loaded one after the other (not in parallel)?
           if (Array.isArray(resource)) {
             results[i] = [];
             serial(null);
@@ -157,7 +165,7 @@
 
           /** loads CSS via <link> tag */
           function loadCSS() {
-            /** @type {ccm.types.html_data|Element} */
+            /** @type {ccm.types.html|Element} */
             let element = {
               tag: "link",
               rel: "stylesheet",
@@ -195,7 +203,7 @@
               .pop()
               .replace(".min.", ".");
 
-            /** @type {ccm.types.html_data|Element} */
+            /** @type {ccm.types.html|Element} */
             let element = { tag: "script", src: resource.url, async: true };
 
             // setup individual HTML attributes for <script> tag
@@ -255,7 +263,7 @@
               if (!resource.params) resource.params = {};
               resource.params.callback = "window.ccm.callbacks." + callback;
 
-              /** @type {ccm.types.html_data|Element} */
+              /** @type {ccm.types.html|Element} */
               let element = {
                 tag: "script",
                 src: buildURL(resource.url, resource.params),
@@ -361,11 +369,415 @@
     },
 
     /**
+     * @summary Registers a _ccm_ component.
+     * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
+     * to learn everything about embedding components in _ccm_. There are also examples how to use this method.
+     * @param {ccm.types.component_obj|string} component - object, index or URL of component
+     * @param {ccm.types.config} [config={}] - priodata for components default instance configuration
+     * @returns {Promise<ccm.types.component_obj>|Error} clone of registered component object
+     */
+    component: async (component, config = {}) => {
+      component = await getComponentObject();
+      if (!ccm.helper.isComponent(component))
+        return Error("invalid component: " + component);
+
+      // framework version used by component can be adjusted via config
+      if (config.ccm) component.ccm = config.ccm;
+
+      /**
+       * framework version that the component has to use
+       * @type {ccm.types.version_nr}
+       */
+      const version =
+        component.ccm.includes("-") &&
+        component.ccm.split("-").at(-1).split(".").slice(0, 3).join(".");
+
+      // framework version is not present in current webpage?
+      if (!window.ccm[version]) {
+        // load framework version from URL (SRI hash can be added with '#')
+        const [url, sri] = component.ccm.split("#");
+        await ccm.load(
+          sri
+            ? { url, attr: { integrity: sri, crossorigin: "anonymous" } }
+            : url,
+        );
+      }
+
+      // component uses other framework version? => register component via other framework version
+      if (version && version !== ccm.version())
+        return window.ccm[version].component(component, config);
+
+      // set component index
+      component.index =
+        component.name +
+        (component.version ? "-" + component.version.join("-") : "");
+
+      // component not registered yet?
+      if (!_components[component.index]) {
+        _components[component.index] = component; // register component
+        ccm.components[component.index] = {}; // create global component namespaces
+        component.instances = 0; // add ccm instance counter
+        component.ready && (await component.ready.call(component)); // execute “ready” callback, if any
+        delete component.ready; // "ready" callback is no more needed (one-time call)
+        await defineCustomElement(component.index); // define HTML tag for component
+      }
+
+      // never give out the original reference to a component object once registered (security reasons)
+      component = ccm.helper.clone(_components[component.index]);
+
+      // set reference to used framework version
+      component.ccm = window.ccm[version] || ccm;
+
+      // prepare default instance configuration
+      component.config = await prepareConfig(config, component.config);
+
+      // add functions for creating and starting instances
+      component.instance = async (config = {}, element) =>
+        ccm.instance(
+          component,
+          await prepareConfig(config, component.config),
+          element,
+        );
+      component.start = async (config = {}, element) =>
+        ccm.start(
+          component,
+          await prepareConfig(config, component.config),
+          element,
+        );
+
+      return component;
+
+      /**
+       * get component object via index or URL
+       * @returns {Promise<ccm.types.component_obj>}
+       */
+      async function getComponentObject() {
+        // no string? => abort
+        if (typeof component !== "string") return component;
+
+        /**
+         * index of component
+         * @type {ccm.types.component_index}
+         */
+        const index = component.endsWith(".js")
+          ? ccm.helper.convertComponentURL(component).index
+          : component;
+
+        // component already registered? => use clone of already registered component object
+        if (_components[index]) return ccm.helper.clone(_components[index]);
+
+        // no URL with valid component filename? => abort
+        if (
+          !ccm.helper
+            .regex("filename")
+            .test(component.split("/").at(-1).split("#").at(0))
+        )
+          return component;
+
+        // load component from URL (SRI hash can be added with '#')
+        const [url, sri] = component.split("#"); // separate URL from SRI hash
+        const response = await ccm.load(
+          sri
+            ? {
+                url,
+                attr: { integrity: sri, crossorigin: "anonymous" },
+              }
+            : url,
+        );
+
+        response.url = url; // a component remembers its URL
+        return response;
+      }
+    },
+
+    /**
+     * @summary Registers a _ccm_ component and creates an instance out of it.
+     * @description
+     * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
+     * to learn everything about embedding components in _ccm_. There are also examples how to use this method.
+     * @param {ccm.types.component_obj|string} component - object, index or URL of component
+     * @param {ccm.types.config} [config={}] - priority data for instance configuration
+     * @param {Element} [element=document.createElement("div")] - webpage area where the component instance will be embedded (default: on-the-fly <div>)
+     * @returns {Promise<ccm.types.instance>}
+     */
+    instance: async (
+      component,
+      config = {},
+      element = document.createElement("div"),
+    ) => {
+      // register component
+      component = await ccm.component(component, { ccm: config?.ccm });
+
+      // no component object? => abort
+      if (!ccm.helper.isComponent(component)) return component;
+
+      // component uses other framework version? => create instance via other framework version
+      if (component.ccm.version() !== ccm.version())
+        return component.ccm.instance(component, config, element);
+
+      // render loading icon in the webpage area
+      element.innerHTML = "";
+      const loading = ccm.helper.loading(config.parent);
+      element.appendChild(loading);
+
+      // prepare instance configuration
+      config = await prepareConfig(config, component.config);
+
+      /**
+       * an instance newly created out of the component
+       * @type {ccm.types.instance}
+       */
+      const instance = new component.Instance();
+
+      // set ccm-specific properties
+      instance.ccm = component.ccm; // reference to used framework version
+      instance.component = component; // an instance knows which component it comes from
+      instance.id = ++_components[component.index].instances; // instance ID
+      instance.index = component.index + "-" + instance.id; // instance index (unique in hole webpage)
+      if (!instance.init) instance.init = async () => {}; // each instance must have an init method
+      instance.parent = config.parent; // an instance knows which parent instance is using it as a child
+      delete config.parent; // prevents cyclic recursion when resolving dependencies
+      instance.children = {}; // an instance knows all child instances that it uses
+      instance.config = ccm.helper.stringify(config); // each instance knows his original config
+
+      // convert Light DOM to Element Node
+      config.inner = ccm.helper.html(config.inner, undefined, {
+        ignore_apps: true,
+      });
+
+      // add instance as child to parent instance
+      if (instance.parent) {
+        if (!instance.parent.children) instance.parent.children = {};
+        instance.parent.children[instance.index] = instance;
+      }
+
+      // set root element of the created instance
+      instance.root = ccm.helper.html({ id: instance.index });
+      // create a Shadow DOM in root element
+      if (config.shadow !== "none")
+        instance.shadow = root.attachShadow({
+          mode: config.shadow || "closed",
+        });
+      delete config.shadow;
+
+      // set content element of created instance
+      (instance.shadow || instance.root).appendChild(
+        (instance.element = ccm.helper.html({ id: "element" })),
+      );
+
+      document.head.appendChild(instance.root); // move root element temporary to <head> (resolving dependencies requires DOM contact)
+      config = await ccm.helper.solveDependencies(config, instance); // resolve all dependencies in config
+      instance.element.appendChild(loading); // move loading icon to content element
+
+      // move root element to webpage area
+      element.innerHTML = "";
+      element.appendChild(instance.root);
+
+      Object.assign(instance, config); // integrate config in created instance
+      if (!instance.parent?.init) await initialize(); // initialize created and dependent instances
+
+      return instance;
+
+      /**
+       * calls init and ready method of created instance and all dependent ccm instances
+       * @returns {Promise<void>}
+       */
+      function initialize() {
+        return new Promise((resolve) => {
+          /**
+           * found ccm instances
+           * @type {ccm.types.instance[]}
+           */
+          const instances = [instance];
+
+          // find all sub-instances dependent on the created instance
+          find(instance);
+
+          // call init methods of all found ccm instances
+          let i = 0;
+          init();
+
+          /**
+           * finds all dependent ccm instances (breadth-first-order, recursive)
+           * @param {Array|Object} obj - array/object that is searched
+           */
+          function find(obj) {
+            /**
+             * found relevant inner objects/arrays (needed for breath-first-order)
+             * @type {Array.<Array|Object>}
+             */
+            const relevant = [];
+
+            // search object/array
+            for (const key in obj)
+              if (obj.hasOwn(key)) {
+                const value = obj[key];
+
+                // value is a ccm instance? (not parent instance) => add to found instances
+                if (ccm.helper.isInstance(value) && key !== "parent") {
+                  instances.push(value);
+                  relevant.push(value);
+                }
+                // value is an array/object?
+                else if (Array.isArray(value) || ccm.helper.isObject(value)) {
+                  // relevant object type? => add to relevant inner arrays/objects
+                  if (!ccm.helper.isSpecialObject(value)) relevant.push(value);
+                }
+              }
+
+            // search relevant inner arrays/objects (recursive calls)
+            relevant.forEach(find);
+          }
+
+          /** calls init methods (forward) of all found ccm instances (recursive, asynchron) */
+          function init() {
+            // all init methods called? => call ready methods
+            if (i === instances.length) return ready();
+
+            /**
+             * first founded ccm instance with not called init method
+             * @type {ccm.types.instance}
+             */
+            const next = instances[i++];
+
+            // call and delete init method and continue with next found ccm instance (recursive call)
+            next.init
+              ? next.init().then(() => {
+                  delete next.init;
+                  init();
+                })
+              : init();
+          }
+
+          /** calls ready methods (backward) of all found ccm instance (recursive, asynchron) */
+          function ready() {
+            // all ready methods called? => perform callback
+            if (!instances.length) return resolve();
+
+            /**
+             * last founded ccm instance with not called ready method
+             * @type {ccm.types.instance}
+             */
+            const next = instances.pop();
+
+            // result has a ready function? => perform and delete ready function and check next result afterwards (recursive call)
+            next.ready
+              ? next.ready().then(() => {
+                  delete next.ready;
+                  proceed();
+                })
+              : proceed();
+
+            /** when instance is ready */
+            function proceed() {
+              // does the app has to be started directly? => do it (otherwise: continue with next instance)
+              if (next._start) {
+                delete next._start;
+                next.start().then(ready);
+              } else ready();
+            }
+          }
+        });
+      }
+    },
+
+    /**
+     * @summary Registers a _ccm_ component, creates an instance out of it and starts the instance.
+     * @description
+     * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
+     * to learn everything about embedding components in _ccm_. There are also examples how to use this method.
+     * @param {ccm.types.component_obj|string} component - object, index or URL of component
+     * @param {ccm.types.config} [config={}] - priority data for instance configuration
+     * @param {Element} [element=document.createElement("div")] - webpage area where the component instance will be embedded (default: on-the-fly <div>)
+     * @returns {Promise<ccm.types.instance>}
+     */
+    start: async (
+      component,
+      config = {},
+      element = document.createElement("div"),
+    ) => {
+      // register component
+      component = await ccm.component(component, { ccm: config?.ccm });
+
+      // no component object? => abort
+      if (!ccm.helper.isComponent(component)) return component;
+
+      // component uses other framework version? => create instance via other framework version
+      if (component.ccm.version() !== ccm.version())
+        return component.ccm.start(component, config, element);
+
+      const instance = await ccm.instance(component, config, element);
+      if (!ccm.helper.isInstance(instance)) return instance;
+      instance.init ? (instance._start = true) : await instance.start();
+      return instance;
+    },
+
+    /**
      * @summary Contains framework-relevant helper functions.
      * @description These are also useful for component developers.
      * @namespace
      */
     helper: {
+      /**
+       * @summary Creates a deep copy of a value.
+       * @param {any} value
+       * @param [hash] - internal usage
+       * @returns {any}
+       */
+      clone: (value, hash = new Set()) => {
+        if (Array.isArray(value) || ccm.helper.isObject(value)) {
+          if (hash.has(value)) return value;
+          hash.add(value);
+          const copy = Array.isArray(value) ? [] : {};
+          for (const i in value) copy[i] = ccm.helper.clone(value[i], hash);
+          return copy;
+        }
+        return value;
+      },
+
+      /**
+       * @summary Extract data from a _ccm_ component URL.
+       * @param {string} url
+       * @returns {{name: string, index: string, version: string, url: string, minified: boolean}}
+       * @throws {Error} if component filename is not valid
+       * @example
+       * const data = ccm.helper.convertComponentURL( './ccm.quiz.js' );  // latest version
+       * console.log(data); // {"name":"quiz","index":"quiz","url":"./ccm.quiz.js"}
+       * @example
+       * const data = ccm.helper.convertComponentURL( './ccm.quiz-4.0.2.js' ); // specific version
+       * console.log(data); // {"name":"quiz","version":"4.0.2","index":"quiz-4-0-2","url":"./ccm.quiz-4.0.2.js"}
+       * @example
+       * const data = ccm.helper.convertComponentURL( './ccm.quiz.min.js' );  // minified
+       * console.log(data); // {"name":"quiz","index":"quiz","url":"./ccm.quiz.min.js","minified":true}
+       */
+      convertComponentURL: (url) => {
+        /**
+         * from given url extracted filename of the ccm component
+         * @type {string}
+         */
+        const filename = url.split("/").pop();
+
+        // abort if extracted filename is not a valid filename for a ccm component
+        if (!ccm.helper.regex("filename").test(filename))
+          throw new Error("invalid component filename: " + filename);
+
+        // extract data
+        const data = { url: url };
+        let tmp = filename.substring(4, filename.length - 3); // remove prefix 'ccm.' and postfix '.js'
+        if (tmp.endsWith(".min")) {
+          data.minified = true;
+          tmp = tmp.substring(0, tmp.length - 4); // removes optional infix '.min'
+        }
+        tmp = tmp.split("-");
+        data.name = tmp.shift(); // name
+        if (tmp.length) data.version = tmp[0]; // version
+        data.index =
+          data.name +
+          (data.version ? "-" + data.version.replace(/\./g, "-") : ""); // index
+
+        return data;
+      },
+
       /**
        * @summary Returns or modifies a value contained in a nested data structure.
        * @param {Object} obj - nested data structure
@@ -438,6 +850,41 @@
       },
 
       /**
+       * @summary generates an instance configuration out of a HTML element
+       * @description
+       * @param {Element} element - HTML element
+       * @returns {ccm.types.config}
+       * @example
+       * <ccm-app component="..." config='["ccm.load",...]'></ccm-app>
+       * @example
+       * <ccm-app component="..." config='["ccm.get",...]'></ccm-app>
+       * @example
+       * <ccm-app component="..." config='{"foo":"bar",...}'></ccm-app>
+       * @example
+       * <ccm-app component="...">
+       *   {
+       *     "foo": "bar",
+       *     ...
+       *   }
+       * <ccm-app>
+       */
+      generateConfig: async (element) => {
+        // innerHTML contains config as JSON? => move it to 'config' attribute
+        if (element.innerHTML.startsWith("{")) {
+          element.setAttribute("config", element.innerHTML);
+          element.innerHTML = "";
+        }
+
+        // get config from 'config' attribute
+        let config = element.getAttribute("config");
+        if (!config) return null;
+        try {
+          config = JSON.parse(config);
+        } catch (e) {}
+        return ccm.helper.solveDependency(config);
+      },
+
+      /**
        * @summary Generates a unique identifier.
        * @returns {ccm.types.key} Universally Unique Identifier ([UUID](https://developer.mozilla.org/en-US/docs/Glossary/UUID)) without dashes
        * @example console.log(ccm.helper.generateKey()); // => 8aacc6ad149047eaa2a89096ecc5a95b
@@ -447,7 +894,7 @@
       /**
        * @summary Converts HTML given as a string or JSON into HTML elements.
        * @description Placeholders marked with <code>%%</code> in the HTML are replaced with <code>values</code>.
-       * @param {string|ccm.types.html_data} html - HTML as string or JSON
+       * @param {string|ccm.types.html} html - HTML as string or JSON
        * @param {Object} [values] - placeholders contained in the HTML are replaced by these values
        * @param {Object} [settings]
        * @param {boolean} [settings.ignore_apps] - no evaluation of \<ccm-app> tags
@@ -567,7 +1014,7 @@
        * @summary Converts HTML to JSON.
        * @description Contained HTML comments will be removed.
        * @param {string|Element|DocumentFragment} html - HTML as string, Element or DocumentFragment
-       * @returns {ccm.types.html_data} JSON representation of the HTML
+       * @returns {ccm.types.html} JSON representation of the HTML
        * @example // Converting an HTML string
        * const html = '<p>Hello, <b>World</b>!';
        * const json = ccm.helper.html2json(html);
@@ -648,7 +1095,72 @@
       },
 
       /**
-       * @summary Checks whether a value is a [_ccm_ component object]{@link ccm.types.component}.
+       * @summary integrates priority data into a given dataset
+       * @description
+       * Each value of each property in the given priority data will be set in the given dataset for the property of the same name.
+       * This method also supports dot notation in given priority data to set a single deeper property in the given dataset.
+       * With no given priority data, the result is the given dataset.
+       * With no given dataset, the result is the given priority data.
+       * Any data dependencies will be resolved before integration.
+       * @param {Object} [priodata] - priority data
+       * @param {Object} [dataset] - dataset
+       * @returns {Object} dataset with integrated priority data
+       * @example
+       * const dataset  = { firstname: 'John', lastname: 'Doe', fullname: 'John Doe' };
+       * const priodata = { lastname: 'Done', fullname: undefined };
+       * const result = await ccm.helper.integrate( priodata, dataset );
+       * console.log( result );  // { firstname: 'John', lastname: 'Done', fullname: undefined };
+       * @example
+       * const result = await ccm.helper.integrate( { 'foo.c': 'z' }, { foo: { a: 'x', b: 'y' } } );
+       * console.log( result );  // { foo: { a: 'x', b: 'y', c: 'z' } }
+       * @example
+       * const result = await ccm.helper.integrate( { value: 'foo' } );
+       * console.log( result );  // { value: 'foo' }
+       * @example
+       * const result = await ccm.helper.integrate( undefined, { value: 'foo' } );
+       * console.log( result );  // { value: 'foo' }
+       * @example
+       * const store = { data: { key: 'data', foo: 'bar' } };
+       * const result = await ccm.helper.integrate( { 'value.foo': 'baz' }, { value: [ 'ccm.get', { local: store }, 'data' ] } );
+       * console.log( result );  // { value: { foo: 'baz' } }
+       */
+      integrate: async (priodata, dataset) => {
+        dataset = ccm.helper.clone(dataset);
+
+        // no given priority data? => return given dataset
+        if (!ccm.helper.isObject(priodata)) return dataset;
+
+        // no given dataset? => return given priority data
+        if (!ccm.helper.isObject(dataset)) return ccm.helper.clone(priodata);
+
+        // iterate over priority data properties
+        for (let key in priodata) {
+          // search and solve data dependencies along key path before integration of priority data value
+          const split = key.split(".");
+          let obj = dataset;
+          for (let i = 0; i < split.length; i++) {
+            const prop = split[i];
+            if (
+              ccm.helper.isDependency(obj[prop]) &&
+              obj[prop][0] === "ccm.get"
+            )
+              obj[prop] = await ccm.helper.solveDependency(obj[prop]);
+            obj = obj[prop];
+            if (!obj) break;
+          }
+
+          // set value for the same property in the given dataset
+          const value = ccm.helper.deepValue(dataset, key);
+          if (value === undefined || value === "")
+            ccm.helper.deepValue(dataset, key, priodata[key]);
+        }
+
+        // return dataset with integrated priority data
+        return dataset;
+      },
+
+      /**
+       * @summary Checks whether a value is a [_ccm_ component object]{@link ccm.types.component_obj}.
        * @param {any} value
        * @returns {boolean}
        * @example
@@ -662,7 +1174,7 @@
        * });
        * ccm.helper.isComponent(value); // => true
        */
-      isComponent: (value) => value?.Instance && value.ccm && true,
+      isComponent: (value) => value?.Instance && true,
 
       /**
        * @summary Checks whether a value is a [_ccm_ datastore object]{@link ccm.types.store}.
@@ -673,6 +1185,32 @@
        * ccm.helper.isDatastore(value); // => true
        */
       isDatastore: (value) => value?.get && value.local && value.source && true,
+
+      /**
+       * check value if it is a _ccm_ dependency
+       * @param {*} value
+       * @returns {boolean}
+       * @example ["ccm.load", ...]
+       * @example ["ccm.component", ...]
+       * @example ["ccm.instance", ...]
+       * @example ["ccm.start", ...]
+       * @example ["ccm.store", ...]
+       * @example ["ccm.get", ...]
+       */
+      isDependency: function (value) {
+        if (Array.isArray(value))
+          if (value.length > 0)
+            switch (value[0]) {
+              case "ccm.load":
+              case "ccm.component":
+              case "ccm.instance":
+              case "ccm.start":
+              case "ccm.store":
+              case "ccm.get":
+                return true;
+            }
+        return false;
+      },
 
       /**
        * @summary Checks whether a value is a DOM element (or a DocumentFragment).
@@ -688,9 +1226,8 @@
        * const value = document.createDocumentFragment();
        * ccm.helper.isElement(value); // => true
        */
-      isElement: (value) => {
-        return value instanceof Element || value instanceof DocumentFragment;
-      },
+      isElement: (value) =>
+        value instanceof Element || value instanceof DocumentFragment,
 
       /**
        * @summary Checks whether a value is a [_ccm_ framework object]{@link ccm.types.framework}.
@@ -703,7 +1240,7 @@
       isFramework: (value) => value?.components && value.version && true,
 
       /**
-       * @summary Checks whether a value is a [_ccmjs_ component instance]{@link ccm.types.instance}.
+       * @summary Checks whether a value is a [_ccm_ component instance]{@link ccm.types.instance}.
        * @param {any} value
        * @returns {boolean}
        * @example
@@ -718,6 +1255,16 @@
        * ccm.helper.isInstance(value); // => true
        */
       isInstance: (value) => ccm.helper.isComponent(value?.component),
+
+      /**
+       * @summary Checks whether a value is a valid [unique identifier]{@link ccm.types.key}.
+       * @param {any} value
+       * @returns {boolean}
+       * @example
+       * const value = await ccm.generateKey();
+       * ccm.helper.isKey(value); // => true
+       */
+      isKey: (value) => /^[a-z0-9]{32}$/.test(value),
 
       /**
        * @summary Checks whether a value is a DOM Node.
@@ -777,14 +1324,171 @@
        * const value = function () {};
        * ccm.helper.isPlainObject(value); // => false
        */
-      isPlainObject: (value) => {
-        return Object.getPrototypeOf(value) === Object.prototype;
+      isPlainObject: (value) =>
+        Object.getPrototypeOf(value) === Object.prototype,
+
+      /**
+       * @summary checks if a value is a special object
+       * @description
+       * A special object is Window Object, Node, _ccm_ Object, _ccm_ Instance, _ccm_ Component Object and _ccm_ Datastore.
+       * These objects lead to endless loops if you recursively go through each property in depth.
+       * @param {*} value
+       * @returns {boolean}
+       */
+      isSpecialObject: (value) => {
+        return !!(
+          value === window ||
+          ccm.helper.isNode(value) ||
+          ccm.helper.isCore(value) ||
+          ccm.helper.isInstance(value) ||
+          ccm.helper.isComponent(value) ||
+          ccm.helper.isDatastore(value)
+        );
+      },
+
+      /**
+       * returns the _ccm_ loading icon
+       * @param {ccm.types.instance} [instance] - then the keyframe animation of the icon is placed within the Shadow DOM of this instance (default: <code>document.head</code>)
+       * @returns {Element}
+       * @example document.body.appendChild(loading())
+       * @example instance.element.appendChild(loading(instance))
+       */
+      loading: (instance) => {
+        // create keyframe animation, if not already present
+        let element = instance ? instance.element.parentNode : document.head;
+        if (!element.querySelector("#ccm_keyframe")) {
+          const style = document.createElement("style");
+          style.id = "ccm_keyframe";
+          style.appendChild(
+            document.createTextNode(
+              "@keyframes ccm_loading {to {transform: rotate(360deg)}}",
+            ),
+          );
+          element.appendChild(style);
+        }
+
+        // create loading icon
+        element = document.createElement("div");
+        element.classList.add("ccm_loading");
+        element.setAttribute("style", "display: grid; padding: 0.5em;");
+        element.innerHTML =
+          '<div style="align-self: center; justify-self: center; display: inline-block; width: 2em; height: 2em; border: 0.3em solid #f3f3f3; border-top-color: #009ee0; border-left-color: #009ee0; border-radius: 50%; animation: ccm_loading 1.5s linear infinite;"></div>';
+
+        return element;
+      },
+
+      /**
+       * @summary Provides a _ccm_-relevant regular expression.
+       * @description
+       * Possible index values, it's meanings and it's associated regular expressions:
+       * <table>
+       *   <tr>
+       *     <th>index</th>
+       *     <th>meaning</th>
+       *     <th>regular expression</th>
+       *   </tr>
+       *   <tr>
+       *     <td><code>'filename'</code></td>
+       *     <td>filename for an _ccmjs_ instance</td>
+       *     <td>/^(ccm.)?([^.-]+)(-(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))?(\.min)?(\.js)$/</td>
+       *   </tr>
+       *   <tr>
+       *     <td><code>'key'</code></td>
+       *     <td>key for a _ccmjs_ dataset</td>
+       *     <td>/^[a-z_0-9][a-zA-Z_0-9]*$/</td>
+       *   </tr>
+       * </table>
+       * @param {string} index - index of the regular expression
+       * @returns {RegExp} RegExp Object
+       * @example
+       * // test if a given string is a valid filename for an ccm component
+       * var string = 'ccm.dummy-3.2.1.min.js';
+       * var result = ccm.helper.regex( 'filename' ).test( string );
+       * console.log( result );  // => true
+       * @example
+       * // test if a given string is a valid key for a ccm dataset
+       * var string = 'dummy12_Foo3';
+       * var result = ccm.helper.regex( 'key' ).test( string );
+       * console.log( result );  // => true
+       */
+      regex: function (index) {
+        switch (index) {
+          case "filename":
+            return /^ccm\.([a-z][a-z_0-9]*)(-(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))?(\.min)?(\.js)$/;
+          case "key":
+            return /^[a-zA-Z0-9_-]+$/;
+        }
+      },
+
+      /**
+       * @summary solves a ccm dependency
+       * @param {Array} dependency - ccm dependency
+       * @param {ccm.types.instance} [instance] - associated _ccm_ instance
+       * @returns {Promise<*>}
+       */
+      solveDependency: async (dependency, instance) => {
+        // given value is no ccm dependency? => result is given value
+        if (!ccm.helper.isDependency(dependency)) return dependency;
+
+        // prevent changes via original reference
+        dependency = ccm.helper.clone(dependency);
+
+        /**
+         * ccm operation to be performed
+         * @type {string}
+         */
+        const operation = dependency.shift().substring("ccm.".length);
+
+        // solve dependency
+        let result;
+        switch (operation) {
+          case "load":
+            instance && setContext(dependency);
+            result = await ccm.load.apply(null, dependency);
+            break;
+          case "component":
+          case "instance":
+          case "start":
+          case "store":
+          case "get":
+            if (!dependency[0]) dependency[0] = {};
+            if (instance) dependency[0].parent = instance;
+            result = await ccm[operation].apply(null, dependency);
+        }
+
+        // instance configuration has been loaded that contains a base configuration?
+        if (result?.config) {
+          // base config given as dependency? => solve it
+          result.config = await ccm.helper.solveDependency(result.config);
+          // integrate instance configuration into base configuration
+          result = await ccm.helper.integrate(result, result.config);
+        }
+
+        return result;
+
+        /**
+         * load resources in Shadow DOM of given ccm instance
+         * @param {Array} resources
+         */
+        function setContext(resources) {
+          for (let i = 0; i < resources.length; i++) {
+            if (Array.isArray(resources[i])) {
+              setContext(resources[i]);
+              continue;
+            }
+            if (!ccm.helper.isObject(resources[i]))
+              resources[i] = { url: resources[i] };
+            if (!resources[i].context)
+              resources[i].context = instance.element.parentNode;
+          }
+        }
       },
     },
   };
 
-  // Is this the first ccm framework version loaded in this webpage? => Initialize global namespace.
-  if (!window.ccm)
+  // is this the first ccm framework version loaded in this webpage?
+  if (!window.ccm) {
+    // initialize global namespace
     window.ccm = {
       /**
        * @description
@@ -805,8 +1509,66 @@
       files: {},
     };
 
-  // Is this the first time this specific ccm framework version is loaded in this webpage? => Initialize version specific namespace.
+    // define Custom Element <ccm-app>
+    defineCustomElement("app");
+  }
+
+  // is this the first time this specific ccm framework version is loaded in this webpage? => Initialize version specific namespace.
   if (!window.ccm[ccm.version()]) window.ccm[ccm.version()] = ccm;
+
+  /**
+   * defines a ccm-specific Custom Element
+   * @param {string} name - element name (without 'ccm-' prefix)
+   * @returns {Promise<void>}
+   */
+  async function defineCustomElement(name) {
+    // no support of Custom Elements in current webbrowser? => abort
+    if (!("customElements" in window)) return;
+
+    // Custom Element already exists in current webpage? => abort
+    if (customElements.get("ccm-" + name)) return;
+
+    window.customElements.define(
+      "ccm-" + name,
+      class extends HTMLElement {
+        async connectedCallback() {
+          // not connected with DOM? => abort
+          if (!document.body.contains(this)) return;
+
+          // within another ccm-specific HTML tag? => abort
+          let node = this;
+          while ((node = node.parentNode))
+            if (node.tagName && node.tagName.startsWith("CCM-")) return;
+
+          // embed ccm instance in this ccm-specific HTML tag
+          await ccm.start(
+            this.tagName === "CCM-APP" ? config.component : name,
+            ccm.helper.generateConfig(this),
+            this,
+          );
+        }
+      },
+    );
+  }
+
+  /**
+   * prepares a ccm instance configuration
+   * @param {ccm.types.config|ccm.types.dependency} [config={}] - instance configuration
+   * @param {ccm.types.config} [defaults={}] - default configuration (from component object)
+   * @returns {Promise<ccm.types.config>}
+   */
+  async function prepareConfig(config = {}, defaults = {}) {
+    // config given as dependency? => solve it
+    config = await ccm.helper.solveDependency(config);
+
+    // integrate instance configuration into default configuration
+    const result = await ccm.helper.integrate(config, defaults);
+
+    // delete reserved properties
+    delete result.ccm;
+
+    return result;
+  }
 })();
 
 /**
@@ -815,7 +1577,26 @@
  */
 
 /**
- * @typedef {Object} ccm.types.component
+ * @typedef {Object} ccm.types.component_index
+ */
+
+/**
+ * @typedef {Object} ccm.types.component_obj
+ */
+
+/**
+ * @typedef {Object} ccm.types.config
+ */
+
+/**
+ * @typedef {Array} ccm.types.dependency
+ * @summary _ccm_ dependency
+ * @example ["ccm.load", ...]
+ * @example ["ccm.component", ...]
+ * @example ["ccm.instance", ...]
+ * @example ["ccm.start", ...]
+ * @example ["ccm.store", ...]
+ * @example ["ccm.get", ...]
  */
 
 /**
@@ -823,14 +1604,14 @@
  */
 
 /**
- * @typedef {Object|string} ccm.types.html_data
+ * @typedef {Object|string} ccm.types.html
  * @summary JSON representation of HTML
  * @description
  * Other properties besides <code>tag</code> and <code>inner</code> are used to define HTML attributes.
  * The HTML data can also contain placeholders marked with <code>%%</code>, which can be dynamically replaced with values via {@link ccm.helper.html} or {@link ccm.helper.format}.
  * A string instead of an object represents pure text content without HTML tags.
  * @property {string} [tag="div"] - HTML tag name
- * @property {ccm.types.html_data} [inner] - inner HTML
+ * @property {ccm.types.html} [inner] - inner HTML
  * @example
  * {
  *   tag: "p",
