@@ -388,12 +388,13 @@
        * framework version that the component has to use
        * @type {ccm.types.version_nr}
        */
-      const version =
-        component.ccm.includes("-") &&
-        component.ccm.split("-").at(-1).split(".").slice(0, 3).join(".");
+      const version = ccm.helper.isCore(component?.ccm)
+        ? component.ccm.version()
+        : component.ccm.includes("-") &&
+          component.ccm.split("-").at(-1).split(".").slice(0, 3).join(".");
 
       // framework version is not present in current webpage?
-      if (!window.ccm[version]) {
+      if (version && !window.ccm[version]) {
         // load framework version from URL (SRI hash can be added with '#')
         const [url, sri] = component.ccm.split("#");
         await ccm.load(
@@ -541,9 +542,10 @@
       instance.config = ccm.helper.stringify(config); // each instance knows his original config
 
       // convert Light DOM to Element Node
-      config.inner = ccm.helper.html(config.inner, undefined, {
-        ignore_apps: true,
-      });
+      if (config.inner)
+        config.inner = ccm.helper.html(config.inner, undefined, {
+          ignore_apps: true,
+        });
 
       // add instance as child to parent instance
       if (instance.parent) {
@@ -555,7 +557,7 @@
       instance.root = ccm.helper.html({ id: instance.index });
       // create a Shadow DOM in root element
       if (config.shadow !== "none")
-        instance.shadow = root.attachShadow({
+        instance.shadow = instance.root.attachShadow({
           mode: config.shadow || "closed",
         });
       delete config.shadow;
@@ -610,7 +612,7 @@
 
             // search object/array
             for (const key in obj)
-              if (obj.hasOwn(key)) {
+              if (Object.hasOwn(obj, key)) {
                 const value = obj[key];
 
                 // value is a ccm instance? (not parent instance) => add to found instances
@@ -1177,6 +1179,13 @@
       isComponent: (value) => value?.Instance && true,
 
       /**
+       * @summary Checks if a value is a _ccm_ core object.
+       * @param {*} value - value to check
+       * @returns {boolean}
+       */
+      isCore: (value) => value?.components && value.version && true,
+
+      /**
        * @summary Checks whether a value is a [_ccm_ datastore object]{@link ccm.types.store}.
        * @param {any} value
        * @returns {boolean}
@@ -1421,6 +1430,51 @@
       },
 
       /**
+       * @summary solves _ccm_ dependencies contained in an array or object
+       * @param {Array|Object} obj - array or object
+       * @param {ccm.types.instance} [instance] - associated _ccm_ instance
+       * @returns {Promise<void>}
+       */
+      solveDependencies: (obj, instance) =>
+        new Promise((resolve, reject) => {
+          obj = ccm.helper.clone(obj);
+          if (!Array.isArray(obj) && !ccm.helper.isObject(obj))
+            return resolve(obj);
+          let failed = false;
+          let counter = 1;
+          search(obj);
+          check();
+
+          function search(obj) {
+            if (ccm.helper.isSpecialObject(obj)) return;
+            for (const key in obj)
+              if (Object.hasOwn(obj, key))
+                if (key !== "ignore") {
+                  const value = obj[key];
+                  if (ccm.helper.isDependency(value)) {
+                    counter++;
+                    ccm.helper
+                      .solveDependency(obj[key], instance)
+                      .then((result) => {
+                        obj[key] = result;
+                        check();
+                      })
+                      .catch((result) => {
+                        failed = true;
+                        obj[key] = result;
+                        check();
+                      });
+                  } else if (Array.isArray(value) || ccm.helper.isObject(value))
+                    search(value);
+                }
+          }
+
+          function check() {
+            !--counter && (failed ? reject : resolve)(obj);
+          }
+        }),
+
+      /**
        * @summary solves a ccm dependency
        * @param {Array} dependency - ccm dependency
        * @param {ccm.types.instance} [instance] - associated _ccm_ instance
@@ -1483,38 +1537,61 @@
           }
         }
       },
+
+      /**
+       * @summary Converts a value to a JSON string and removes not JSON valid data.
+       * @param {*} value
+       * @param {Function} [replacer]
+       * @param {string|number} [space]
+       * @returns {string} JSON string
+       */
+      stringify: (value, replacer, space) =>
+        JSON.stringify(
+          value,
+          (key, value) => {
+            if (
+              typeof value === "function" ||
+              ccm.helper.isSpecialObject(value)
+            )
+              value = null;
+            return replacer ? replacer(key, value) : value;
+          },
+          space,
+        ),
     },
   };
 
-  // is this the first ccm framework version loaded in this webpage?
+  // is this the first ccm framework version loaded in this webpage? => initialize global namespace
   if (!window.ccm) {
-    // initialize global namespace
-    window.ccm = {
-      /**
-       * @description
-       * This namespace is only used internally.
-       * JSONP callbacks for loading data via {@link ccm.load} are temporarily stored here (is always emptied directly).
-       * @namespace ccm.callbacks
-       * @type {Object.<string,function>}
-       */
-      callbacks: {},
+    window.ccm = ccm;
 
-      /**
-       * @description
-       * This namespace is only used internally.
-       * Result data of loaded JavaScript files via {@link ccm.load} are temporarily stored here (is always emptied directly).
-       * @namespace ccm.files
-       * @type {Object}
-       */
-      files: {},
-    };
+    /**
+     * @description
+     * This namespace is only used internally.
+     * JSONP callbacks for loading data via {@link ccm.load} are temporarily stored here (is always emptied directly).
+     * @namespace ccm.callbacks
+     * @type {Object.<string,function>}
+     */
+    ccm.callbacks = {};
+
+    /**
+     * @description
+     * This namespace is only used internally.
+     * Result data of loaded JavaScript files via {@link ccm.load} are temporarily stored here (is always emptied directly).
+     * @namespace ccm.files
+     * @type {Object}
+     */
+    ccm.files = {};
 
     // define Custom Element <ccm-app>
     defineCustomElement("app");
   }
 
-  // is this the first time this specific ccm framework version is loaded in this webpage? => Initialize version specific namespace.
-  if (!window.ccm[ccm.version()]) window.ccm[ccm.version()] = ccm;
+  // is this the first time this specific ccm framework version is loaded in this webpage?
+  if (!window.ccm[ccm.version()]) {
+    window.ccm[ccm.version()] = ccm; // set version specific namespace
+    ccm.components = {}; // set namespace for loaded components
+  }
 
   /**
    * defines a ccm-specific Custom Element
