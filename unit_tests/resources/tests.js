@@ -1,5 +1,5 @@
 /**
- * @overview Unit tests for the ccmjs framework.
+ * @overview Unit tests for the ccm framework.
  * @author André Kless <andre.kless@web.de> (https://github.com/akless) 2023
  * @license The MIT License (MIT)
  */
@@ -45,8 +45,7 @@
           };
           actual = fut.helper.html2json(actual);
           suite.assertEquals(expected, actual);
-        },
-        async function loadHTMLTemplates(suite) {
+
           expected = {
             hello: "\n  Hello, <b>World</b>!\n",
             home: "\n  <h1>Welcome</h1>\n  <p>Hello, <b>World</b>!</p>\n",
@@ -90,7 +89,8 @@
           }
           suite.assertEquals(expected, actual);
 
-          await fut.load({
+          expected = url;
+          actual = await fut.load({
             url,
             attr: {
               integrity:
@@ -98,7 +98,7 @@
               crossorigin: "",
             },
           });
-          suite.passed();
+          suite.assertEquals(expected, actual);
 
           expected = 3;
           actual = document.head.querySelectorAll(query).length;
@@ -106,12 +106,23 @@
         },
         async function loadImage(suite) {
           const url = "./dummy/image.png";
+
           expected = url;
+          const start1 = performance.now();
           actual = await fut.load(url);
+          const end1 = performance.now();
           suite.assertEquals(expected, actual);
+
+          const start2 = performance.now();
+          actual = await fut.load(url);
+          const end2 = performance.now();
+          expected = end2 - start2 < (end1 - start1) * 0.1;
+          expected
+            ? suite.passed()
+            : suite.failed("Image should be loaded from cache.");
         },
         async function loadJS(suite) {
-          const url = "./dummy/script.min.js";
+          const url = "./dummy/script.js";
           expected = { foo: "bar" };
           actual = await fut.load(url);
           suite.assertEquals(expected, actual);
@@ -195,20 +206,67 @@
             [
               "./dummy/style.css",
               ["./dummy/module.mjs#data", "./dummy/data.json"],
-              "./dummy/script.min.js",
+              "./dummy/script.js",
             ],
             "./dummy/image.png",
           );
           suite.assertEquals(expected, actual);
+
+          actual = "";
+          expected = `loading of ./dummy/script.min.js failed`;
+          try {
+            await fut.load(
+              "./dummy/hello.html",
+              [
+                "./dummy/style.css",
+                ["./dummy/module.mjs#data", "./dummy/data.json"],
+                "./dummy/script.min.js",
+              ],
+              "./dummy/image.png",
+            );
+          } catch (results) {
+            actual = results[1][2].message;
+          }
+          suite.assertEquals(expected, actual);
+
+          window.actual = [0];
+          expected = "./dummy/script5.min.js";
+          actual = await fut.load(
+            "./dummy/script1.min.js",
+            [
+              "./dummy/script2.min.js",
+              ["./dummy/script3.min.js", "./dummy/script4.min.js"],
+              "./dummy/script5.min.js",
+            ],
+            "./dummy/script6.min.js",
+          );
+          suite.assertEquals(expected, actual[1][2]);
+          suite.assertEquals([3, 9, 5], window.actual);
         },
         async function loadContext(suite) {
+          let context;
           const url = "./dummy/style.css";
-          await fut.load({ url, context: document.body });
+          const query = `link[rel="stylesheet"][type="text/css"][href="${url}"]`;
+
+          context = document.body;
+          await fut.load({ url, context });
+          suite.assertTrue(
+            fut.helper.isElement(document.querySelector(`body > ${query}`)),
+          );
+
+          context = await fut.instance({
+            name: "component",
+            ccm: "./../ccm.js",
+            config: {},
+            Instance: function () {
+              this.start = async () => {};
+            },
+          });
+          document.head.appendChild(context.root);
+          await fut.load({ url, context });
           suite.assertTrue(
             fut.helper.isElement(
-              document.querySelector(
-                `body > link[rel="stylesheet"][type="text/css"][href="${url}"]`,
-              ),
+              context.element.parentNode.querySelector(query),
             ),
           );
         },
@@ -216,6 +274,19 @@
     },
     "ccm.helper": {
       tests: [
+        function clone(suite) {
+          let obj = {
+            foo: "bar",
+            arr: [window, ccm],
+            valid: () => true,
+            func: function () {},
+          };
+          obj.self = obj;
+          expected = obj;
+          actual = fut.helper.clone(obj);
+          console.log(actual);
+          suite.assertNotSame(expected, actual);
+        },
         function deepValue(suite) {
           const obj = { foo: { bar: [{ abc: "xyz" }] } };
           expected = "xyz";
@@ -252,7 +323,7 @@
         },
         function generateKey(suite) {
           actual = fut.helper.generateKey();
-          suite.assertTrue(/^[a-z0-9]{32}$/.test(actual));
+          suite.assertTrue(fut.helper.isKey(actual));
         },
         function html(suite) {
           let html;
@@ -372,12 +443,16 @@
               this.start = async () => {};
             },
           });
-          actual = fut.helper.isComponent(value);
+          actual = fut.helper.isInstance(value);
           suite.assertFalse(actual);
 
           value = await fut.instance(value);
-          actual = fut.helper.isComponent(value);
+          actual = fut.helper.isInstance(value);
           suite.assertTrue(actual);
+        },
+        function isKey(suite) {
+          actual = fut.helper.generateKey();
+          suite.assertTrue(fut.helper.isKey(actual));
         },
         function isNode(suite) {
           let value;

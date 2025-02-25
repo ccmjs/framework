@@ -105,7 +105,13 @@
             // start loading next resource
             let next = resource.shift();
             if (!Array.isArray(next)) next = [next];
-            ccm.load.apply(null, next).then(serial).catch(serial); // recursive call
+            ccm.load
+              .apply(null, next)
+              .then(serial)
+              .catch((result) => {
+                failed = true;
+                serial(result);
+              }); // recursive call
           }
 
           /**
@@ -212,7 +218,7 @@
             element = ccm.helper.html(element); // convert to DOM element
             element.onload = () => {
               // The JS file can pass its result data to the ccm framework via a global variable.
-              const data = window.ccm.files[filename];
+              const data = window.ccm.files[filename] || resource.url;
               delete window.ccm.files[filename];
               element.parentNode.removeChild(element);
               success(data);
