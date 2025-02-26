@@ -430,7 +430,6 @@
           obj.self = obj;
           expected = obj;
           actual = fut.helper.clone(obj);
-          console.log(actual);
           suite.assertNotSame(expected, actual);
         },
         function deepValue(suite) {
