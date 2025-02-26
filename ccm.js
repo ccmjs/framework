@@ -381,11 +381,12 @@
      * @param {ccm.types.component_obj|string} component - object, index or URL of component
      * @param {ccm.types.config} [config={}] - priodata for components default instance configuration
      * @returns {Promise<ccm.types.component_obj>|Error} clone of registered component object
+     * @throws {Error} if component is not valid
      */
     component: async (component, config = {}) => {
       component = await getComponentObject();
       if (!ccm.helper.isComponent(component))
-        return Error("invalid component: " + component);
+        throw new Error("invalid component: " + component);
 
       // framework version used by component can be adjusted via config
       if (config.ccm) component.ccm = config.ccm;
@@ -394,13 +395,16 @@
        * framework version that the component has to use
        * @type {ccm.types.version_nr}
        */
-      const version = ccm.helper.isCore(component?.ccm)
-        ? component.ccm.version()
-        : component.ccm.includes("-") &&
-          component.ccm.split("-").at(-1).split(".").slice(0, 3).join(".");
+      let version;
+      if (ccm.helper.isCore(component.ccm)) version = component.ccm.version();
+      else {
+        const [url, sri] = component.ccm.split("#");
+        if (url.includes("-"))
+          version = url.split("-").at(-1).split(".").slice(0, 3).join(".");
+      }
 
       // framework version is not present in current webpage?
-      if (version && !window.ccm[version]) {
+      if (!window.ccm[version]) {
         // load framework version from URL (SRI hash can be added with '#')
         const [url, sri] = component.ccm.split("#");
         await ccm.load(
@@ -410,7 +414,7 @@
         );
       }
 
-      // component uses other framework version? => register component via other framework version
+      // component uses other specific framework version? => register component via other framework version
       if (version && version !== ccm.version())
         return window.ccm[version].component(component, config);
 
@@ -463,36 +467,36 @@
         if (typeof component !== "string") return component;
 
         /**
+         * data extracted from component URL
+         * @type {{name: string, index: string, version: string, filename: string, url: string, minified: boolean, sri: string}}
+         */
+        const url_data = component.includes(".js")
+          ? ccm.helper.convertComponentURL(component)
+          : null;
+
+        /**
          * index of component
          * @type {ccm.types.component_index}
          */
-        const index = component.endsWith(".js")
-          ? ccm.helper.convertComponentURL(component).index
-          : component;
+        const index = url_data?.index || component;
 
         // component already registered? => use clone of already registered component object
         if (_components[index]) return ccm.helper.clone(_components[index]);
 
-        // no URL with valid component filename? => abort
-        if (
-          !ccm.helper
-            .regex("filename")
-            .test(component.split("/").at(-1).split("#").at(0))
-        )
-          return component;
+        // no component URL? => abort
+        if (!url_data) return component;
 
         // load component from URL (SRI hash can be added with '#')
-        const [url, sri] = component.split("#"); // separate URL from SRI hash
         const response = await ccm.load(
-          sri
+          url_data.sri
             ? {
-                url,
-                attr: { integrity: sri, crossorigin: "anonymous" },
+                url: url_data.url,
+                attr: { integrity: url_data.sri, crossorigin: "anonymous" },
               }
-            : url,
+            : url_data.url,
         );
 
-        response.url = url; // a component remembers its URL
+        response.url = url_data.url; // a component remembers its URL
         return response;
       }
     },
@@ -744,41 +748,43 @@
       },
 
       /**
-       * @summary Extract data from a _ccm_ component URL.
+       * @summary Extract data from a _ccm_ component URL. (TODO: SRI in doc)
        * @param {string} url
-       * @returns {{name: string, index: string, version: string, url: string, minified: boolean}}
+       * @returns {{name: string, index: string, version: string, filename: string, url: string, minified: boolean, sri: string}}
        * @throws {Error} if component filename is not valid
        * @example
        * const data = ccm.helper.convertComponentURL( './ccm.quiz.js' );  // latest version
-       * console.log(data); // {"name":"quiz","index":"quiz","url":"./ccm.quiz.js"}
+       * console.log(data); // {"name":"quiz","index":"quiz","filename":"ccm.quiz.js","url":"./ccm.quiz.js"}
        * @example
        * const data = ccm.helper.convertComponentURL( './ccm.quiz-4.0.2.js' ); // specific version
-       * console.log(data); // {"name":"quiz","version":"4.0.2","index":"quiz-4-0-2","url":"./ccm.quiz-4.0.2.js"}
+       * console.log(data); // {"name":"quiz","version":"4.0.2","index":"quiz-4-0-2","filename":"ccm.quiz-4.0.2.js","url":"./ccm.quiz-4.0.2.js"}
        * @example
        * const data = ccm.helper.convertComponentURL( './ccm.quiz.min.js' );  // minified
-       * console.log(data); // {"name":"quiz","index":"quiz","url":"./ccm.quiz.min.js","minified":true}
+       * console.log(data); // {"name":"quiz","index":"quiz","filename":"ccm.quiz.min.js","url":"./ccm.quiz.min.js","minified":true}
        */
       convertComponentURL: (url) => {
         /**
          * from given url extracted filename of the ccm component
          * @type {string}
          */
-        const filename = url.split("/").pop();
+        let sri;
+        [url, sri] = url.split("#");
+        const filename = url.split("/").at(-1);
 
         // abort if extracted filename is not a valid filename for a ccm component
         if (!ccm.helper.regex("filename").test(filename))
           throw new Error("invalid component filename: " + filename);
 
         // extract data
-        const data = { url: url };
+        const data = { url, filename, sri };
         let tmp = filename.substring(4, filename.length - 3); // remove prefix 'ccm.' and postfix '.js'
         if (tmp.endsWith(".min")) {
           data.minified = true;
           tmp = tmp.substring(0, tmp.length - 4); // removes optional infix '.min'
         }
         tmp = tmp.split("-");
-        data.name = tmp.shift(); // name
-        if (tmp.length) data.version = tmp[0]; // version
+        data.name = tmp.at(0); // name
+        if (tmp.length > 1) data.version = tmp[1]; // version
         data.index =
           data.name +
           (data.version ? "-" + data.version.replace(/\./g, "-") : ""); // index
@@ -1158,9 +1164,7 @@
           }
 
           // set value for the same property in the given dataset
-          const value = ccm.helper.deepValue(dataset, key);
-          if (value === undefined || value === "")
-            ccm.helper.deepValue(dataset, key, priodata[key]);
+          ccm.helper.deepValue(dataset, key, priodata[key]);
         }
 
         // return dataset with integrated priority data
@@ -1182,7 +1186,8 @@
        * });
        * ccm.helper.isComponent(value); // => true
        */
-      isComponent: (value) => value?.Instance && true,
+      isComponent: (value) =>
+        value?.name && value.ccm && value.config && value.Instance && true,
 
       /**
        * @summary Checks if a value is a _ccm_ core object.
@@ -1522,6 +1527,7 @@
           result.config = await ccm.helper.solveDependency(result.config);
           // integrate instance configuration into base configuration
           result = await ccm.helper.integrate(result, result.config);
+          delete result.config;
         }
 
         return result;

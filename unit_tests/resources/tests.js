@@ -272,6 +272,152 @@
         },
       ],
     },
+    "ccm.component": {
+      tests: [
+        async function register(suite) {
+          let component;
+
+          // Registration of a component.
+          component = await fut.component({
+            name: "component",
+            ccm: "./../ccm.js",
+            config: {},
+            Instance: function () {
+              this.start = async () => {};
+            },
+          });
+          suite.assertTrue(fut.helper.isComponent(component)); // is a valid component
+          suite.assertTrue(fut.helper.isCore(component.ccm)); // has framework object
+          suite.assertEquals(fv, component.ccm.version()); // uses correct framework version
+          suite.assertEquals("component", component.index); // has component index
+          suite.assertEquals({}, component.ccm.components.component); // created global component namespace
+          suite.assertTrue(typeof component.instances === "number"); // created instance counter
+          suite.assertTrue(typeof component.instance === "function"); // has own instance method
+          suite.assertTrue(typeof component.start === "function"); // has own start method
+
+          // Once a component is registered, it cannot be manipulated.
+          component.hack = true;
+          component = await fut.component(component);
+          suite.assertTrue(fut.helper.isComponent(component));
+          suite.assertTrue(!component.hack);
+
+          // Only an already registered component can be used via its component index.
+          expected = "invalid component: dummy";
+          actual = "";
+          try {
+            await fut.component("dummy");
+          } catch (error) {
+            actual = error.message;
+          }
+          suite.assertEquals(expected, actual);
+
+          // Registration of a component via the URL.
+          component = await fut.component("./dummy/ccm.dummy.js");
+          suite.assertTrue(fut.helper.isComponent(component));
+
+          // After registration, the component can also be used via its index.
+          component = await fut.component("dummy");
+          suite.assertTrue(fut.helper.isComponent(component));
+
+          // If an already registered component is used via its URL, the URL is ignored and the component index is extracted from the URL instead.
+          component = await fut.component("./not_exist/ccm.dummy.js");
+          suite.assertTrue(fut.helper.isComponent(component));
+
+          // When registering a component via the URL, the filename is checked for the correct format.
+          expected = "invalid component filename: ccm_dummy2.js";
+          actual = "";
+          try {
+            await fut.component("./dummy/ccm_dummy2.js");
+          } catch (error) {
+            actual = error.message;
+          }
+          suite.assertEquals(expected, actual);
+
+          // Registration checks whether it is a valid component object.
+          expected = "invalid component: [object Object]";
+          actual = "";
+          try {
+            await fut.component({});
+          } catch (error) {
+            actual = error.message;
+          }
+          suite.assertEquals(expected, actual);
+
+          // When the component is loaded with SRI, it checks whether the hashes match.
+          expected = "loading of ./dummy/ccm.dummy2.js failed";
+          actual = "";
+          try {
+            await fut.component("./dummy/ccm.dummy2.js#sha384-wrong-hash");
+          } catch (error) {
+            actual = error.message;
+          }
+          suite.assertEquals(expected, actual);
+
+          // SRI can also be used to load the framework version used by the component.
+          expected = "loading of ./libs/ccm/ccm.js failed";
+          actual = "";
+          try {
+            await fut.component({
+              name: "component2",
+              ccm: "./libs/ccm/ccm.js#sha384-wrong-hash",
+              config: {},
+              Instance: function () {
+                this.start = async () => {};
+              },
+            });
+          } catch (error) {
+            actual = error.message;
+          }
+          suite.assertEquals(expected, actual);
+
+          // Registering a component with ready callback and adjusted default configuration.
+          let ready = false;
+          component = await fut.component(
+            {
+              name: "component2",
+              ccm: "./../ccm.js",
+              config: {
+                val: false,
+                arr: [1, 2, 3],
+                obj: { foo: "bar" },
+              },
+              ready: async () => {
+                ready = true;
+              },
+              Instance: function () {
+                this.start = async () => {};
+              },
+            },
+            {
+              val: true,
+              "arr.2": 4,
+              "obj.foo": "baz",
+            },
+          );
+          suite.assertTrue(ready); // ready callback has been called
+          suite.assertFalse(component.ready); // ready callback has been deleted
+          // priority data for default configuration was integrated correctly
+          suite.assertEquals(
+            { val: true, arr: [1, 2, 4], obj: { foo: "baz" } },
+            component.config,
+          );
+
+          // Using a data dependency to reference the priority data for the default configuration.
+          component = await fut.component(
+            {
+              name: "component3",
+              ccm: "./../ccm.js",
+              config: { foo: "bar" },
+              Instance: function () {
+                this.start = async () => {};
+              },
+            },
+            ["ccm.load", "./dummy/configs.mjs#config"],
+          );
+          suite.assertEquals({ foo: "baz", val: true }, component.config);
+        },
+      ],
+    },
     "ccm.helper": {
       tests: [
         function clone(suite) {
