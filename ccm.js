@@ -49,7 +49,7 @@
      */
     load: async (...resources) => {
       /**
-       * results data of loaded resource(s)
+       * results of loaded resources
        * @type {Array}
        */
       let results = [];
@@ -61,7 +61,7 @@
       let counter = 1;
 
       /**
-       * indicates if loading of at least one resource failed
+       * Indicates if loading of at least one resource failed.
        * @type {boolean}
        */
       let failed = false;
@@ -84,15 +84,15 @@
           // By default, a resource is loaded in the <head> of the webpage.
           if (!resource.context) resource.context = document.head;
 
-          // If the resource should be loaded in the Shadow DOM of a component instance.
+          // A resource can be loaded in the Shadow DOM of a component instance.
           if (ccm.helper.isInstance(resource.context))
             resource.context = resource.context.element.parentNode;
 
-          // load the resource according to its type
+          // Load the resource according to its type.
           getOperation()();
 
           /**
-           * When resources should be loaded one after the other.
+           * Loads the resources recursively one after the other.
            * @param {*} result - result of the last serially loaded resource
            */
           function serial(result) {
@@ -115,7 +115,7 @@
           }
 
           /**
-           * returns the operation to load resource according to its type
+           * Returns the operation to load resource according to its type.
            * @returns {Function}
            */
           function getOperation() {
@@ -135,10 +135,12 @@
               case "xml":
                 return loadXML;
             }
+
+            // The type of the resource is determined by its file extension.
             const suffix = resource.url
               .split(/[#?]/)[0]
               .split(".")
-              .pop()
+              .at(-1)
               .trim();
             switch (suffix) {
               case "html":
@@ -359,7 +361,7 @@
           /** callback when loading of a resource failed */
           function error() {
             failed = true;
-            results[i] = Error(`loading of ${resource.url} failed`);
+            results[i] = new Error(`loading of ${resource.url} failed`);
             check();
           }
         });
@@ -510,6 +512,7 @@
      * @param {ccm.types.config} [config={}] - priority data for instance configuration
      * @param {Element} [element=document.createElement("div")] - webpage area where the component instance will be embedded (default: on-the-fly <div>)
      * @returns {Promise<ccm.types.instance>}
+     * @throws {Error} if component is not valid
      */
     instance: async (
       component,
@@ -558,10 +561,7 @@
         });
 
       // add instance as child to parent instance
-      if (instance.parent) {
-        if (!instance.parent.children) instance.parent.children = {};
-        instance.parent.children[instance.index] = instance;
-      }
+      if (instance.parent) instance.parent.children[instance.index] = instance;
 
       // set root element of the created instance
       instance.root = ccm.helper.html({ id: instance.index });
@@ -579,11 +579,8 @@
 
       document.head.appendChild(instance.root); // move root element temporary to <head> (resolving dependencies requires DOM contact)
       config = await ccm.helper.solveDependencies(config, instance); // resolve all dependencies in config
+      element.appendChild(instance.root); // move root element back to webpage area
       instance.element.appendChild(loading); // move loading icon to content element
-
-      // move root element to webpage area
-      element.innerHTML = "";
-      element.appendChild(instance.root);
 
       Object.assign(instance, config); // integrate config in created instance
       if (!instance.parent?.init) await initialize(); // initialize created and dependent instances
