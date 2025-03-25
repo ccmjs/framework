@@ -13,13 +13,15 @@
       fut = ccm[fv];
       expected = actual = undefined;
     },
-    tests: [
-      function version(suite) {
-        expected = fv;
-        actual = fut.version();
-        suite.assertEquals(expected, actual);
-      },
-    ],
+    "ccm.version": {
+      tests: [
+        async function call(suite) {
+          expected = fv;
+          actual = fut.version();
+          suite.assertEquals(expected, actual);
+        },
+      ],
+    },
     "ccm.load": {
       tests: [
         async function loadHTML(suite) {
@@ -122,7 +124,12 @@
             : suite.failed("Image should be loaded from cache.");
         },
         async function loadJS(suite) {
-          const url = "./dummy/script.js";
+          let url = "./dummy/dummy.js";
+          expected = url;
+          actual = await fut.load(url);
+          suite.assertEquals(expected, actual);
+
+          url = "./dummy/script.js";
           expected = { foo: "bar" };
           actual = await fut.load(url);
           suite.assertEquals(expected, actual);
@@ -274,10 +281,10 @@
     },
     "ccm.component": {
       tests: [
-        async function register(suite) {
+        async function registerByObject(suite) {
           let component;
 
-          // Registration of a component.
+          // using a minimal component object
           component = await fut.component({
             name: "component",
             ccm: "./../ccm.js",
@@ -300,6 +307,9 @@
           component = await fut.component(component);
           suite.assertTrue(fut.helper.isComponent(component));
           suite.assertTrue(!component.hack);
+        },
+        async function registerByURL(suite) {
+          let component;
 
           // Only an already registered component can be used via its component index.
           expected = "invalid component: dummy";
@@ -322,7 +332,8 @@
           // If an already registered component is used via its URL, the URL is ignored and the component index is extracted from the URL instead.
           component = await fut.component("./not_exist/ccm.dummy.js");
           suite.assertTrue(fut.helper.isComponent(component));
-
+        },
+        async function invalidComponentCheck(suite) {
           // When registering a component via the URL, the filename is checked for the correct format.
           expected = "invalid component filename: ccm_dummy2.js";
           actual = "";
@@ -369,20 +380,33 @@
             actual = error.message;
           }
           suite.assertEquals(expected, actual);
-
-          // Registering a component with ready callback and adjusted default configuration.
+        },
+        async function withReadyCallback(suite) {
           let ready = false;
+          const component = await fut.component({
+            name: "component2",
+            ccm: "./../ccm.js",
+            config: {},
+            ready: async () => {
+              ready = true;
+            },
+            Instance: function () {
+              this.start = async () => {};
+            },
+          });
+          suite.assertTrue(ready); // ready callback has been called
+          suite.assertFalse(component.ready); // ready callback has been deleted
+        },
+        async function adjustedDefaultConfiguration(suite) {
+          let component;
           component = await fut.component(
             {
-              name: "component2",
+              name: "component3",
               ccm: "./../ccm.js",
               config: {
                 val: false,
                 arr: [1, 2, 3],
                 obj: { foo: "bar" },
-              },
-              ready: async () => {
-                ready = true;
               },
               Instance: function () {
                 this.start = async () => {};
@@ -394,9 +418,7 @@
               "obj.foo": "baz",
             },
           );
-          suite.assertTrue(ready); // ready callback has been called
-          suite.assertFalse(component.ready); // ready callback has been deleted
-          // priority data for default configuration was integrated correctly
+          // check if priority data for default configuration was integrated correctly
           suite.assertEquals(
             { val: true, arr: [1, 2, 4], obj: { foo: "baz" } },
             component.config,
@@ -405,7 +427,7 @@
           // Using a data dependency to reference the priority data for the default configuration.
           component = await fut.component(
             {
-              name: "component3",
+              name: "component4",
               ccm: "./../ccm.js",
               config: { foo: "bar" },
               Instance: function () {
@@ -415,6 +437,13 @@
             ["ccm.load", "./dummy/configs.mjs#config"],
           );
           suite.assertEquals({ foo: "baz", val: true }, component.config);
+        },
+      ],
+    },
+    "ccm.instance": {
+      tests: [
+        async function create(suite) {
+          suite.passed();
         },
       ],
     },
