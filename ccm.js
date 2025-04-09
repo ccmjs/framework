@@ -206,9 +206,9 @@
              */
             const filename = resource.url
               .split("?")
-              .shift()
+              .at(0)
               .split("/")
-              .pop()
+              .at(-1)
               .replace(".min.", ".");
 
             /** @type {ccm.types.html|Element} */
@@ -226,6 +226,7 @@
               success(data);
             };
             element.onerror = () => {
+              delete window.ccm.files[filename];
               element.parentNode.removeChild(element);
               error();
             };

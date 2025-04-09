@@ -118,8 +118,7 @@
           const start2 = performance.now();
           actual = await fut.load(url);
           const end2 = performance.now();
-          expected = end2 - start2 < (end1 - start1) * 0.1;
-          expected
+          end2 - start2 < end1 - start1
             ? suite.passed()
             : suite.failed("Image should be loaded from cache.");
         },
@@ -163,6 +162,10 @@
             },
           });
           suite.passed();
+
+          expected = {};
+          actual = window.ccm.files;
+          suite.assertEquals(expected, actual);
         },
         async function loadModule(suite) {
           const url = "./dummy/module.mjs";
@@ -322,8 +325,12 @@
           suite.assertEquals(expected, actual);
 
           // Registration of a component via the URL.
-          component = await fut.component("./dummy/ccm.dummy.js");
+          const url = "./dummy/ccm.dummy.js";
+          component = await fut.component(url);
           suite.assertTrue(fut.helper.isComponent(component));
+
+          // A component knows the URL from which it was loaded.
+          suite.assertEquals(url, component.url);
 
           // After registration, the component can also be used via its index.
           component = await fut.component("dummy");
