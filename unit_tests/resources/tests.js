@@ -9,6 +9,7 @@
   const fv = "28.0.0"; // fv: framework version
   ccm.files["tests.js"] = {
     setup: async (suite) => {
+      delete ccm[fv];
       await suite.ccm.load("./../ccm.js");
       fut = ccm[fv];
       expected = actual = undefined;
@@ -342,10 +343,10 @@
         },
         async function invalidComponentCheck(suite) {
           // When registering a component via the URL, the filename is checked for the correct format.
-          expected = "invalid component filename: ccm_dummy2.js";
+          expected = "invalid component filename: ccm_dummy.js";
           actual = "";
           try {
-            await fut.component("./dummy/ccm_dummy2.js");
+            await fut.component("./dummy/ccm_dummy.js");
           } catch (error) {
             actual = error.message;
           }
@@ -362,10 +363,10 @@
           suite.assertEquals(expected, actual);
 
           // When the component is loaded with SRI, it checks whether the hashes match.
-          expected = "loading of ./dummy/ccm.dummy2.js failed";
+          expected = "loading of ./dummy/ccm.dummy.js failed";
           actual = "";
           try {
-            await fut.component("./dummy/ccm.dummy2.js#sha384-wrong-hash");
+            await fut.component("./dummy/ccm.dummy.js#sha384-wrong-hash");
           } catch (error) {
             actual = error.message;
           }
@@ -376,7 +377,7 @@
           actual = "";
           try {
             await fut.component({
-              name: "component2",
+              name: "component",
               ccm: "./libs/ccm/ccm.js#sha384-wrong-hash",
               config: {},
               Instance: function () {
@@ -391,7 +392,7 @@
         async function withReadyCallback(suite) {
           let ready = false;
           const component = await fut.component({
-            name: "component2",
+            name: "component",
             ccm: "./../ccm.js",
             config: {},
             ready: async () => {
@@ -405,10 +406,9 @@
           suite.assertFalse(component.ready); // ready callback has been deleted
         },
         async function adjustedDefaultConfiguration(suite) {
-          let component;
-          component = await fut.component(
+          const component = await fut.component(
             {
-              name: "component3",
+              name: "component",
               ccm: "./../ccm.js",
               config: {
                 val: false,
@@ -430,11 +430,12 @@
             { val: true, arr: [1, 2, 4], obj: { foo: "baz" } },
             component.config,
           );
-
+        },
+        async function adjustedViaDataDependency(suite) {
           // Using a data dependency to reference the priority data for the default configuration.
-          component = await fut.component(
+          const component = await fut.component(
             {
-              name: "component4",
+              name: "component",
               ccm: "./../ccm.js",
               config: { foo: "bar" },
               Instance: function () {
