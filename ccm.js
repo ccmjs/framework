@@ -1355,7 +1355,7 @@
       /**
        * @summary checks if a value is a special object
        * @description
-       * A special object is Window Object, Node, _ccm_ Object, _ccm_ Instance, _ccm_ Component Object and _ccm_ Datastore.
+       * A special object is Window Object, Node, _ccm_ Object, _ccm_ Instance and _ccm_ Datastore.
        * These objects lead to endless loops if you recursively go through each property in depth.
        * @param {*} value
        * @returns {boolean}
@@ -1366,7 +1366,6 @@
           ccm.helper.isNode(value) ||
           ccm.helper.isCore(value) ||
           ccm.helper.isInstance(value) ||
-          ccm.helper.isComponent(value) ||
           ccm.helper.isDatastore(value)
         );
       },

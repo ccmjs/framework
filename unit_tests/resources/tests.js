@@ -310,7 +310,7 @@
           component.hack = true;
           component = await fut.component(component);
           suite.assertTrue(fut.helper.isComponent(component));
-          suite.assertTrue(!component.hack);
+          suite.assertFalse(component.hack);
         },
         async function registerByURL(suite) {
           let component;
