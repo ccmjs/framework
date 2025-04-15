@@ -393,6 +393,7 @@
 
       // framework version used by component can be adjusted via config
       if (config.ccm) component.ccm = config.ccm;
+      delete config.ccm;
 
       /**
        * framework version that the component has to use
@@ -417,9 +418,14 @@
         );
       }
 
-      // component uses other specific framework version? => register component via other framework version
+      // component uses other specific framework version? => register component via other framework version (backward compatibility)
       if (version && version !== ccm.version())
-        return window.ccm[version].component(component, config);
+        return new Promise((resolve, reject) =>
+          window.ccm[version]
+            .component(component, config, resolve) // before ccm v18, callbacks were used instead of promises
+            ?.then(resolve)
+            .catch(reject),
+        );
 
       // set component index
       component.index =
@@ -736,7 +742,8 @@
        */
       clone: (value, hash = new Set()) => {
         if (Array.isArray(value) || ccm.helper.isObject(value)) {
-          if (hash.has(value)) return value;
+          if (ccm.helper.isSpecialObject(value) || hash.has(value))
+            return value;
           hash.add(value);
           const copy = Array.isArray(value) ? [] : {};
           for (const i in value) copy[i] = ccm.helper.clone(value[i], hash);
