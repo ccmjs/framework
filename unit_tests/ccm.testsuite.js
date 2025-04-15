@@ -111,7 +111,7 @@
           package_path = "",
           package_obj = {},
           setups,
-          finallies
+          finallies,
         ) {
           // has setup function? => add her to (cloned) setup functions
           if (package_obj.setup) {
@@ -141,7 +141,7 @@
               (package_path ? package_path + "." : "") + key,
               subpackage,
               setups,
-              finallies
+              finallies,
             );
           }
 
@@ -240,7 +240,7 @@
                       delta
                         ? Math.abs(expected - actual) < delta
                         : expected === actual,
-                      { expected, actual }
+                      { expected, actual },
                     );
                   },
 
@@ -262,7 +262,7 @@
                   assertNotEquals: (expected, actual) =>
                     suite.assertNotSame(
                       JSON.stringify(expected),
-                      JSON.stringify(actual)
+                      JSON.stringify(actual),
                     ),
                 };
 
@@ -273,11 +273,12 @@
                 try {
                   await test(suite);
                 } catch (e) {
-                  !suite.abort &&
-                    setResult(
-                      false,
-                      e.name + (e.message ? ": " + e.message : "")
-                    );
+                  suite.abort
+                    ? console.error(e)
+                    : setResult(
+                        false,
+                        e.name + (e.message ? ": " + e.message : ""),
+                      );
                 }
 
                 // show test result
@@ -322,7 +323,7 @@
                   self.element &&
                     $.setContent(
                       result_elem,
-                      $.html(self.html.result, { value: value })
+                      $.html(self.html.result, { value: value }),
                     );
                   results.details[package_path + "." + test.name] =
                     suite.result;
@@ -331,7 +332,7 @@
                   if (suite.message) {
                     if (self.element)
                       test_elem.appendChild(
-                        $.html(self.html.message, suite.message)
+                        $.html(self.html.message, suite.message),
                       );
                     results.details[package_path + "." + test.name] =
                       suite.message;
@@ -354,8 +355,8 @@
                         $.html(
                           self.html.comparison,
                           suite.expected,
-                          suite.actual
-                        )
+                          suite.actual,
+                        ),
                       );
                     }
                     results.details[package_path + "." + test.name] = {
@@ -364,7 +365,7 @@
                     };
                   }
                 }
-              }
+              },
             );
           }
         }
