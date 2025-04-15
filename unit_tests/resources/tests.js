@@ -446,6 +446,52 @@
           );
           suite.assertEquals({ foo: "baz", val: true }, component.config);
         },
+        async function backwardCompatibility(suite) {
+          // tests backward compatibility for all major versions of ccm.js
+          await testVersion("27.5.0");
+          await testVersion("26.4.4");
+          await testVersion("25.5.3");
+          await testVersion("24.2.0");
+          await testVersion("23.0.2");
+          await testVersion("22.7.2");
+          await testVersion("21.2.0");
+          await testVersion("20.9.1");
+          await testVersion("19.0.0");
+          await testVersion("18.6.8");
+          await testVersion("17.0.0");
+          await testVersion("16.7.0");
+          await testVersion("15.0.2");
+          await testVersion("14.3.0");
+          await testVersion("13.1.0");
+          await testVersion("12.12.0");
+          await testVersion("11.5.0");
+          await testVersion("10.2.0");
+          await testVersion("9.2.0");
+          await testVersion("8.1.0");
+
+          async function testVersion(version) {
+            const component = await fut.component(
+              {
+                name: "dummy",
+                ccm: "https://ccmjs.github.io/ccm/ccm.js",
+                config: {},
+                Instance: function () {
+                  this.start = async () => {};
+                },
+              },
+              {
+                ccm: `https://ccmjs.github.io/ccm/versions/ccm-${version}.js`,
+              },
+            );
+            suite.assertTrue(suite.ccm.helper.isComponent(component));
+            suite.assertEquals(
+              version,
+              suite.ccm.helper.isObject(component.ccm)
+                ? component.ccm.version()
+                : ccm[version].version(),
+            );
+          }
+        },
       ],
     },
     "ccm.instance": {
