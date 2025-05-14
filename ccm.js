@@ -402,7 +402,7 @@
       let version;
       if (ccm.helper.isCore(component.ccm)) version = component.ccm.version();
       else {
-        const [url, sri] = component.ccm.split("#");
+        const [url] = component.ccm.split("#");
         if (url.includes("-"))
           version = url.split("-").at(-1).split(".").slice(0, 3).join(".");
       }
