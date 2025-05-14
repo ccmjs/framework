@@ -298,9 +298,9 @@
             },
           });
           suite.assertTrue(fut.helper.isComponent(component)); // is a valid component
-          suite.assertTrue(fut.helper.isCore(component.ccm)); // has framework object
-          suite.assertEquals(fv, component.ccm.version()); // uses correct framework version
-          suite.assertEquals("component", component.index); // has component index
+          suite.assertTrue(fut.helper.isCore(component.ccm)); // has a framework object
+          suite.assertEquals(fv, component.ccm.version()); // uses a correct framework version
+          suite.assertEquals("component", component.index); // has a component index
           suite.assertEquals({}, component.ccm.components.component); // created global component namespace
           suite.assertTrue(typeof component.instances === "number"); // created instance counter
           suite.assertTrue(typeof component.instance === "function"); // has own instance method
@@ -499,6 +499,52 @@
         async function create(suite) {
           suite.passed();
         },
+        async function backwardCompatibility(suite) {
+          // tests backward compatibility for all major versions of ccm.js
+          await testVersion("27.5.0");
+          await testVersion("26.4.4");
+          await testVersion("25.5.3");
+          await testVersion("24.2.0");
+          await testVersion("23.0.2");
+          await testVersion("22.7.2");
+          await testVersion("21.2.0");
+          await testVersion("20.9.1");
+          await testVersion("19.0.0");
+          await testVersion("18.6.8");
+          await testVersion("17.0.0");
+          await testVersion("16.7.0");
+          await testVersion("15.0.2");
+          await testVersion("14.3.0");
+          await testVersion("13.1.0");
+          await testVersion("12.12.0");
+          await testVersion("11.5.0");
+          await testVersion("10.2.0");
+          await testVersion("9.2.0");
+          await testVersion("8.1.0");
+
+          async function testVersion(version) {
+            const instance = await fut.instance(
+              {
+                name: "dummy",
+                ccm: "https://ccmjs.github.io/ccm/ccm.js",
+                config: {},
+                Instance: function () {
+                  this.start = async () => {};
+                },
+              },
+              {
+                ccm: `https://ccmjs.github.io/ccm/versions/ccm-${version}.js`,
+              },
+            );
+            suite.assertTrue(suite.ccm.helper.isInstance(instance));
+            suite.assertEquals(
+              version,
+              suite.ccm.helper.isObject(instance.ccm)
+                ? instance.ccm.version()
+                : ccm[version].version(),
+            );
+          }
+        },
       ],
     },
     "ccm.helper": {
@@ -556,7 +602,7 @@
         function html(suite) {
           let html;
 
-          // Content without HTML tag
+          // content without an HTML tag
           html = "Hello, World!";
           expected = Text;
           actual = fut.helper.html(html);
@@ -566,7 +612,7 @@
           actual = actual.textContent;
           suite.assertEquals(expected, actual);
 
-          // Content with HTML tag
+          // content with HTML tag
           html = "Hello, <b>World</b>!";
           expected = HTMLElement;
           actual = fut.helper.html(html);
@@ -576,14 +622,14 @@
           actual = actual.innerHTML;
           suite.assertEquals(expected, actual);
 
-          // Content with HTML tag and placeholder
+          // content with HTML tag and placeholder
           html = "Hello, <b>%name%</b>!";
           html = fut.helper.html(html, { name: "World" });
           actual = html.innerHTML;
           expected = "Hello, <b>World</b>!";
           suite.assertEquals(expected, actual);
 
-          // Content with HTML tags, placeholder and click event
+          // content with HTML tags, placeholder and click event
           html =
             '<p>Hello, <b>%name%</b>! <button onclick="%click%"></button></p>';
           html = fut.helper.html(html, {
@@ -602,7 +648,7 @@
         function html2json(suite) {
           let html;
 
-          // content without HTML tag
+          // content without an HTML tag
           html = "Hello, World!";
           expected = "Hello, World!";
           actual = fut.helper.html2json(html);

@@ -43,7 +43,7 @@
      * @summary Asynchronous Loading of Resources
      * @description
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Loading-Resources}
-     * to learn everything about this method. There are also examples how to use it.
+     * to learn everything about this method. There are also examples of how to use it.
      * @param {...(string|ccm.types.resource_obj)} resources - Resources to load. Either the URL or a [resource object]{@link ccm.types.resource_obj} can be passed for a resource.
      * @returns {Promise<*>}
      */
@@ -92,7 +92,7 @@
           getOperation()();
 
           /**
-           * Loads the resources recursively one after the other.
+           * Recursively loads the resource one after the other.
            * @param {*} result - result of the last serially loaded resource
            */
           function serial(result) {
@@ -102,7 +102,7 @@
             // all resources have been loaded serially
             if (!resource.length) return check();
 
-            // start loading next resource
+            // start loading the next resource
             let next = resource.shift();
             if (!Array.isArray(next)) next = [next];
             ccm.load
@@ -181,7 +181,7 @@
               href: resource.url,
             };
 
-            // setup individual HTML attributes for <link> tag
+            // set up individual HTML attributes for <link> tag
             if (resource.attr) element = Object.assign(element, resource.attr);
 
             element = ccm.helper.html(element); // convert to DOM element
@@ -214,7 +214,7 @@
             /** @type {ccm.types.html|Element} */
             let element = { tag: "script", src: resource.url, async: true };
 
-            // setup individual HTML attributes for <script> tag
+            // set up individual HTML attributes for <script> tag
             if (resource.attr) element = Object.assign(element, resource.attr);
 
             element = ccm.helper.html(element); // convert to DOM element
@@ -278,7 +278,7 @@
                 src: buildURL(resource.url, resource.params),
               };
 
-              // setup individual HTML attributes for <script> tag
+              // set up individual HTML attributes for <script> tag
               if (resource.attr)
                 element = Object.assign(element, resource.attr);
 
@@ -382,7 +382,7 @@
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
      * to learn everything about embedding components in _ccm_. There are also examples how to use this method.
      * @param {ccm.types.component_obj|string} component - object, index or URL of component
-     * @param {ccm.types.config} [config={}] - priodata for components default instance configuration
+     * @param {ccm.types.config} [config={}] - priodata for component default instance configuration
      * @returns {Promise<ccm.types.component_obj>|Error} clone of registered component object
      * @throws {Error} if component is not valid
      */
@@ -391,7 +391,7 @@
       if (!ccm.helper.isComponent(component))
         throw new Error("invalid component: " + component);
 
-      // framework version used by component can be adjusted via config
+      // the framework version used by a component can be adjusted via config
       if (config.ccm) component.ccm = config.ccm;
       delete config.ccm;
 
@@ -407,7 +407,7 @@
           version = url.split("-").at(-1).split(".").slice(0, 3).join(".");
       }
 
-      // framework version is not present in current webpage?
+      // framework version is not present in the current webpage?
       if (!window.ccm[version]) {
         // load framework version from URL (SRI hash can be added with '#')
         const [url, sri] = component.ccm.split("#");
@@ -418,7 +418,7 @@
         );
       }
 
-      // component uses other specific framework version? => register component via other framework version (backward compatibility)
+      // Does this component use another framework version? => register a component via another framework version (backward compatibility)
       if (version && version !== ccm.version())
         return new Promise((resolve, reject) =>
           window.ccm[version]
@@ -432,7 +432,7 @@
         component.name +
         (component.version ? "-" + component.version.join("-") : "");
 
-      // component not registered yet?
+      // component isn't registered yet?
       if (!_components[component.index]) {
         _components[component.index] = component; // register component
         ccm.components[component.index] = {}; // create global component namespaces
@@ -445,7 +445,7 @@
       // never give out the original reference to a component object once registered (security reasons)
       component = ccm.helper.clone(_components[component.index]);
 
-      // set reference to used framework version
+      // set reference to the used framework version
       component.ccm = window.ccm[version] || ccm;
 
       // prepare default instance configuration
@@ -484,12 +484,12 @@
           : null;
 
         /**
-         * index of component
+         * index of the component
          * @type {ccm.types.component_index}
          */
         const index = url_data?.index || component;
 
-        // component already registered? => use clone of already registered component object
+        // component already registered? => use clone of an already registered component object
         if (_components[index]) return ccm.helper.clone(_components[index]);
 
         // no component URL? => abort
@@ -532,7 +532,7 @@
       // no component object? => abort
       if (!ccm.helper.isComponent(component)) return component;
 
-      // component uses other framework version? => create instance via other framework version
+      // component uses another framework version? => create an instance via another framework version
       if (component.ccm.version() !== ccm.version())
         return component.ccm.instance(component, config, element);
 
@@ -551,7 +551,7 @@
       const instance = new component.Instance();
 
       // set ccm-specific properties
-      instance.ccm = component.ccm; // reference to used framework version
+      instance.ccm = component.ccm; // reference to the used framework version
       instance.component = component; // an instance knows which component it comes from
       instance.id = ++_components[component.index].instances; // instance ID
       instance.index = component.index + "-" + instance.id; // instance index (unique in hole webpage)
@@ -570,9 +570,9 @@
       // add instance as child to parent instance
       if (instance.parent) instance.parent.children[instance.index] = instance;
 
-      // set root element of the created instance
+      // set the root element of the created instance
       instance.root = ccm.helper.html({ id: instance.index });
-      // create a Shadow DOM in root element
+      // create a Shadow DOM in the root element
       if (config.shadow !== "none")
         instance.shadow = instance.root.attachShadow({
           mode: config.shadow || "closed",
@@ -586,10 +586,10 @@
 
       document.head.appendChild(instance.root); // move root element temporary to <head> (resolving dependencies requires DOM contact)
       config = await ccm.helper.solveDependencies(config, instance); // resolve all dependencies in config
-      element.appendChild(instance.root); // move root element back to webpage area
+      element.appendChild(instance.root); // move the root element back to the webpage area
       instance.element.appendChild(loading); // move loading icon to content element
 
-      Object.assign(instance, config); // integrate config in created instance
+      Object.assign(instance, config); // integrate config in the created instance
       if (!instance.parent?.init) await initialize(); // initialize created and dependent instances
 
       return instance;
@@ -651,12 +651,12 @@
             if (i === instances.length) return ready();
 
             /**
-             * first founded ccm instance with not called init method
+             * first founded ccm instance with didn't call init method
              * @type {ccm.types.instance}
              */
             const next = instances[i++];
 
-            // call and delete init method and continue with next found ccm instance (recursive call)
+            // call and delete the init method and continue with the next found ccm instance (recursive call)
             next.init
               ? next.init().then(() => {
                   delete next.init;
@@ -665,18 +665,18 @@
               : init();
           }
 
-          /** calls ready methods (backward) of all found ccm instance (recursive, asynchron) */
+          /** calls ready methods (backward) of all found ccm instances (recursive, asynchron) */
           function ready() {
             // all ready methods called? => perform callback
             if (!instances.length) return resolve();
 
             /**
-             * last founded ccm instance with not called ready method
+             * last founded ccm instance with a not called ready method
              * @type {ccm.types.instance}
              */
             const next = instances.pop();
 
-            // result has a ready function? => perform and delete ready function and check next result afterwards (recursive call)
+            // result has a ready function? => perform and delete the ready function and check the next result afterward (recursive call)
             next.ready
               ? next.ready().then(() => {
                   delete next.ready;
@@ -686,7 +686,7 @@
 
             /** when instance is ready */
             function proceed() {
-              // does the app has to be started directly? => do it (otherwise: continue with next instance)
+              // does the app have to be started directly? => do it (otherwise: continue with next instance)
               if (next._start) {
                 delete next._start;
                 next.start().then(ready);
@@ -718,7 +718,7 @@
       // no component object? => abort
       if (!ccm.helper.isComponent(component)) return component;
 
-      // component uses other framework version? => create instance via other framework version
+      // component uses another framework version? => create an instance via another framework version
       if (component.ccm.version() !== ccm.version())
         return component.ccm.start(component, config, element);
 
