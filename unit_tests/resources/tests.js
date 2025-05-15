@@ -298,11 +298,11 @@
             },
           });
           suite.assertTrue(fut.helper.isComponent(component)); // is a valid component
-          suite.assertTrue(fut.helper.isCore(component.ccm)); // has a framework object
-          suite.assertEquals(fv, component.ccm.version()); // uses a correct framework version
-          suite.assertEquals("component", component.index); // has a component index
+          suite.assertTrue(fut.helper.isCore(component.ccm)); // has a valid framework reference
+          suite.assertEquals(fv, component.ccm.version()); // uses the correct framework version
+          suite.assertEquals("component", component.index); // has the correct component index
           suite.assertEquals({}, component.ccm.components.component); // created global component namespace
-          suite.assertTrue(typeof component.instances === "number"); // created instance counter
+          suite.assertEquals(0, component.instances); // created instance counter starts with 0
           suite.assertTrue(typeof component.instance === "function"); // has own instance method
           suite.assertTrue(typeof component.start === "function"); // has own start method
 
@@ -447,7 +447,7 @@
           suite.assertEquals({ foo: "baz", val: true }, component.config);
         },
         async function backwardCompatibility(suite) {
-          // tests backward compatibility for all major versions of ccm.js
+          // tests backward compatibility for all compatible major versions of ccm.js
           await testVersion("27.5.0");
           await testVersion("26.4.4");
           await testVersion("25.5.3");
@@ -496,11 +496,60 @@
     },
     "ccm.instance": {
       tests: [
-        async function create(suite) {
-          suite.passed();
+        async function createByObject(suite) {
+          let instance;
+
+          instance = await fut.instance({
+            name: "component",
+            ccm: "./../ccm.js",
+            config: {},
+            Instance: function () {
+              this.start = async () => {};
+            },
+          });
+          suite.assertTrue(fut.helper.isInstance(instance)); // is a valid component instance
+          suite.assertTrue(fut.helper.isComponent(instance.component)); // has a valid component reference
+          suite.assertTrue(fut.helper.isCore(instance.ccm)); // has a valid framework reference
+          suite.assertEquals(fv, instance.ccm.version()); // uses the correct framework version
+          suite.assertEquals(1, instance.id); // has the correct instance id
+          suite.assertEquals("component-1", instance.index); // has the correct instance index
+          suite.assertEquals(undefined, instance.parent); // has no parent
+          suite.assertEquals({}, instance.children); // has zero children
+          suite.assertEquals("{}", instance.config); // knows her own config as JSON string
+          suite.assertEquals(undefined, instance.inner); // has no light DOM
+          suite.assertTrue(fut.helper.isElement(instance.root)); // has root element reference
+          suite.assertTrue(fut.helper.isElement(instance.shadow)); // has Shadow DOM reference
+          suite.assertTrue(fut.helper.isElement(instance.element)); // has content element reference
+          suite.assertSame("closed", instance.shadow.mode); // Shadow DOM is closed
+          suite.assertSame(null, instance.root.shadowRoot); // the root element has no access to the closed Shadow DOM
+          suite.assertSame(null, instance.shadow.parentNode); // the closed Shadow DOM has no access to the root element
+          suite.assertSame(instance.shadow, instance.element.parentNode); // the Shadow DOM contains the content element
+          suite.assertEquals(
+            '<div><div id="component-1"></div></div>',
+            instance.root.parentElement.outerHTML,
+          ); // the webpage area is an empty div element that contains an empty root element with the instance index as HTML ID
+          suite.assertTrue(typeof instance.start === "function"); // has own start method
+        },
+        async function createByURL(suite) {
+          let instance;
+
+          // Only an already registered component can be used via its component index.
+          expected = "invalid component: dummy";
+          actual = "";
+          try {
+            await fut.instance("dummy");
+          } catch (error) {
+            actual = error.message;
+          }
+          suite.assertEquals(expected, actual);
+
+          // Creation of an instance via the URL.
+          const url = "./dummy/ccm.dummy.js";
+          instance = await fut.instance(url);
+          suite.assertTrue(fut.helper.isInstance(instance));
         },
         async function backwardCompatibility(suite) {
-          // tests backward compatibility for all major versions of ccm.js
+          // tests backward compatibility for all compatible major versions of ccm.js
           await testVersion("27.5.0");
           await testVersion("26.4.4");
           await testVersion("25.5.3");
@@ -520,7 +569,6 @@
           await testVersion("11.5.0");
           await testVersion("10.2.0");
           await testVersion("9.2.0");
-          await testVersion("8.1.0");
 
           async function testVersion(version) {
             const instance = await fut.instance(

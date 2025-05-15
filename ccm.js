@@ -532,9 +532,16 @@
       // no component object? => abort
       if (!ccm.helper.isComponent(component)) return component;
 
-      // component uses another framework version? => create an instance via another framework version
-      if (component.ccm.version() !== ccm.version())
-        return component.ccm.instance(component, config, element);
+      // Does the instance use another framework version? => register a component via another framework version (backward compatibility)
+      const version = component.ccm.version();
+      if (version && version !== ccm.version())
+        return new Promise((resolve, reject) => {
+          const major = parseInt(version.split(".")[0]);
+          window.ccm[version]
+            .instance(component, config, major < 18 ? resolve : element) // before version 18, callbacks were used instead of promises (and there was no 3rd parameter)
+            ?.then(resolve)
+            .catch(reject);
+        });
 
       // render loading icon in the webpage area
       element.innerHTML = "";
