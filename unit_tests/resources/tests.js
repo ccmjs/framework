@@ -528,6 +528,12 @@
             '<div><div id="component-1"></div></div>',
             instance.root.parentElement.outerHTML,
           ); // the webpage area is an empty div element that contains an empty root element with the instance index as HTML ID
+          suite.assertTrue(
+            document.head.querySelector(":scope > #ccm_keyframe"),
+          ); // keyframe animation for the loading placeholder is in the Shadow DOM
+          suite.assertTrue(
+            instance.element.querySelector(":scope > .ccm_loading"),
+          ); // loading placeholder is shown in the content element
           suite.assertTrue(typeof instance.start === "function"); // has own start method
         },
         async function createByURL(suite) {

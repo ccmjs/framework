@@ -545,7 +545,7 @@
 
       // render loading icon in the webpage area
       element.innerHTML = "";
-      const loading = ccm.helper.loading(config.parent);
+      const loading = ccm.helper.loading();
       element.appendChild(loading);
 
       // prepare instance configuration
@@ -1386,8 +1386,7 @@
        */
       loading: (instance) => {
         // create keyframe animation, if not already present
-        let element = instance ? instance.element.parentNode : document.head;
-        if (!element.querySelector("#ccm_keyframe")) {
+        if (!document.head.querySelector(":scope > #ccm_keyframe")) {
           const style = document.createElement("style");
           style.id = "ccm_keyframe";
           style.appendChild(
@@ -1395,11 +1394,11 @@
               "@keyframes ccm_loading {to {transform: rotate(360deg)}}",
             ),
           );
-          element.appendChild(style);
+          document.head.appendChild(style);
         }
 
         // create loading icon
-        element = document.createElement("div");
+        const element = document.createElement("div");
         element.classList.add("ccm_loading");
         element.setAttribute("style", "display: grid; padding: 0.5em;");
         element.innerHTML =
@@ -1584,7 +1583,7 @@
     },
   };
 
-  // is this the first ccm framework version loaded in this webpage? => initialize global namespace
+  // is this the first ccm framework version loaded on this webpage? => initialize global namespace
   if (!window.ccm) {
     window.ccm = ccm;
 
@@ -1610,7 +1609,7 @@
     defineCustomElement("app");
   }
 
-  // is this the first time this specific ccm framework version is loaded in this webpage?
+  // is this the first time this specific ccm framework version is loaded on this webpage?
   if (!window.ccm[ccm.version()]) {
     window.ccm[ccm.version()] = ccm; // set version specific namespace
     ccm.components = {}; // set namespace for loaded components
