@@ -14,7 +14,7 @@
       fut = ccm[fv];
       expected = actual = undefined;
     },
-    "ccm.version": {
+    version: {
       tests: [
         async function call(suite) {
           expected = fv;
@@ -23,7 +23,7 @@
         },
       ],
     },
-    "ccm.load": {
+    load: {
       tests: [
         async function loadHTML(suite) {
           expected = "Hello, <b>World</b>!";
@@ -283,7 +283,7 @@
         },
       ],
     },
-    "ccm.component": {
+    component: {
       tests: [
         async function registerByObject(suite) {
           let component;
@@ -494,12 +494,10 @@
         },
       ],
     },
-    "ccm.instance": {
+    instance: {
       tests: [
         async function createByObject(suite) {
-          let instance;
-
-          instance = await fut.instance({
+          const instance = await fut.instance({
             name: "component",
             ccm: "./../ccm.js",
             config: {},
@@ -537,8 +535,6 @@
           suite.assertTrue(typeof instance.start === "function"); // has own start method
         },
         async function createByURL(suite) {
-          let instance;
-
           // Only an already registered component can be used via its component index.
           expected = "invalid component: dummy";
           actual = "";
@@ -551,8 +547,75 @@
 
           // Creation of an instance via the URL.
           const url = "./dummy/ccm.dummy.js";
-          instance = await fut.instance(url);
+          const instance = await fut.instance(url);
           suite.assertTrue(fut.helper.isInstance(instance));
+        },
+        async function createWithConfig(suite) {
+          const instance = await fut.instance(
+            {
+              name: "component",
+              ccm: "./../ccm.js",
+              config: {
+                val: false,
+                arr: [1, 2, 3],
+                obj: { foo: "bar" },
+                data: ["ccm.load", "./dummy/data.json"],
+                comp: ["ccm.component", "./dummy/ccm.dummy.js"],
+                inst: [
+                  "ccm.instance",
+                  "./dummy/ccm.dummy2.js",
+                  {
+                    ccm: null,
+                    config: {
+                      ccm: null,
+                      config: ["ccm.load", "./dummy/configs.mjs#config"],
+                      obj: null,
+                    },
+                    arr: [1, 2, 3],
+                    obj: { foo: "bar" },
+                    data: ["ccm.load", "./dummy/data.json"],
+                    ignore: ["ccm.load", "./dummy/data.json"],
+                  },
+                ],
+                //start: ["ccm.start", "./dummy/ccm.dummy3.js"],
+                //store: ["ccm.store", "./dummy/data.json"],
+                //get: ["ccm.get", "./dummy/data.json"],
+                ignore: {
+                  data: ["ccm.load", "./dummy/data.json"],
+                },
+              },
+              Instance: function () {
+                this.start = async () => {};
+              },
+            },
+            {
+              ccm: null,
+              val: true,
+              "arr.2": 4,
+              "obj.foo": "baz",
+            },
+          );
+          suite.assertTrue(instance.val);
+          suite.assertEquals([1, 2, 4], instance.arr);
+          suite.assertEquals({ foo: "baz" }, instance.obj);
+          suite.assertEquals({ foo: "bar" }, instance.data);
+          suite.assertTrue(fut.helper.isComponent(instance.comp));
+          suite.assertTrue(fut.helper.isInstance(instance.inst));
+          suite.assertEquals(
+            ["ccm.load", "./dummy/data.json"],
+            instance.ignore.data,
+          );
+          suite.assertTrue(instance.inst.val);
+          suite.assertEquals("baz", instance.inst.foo);
+          suite.assertEquals([1, 2, 3], instance.inst.arr);
+          suite.assertEquals({ foo: "bar" }, instance.inst.obj);
+          suite.assertEquals({ foo: "bar" }, instance.inst.data);
+          suite.assertEquals(
+            ["ccm.load", "./dummy/data.json"],
+            instance.inst.ignore,
+          );
+          suite.assertTrue(fut.helper.isCore(instance.ccm));
+          suite.assertTrue(fut.helper.isCore(instance.inst.ccm));
         },
         async function backwardCompatibility(suite) {
           // tests backward compatibility for all compatible major versions of ccm.js
@@ -601,7 +664,7 @@
         },
       ],
     },
-    "ccm.helper": {
+    helper: {
       tests: [
         function clone(suite) {
           let obj = {

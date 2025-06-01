@@ -257,7 +257,8 @@
                 result = obj;
               }
 
-              success(result);
+              // A dynamic import caches the module by reference, so we have to clone the result.
+              success(ccm.helper.clone(result));
             });
           }
 
@@ -1125,8 +1126,8 @@
        * @description
        * Each value of each property in the given priority data will be set in the given dataset for the property of the same name.
        * This method also supports dot notation in given priority data to set a single deeper property in the given dataset.
-       * With no given priority data, the result is the given dataset.
-       * With no given dataset, the result is the given priority data.
+       * With no given priority data, the result is a clone of the given dataset.
+       * With no given dataset, the result is a clone of the given priority data.
        * Any data dependencies will be resolved before integration.
        * @param {Object} [priodata] - priority data
        * @param {Object} [dataset] - dataset
@@ -1502,11 +1503,8 @@
        * @returns {Promise<*>}
        */
       solveDependency: async (dependency, instance) => {
-        // given value is no ccm dependency? => result is given value
+        // the given value is no ccm dependency? => the result is the given value
         if (!ccm.helper.isDependency(dependency)) return dependency;
-
-        // prevent changes via original reference
-        dependency = ccm.helper.clone(dependency);
 
         /**
          * ccm operation to be performed
@@ -1515,35 +1513,26 @@
         const operation = dependency.shift().substring("ccm.".length);
 
         // solve dependency
-        let result;
         switch (operation) {
           case "load":
             instance && setContext(dependency);
-            result = await ccm.load.apply(null, dependency);
             break;
           case "component":
           case "instance":
           case "start":
+            dependency[1] = await ccm.helper.solveDependency(dependency[1]);
+            if (!dependency[1]) dependency[1] = {};
+            if (instance) dependency[1].parent = instance;
+            break;
           case "store":
           case "get":
             if (!dependency[0]) dependency[0] = {};
             if (instance) dependency[0].parent = instance;
-            result = await ccm[operation].apply(null, dependency);
         }
-
-        // instance configuration has been loaded that contains a base configuration?
-        if (result?.config) {
-          // base config given as dependency? => solve it
-          result.config = await ccm.helper.solveDependency(result.config);
-          // integrate instance configuration into base configuration
-          result = await ccm.helper.integrate(result, result.config);
-          delete result.config;
-        }
-
-        return result;
+        return ccm[operation].apply(null, dependency);
 
         /**
-         * load resources in Shadow DOM of given ccm instance
+         * The resources are automatically loaded in the shadow DOM of the associated ccm instance.
          * @param {Array} resources
          */
         function setContext(resources) {
@@ -1657,8 +1646,18 @@
    * @returns {Promise<ccm.types.config>}
    */
   async function prepareConfig(config = {}, defaults = {}) {
-    // config given as dependency? => solve it
+    // config is given as a dependency? => solve it
     config = await ccm.helper.solveDependency(config);
+
+    // instance configuration contains a base configuration?
+    while (config.config) {
+      let base = config.config;
+      delete config.config;
+      // base configuration is given as a dependency? => solve it
+      base = await ccm.helper.solveDependency(base);
+      // integrate instance configuration into base configuration
+      config = await ccm.helper.integrate(config, base);
+    }
 
     // integrate instance configuration into default configuration
     const result = await ccm.helper.integrate(config, defaults);
