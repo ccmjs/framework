@@ -77,8 +77,8 @@
           actual = getComputedStyle(document.body).getPropertyValue("margin");
           suite.assertEquals(expected, actual);
 
-          actual = "";
           expected = `loading of ${url} failed`;
+          actual = "";
           try {
             await fut.load({
               url,
@@ -269,9 +269,7 @@
             name: "component",
             ccm: "./../ccm.js",
             config: {},
-            Instance: function () {
-              this.start = async () => {};
-            },
+            Instance: function () {},
           });
           document.head.appendChild(context.root);
           await fut.load({ url, context });
@@ -293,9 +291,7 @@
             name: "component",
             ccm: "./../ccm.js",
             config: {},
-            Instance: function () {
-              this.start = async () => {};
-            },
+            Instance: function () {},
           });
           suite.assertTrue(fut.helper.isComponent(component)); // is a valid component
           suite.assertTrue(fut.helper.isCore(component.ccm)); // has a valid framework reference
@@ -380,9 +376,7 @@
               name: "component",
               ccm: "./libs/ccm/ccm.js#sha384-wrong-hash",
               config: {},
-              Instance: function () {
-                this.start = async () => {};
-              },
+              Instance: function () {},
             });
           } catch (error) {
             actual = error.message;
@@ -398,9 +392,7 @@
             ready: async () => {
               ready = true;
             },
-            Instance: function () {
-              this.start = async () => {};
-            },
+            Instance: function () {},
           });
           suite.assertTrue(ready); // ready callback has been called
           suite.assertFalse(component.ready); // ready callback has been deleted
@@ -415,9 +407,7 @@
                 arr: [1, 2, 3],
                 obj: { foo: "bar" },
               },
-              Instance: function () {
-                this.start = async () => {};
-              },
+              Instance: function () {},
             },
             {
               val: true,
@@ -438,9 +428,7 @@
               name: "component",
               ccm: "./../ccm.js",
               config: { foo: "bar" },
-              Instance: function () {
-                this.start = async () => {};
-              },
+              Instance: function () {},
             },
             ["ccm.load", "./dummy/configs.mjs#config"],
           );
@@ -475,9 +463,7 @@
                 name: "dummy",
                 ccm: "https://ccmjs.github.io/ccm/ccm.js",
                 config: {},
-                Instance: function () {
-                  this.start = async () => {};
-                },
+                Instance: function () {},
               },
               {
                 ccm: `https://ccmjs.github.io/ccm/versions/ccm-${version}.js`,
@@ -559,7 +545,8 @@
                 val: false,
                 arr: [1, 2, 3],
                 obj: { foo: "bar" },
-                data: ["ccm.load", "./dummy/data.json"],
+                shadow: "open",
+                css: ["ccm.load", "./dummy/style.css"], // not working when root is not moved temporary into <head>
                 comp: ["ccm.component", "./dummy/ccm.dummy.js"],
                 inst: [
                   "ccm.instance",
@@ -575,18 +562,17 @@
                     obj: { foo: "bar" },
                     data: ["ccm.load", "./dummy/data.json"],
                     ignore: ["ccm.load", "./dummy/data.json"],
+                    shadow: "none",
                   },
                 ],
-                //start: ["ccm.start", "./dummy/ccm.dummy3.js"],
-                //store: ["ccm.store", "./dummy/data.json"],
-                //get: ["ccm.get", "./dummy/data.json"],
+                //start: ["ccm.start", "./dummy/ccm.dummy3.js"], TODO: test ccm.start
+                //store: ["ccm.store", "./dummy/data.json"], TODO: test ccm.store
+                //get: ["ccm.get", "./dummy/data.json"], TODO: test ccm.get
                 ignore: {
                   data: ["ccm.load", "./dummy/data.json"],
                 },
               },
-              Instance: function () {
-                this.start = async () => {};
-              },
+              Instance: function () {},
             },
             {
               ccm: null,
@@ -598,17 +584,16 @@
           suite.assertTrue(instance.val);
           suite.assertEquals([1, 2, 4], instance.arr);
           suite.assertEquals({ foo: "baz" }, instance.obj);
-          suite.assertEquals({ foo: "bar" }, instance.data);
           suite.assertTrue(fut.helper.isComponent(instance.comp));
           suite.assertTrue(fut.helper.isInstance(instance.inst));
           suite.assertEquals(
             ["ccm.load", "./dummy/data.json"],
             instance.ignore.data,
           );
-          suite.assertTrue(instance.inst.val);
-          suite.assertEquals("baz", instance.inst.foo);
-          suite.assertEquals([1, 2, 3], instance.inst.arr);
-          suite.assertEquals({ foo: "bar" }, instance.inst.obj);
+          suite.assertEquals(
+            '{"foo":"baz","val":true,"obj":{"foo":"bar"},"arr":[1,2,3],"data":["ccm.load","./dummy/data.json"],"ignore":["ccm.load","./dummy/data.json"],"shadow":"none"}',
+            instance.inst.config,
+          );
           suite.assertEquals({ foo: "bar" }, instance.inst.data);
           suite.assertEquals(
             ["ccm.load", "./dummy/data.json"],
@@ -616,6 +601,65 @@
           );
           suite.assertTrue(fut.helper.isCore(instance.ccm));
           suite.assertTrue(fut.helper.isCore(instance.inst.ccm));
+          suite.assertSame("open", instance.shadow.mode); // Shadow DOM is open
+          suite.assertSame(instance.shadow, instance.root.shadowRoot); // the root element has access to the opened Shadow DOM
+          suite.assertSame(null, instance.shadow.parentNode); // the opened Shadow DOM has no access to the root element
+          suite.assertFalse(instance.inst.shadow); // inner instance has no shadow DOM
+          suite.assertSame(
+            instance.inst.root,
+            instance.inst.element.parentNode,
+          ); // the root element contains directly the content element
+        },
+        async function initReady(suite) {
+          const actual = [];
+          await fut.instance({
+            name: "component1",
+            ccm: "./../ccm.js",
+            config: {
+              inst: [
+                "ccm.instance",
+                {
+                  name: "component2",
+                  ccm: "./../ccm.js",
+                  config: {
+                    inst: [
+                      "ccm.instance",
+                      {
+                        name: "component3",
+                        ccm: "./../ccm.js",
+                        config: {},
+                        Instance: function () {
+                          this.init = async () =>
+                            actual.push("C-" + this.index);
+                          this.ready = async () =>
+                            actual.push("D-" + this.index);
+                        },
+                      },
+                    ],
+                  },
+                  Instance: function () {
+                    this.init = async () => actual.push("B-" + this.index);
+                    this.ready = async () => actual.push("E-" + this.index);
+                  },
+                },
+              ],
+            },
+            Instance: function () {
+              this.init = async () => actual.push("A-" + this.index);
+              this.ready = async () => actual.push("F-" + this.index);
+            },
+          });
+          suite.assertEquals(
+            [
+              "A-component1-1",
+              "B-component2-1",
+              "C-component3-1",
+              "D-component3-1",
+              "E-component2-1",
+              "F-component1-1",
+            ],
+            actual,
+          );
         },
         async function backwardCompatibility(suite) {
           // tests backward compatibility for all compatible major versions of ccm.js
@@ -645,9 +689,7 @@
                 name: "dummy",
                 ccm: "https://ccmjs.github.io/ccm/ccm.js",
                 config: {},
-                Instance: function () {
-                  this.start = async () => {};
-                },
+                Instance: function () {},
               },
               {
                 ccm: `https://ccmjs.github.io/ccm/versions/ccm-${version}.js`,
@@ -787,9 +829,7 @@
             name: "component",
             ccm: "./../ccm.js",
             config: {},
-            Instance: function () {
-              this.start = async () => {};
-            },
+            Instance: function () {},
           });
           actual = fut.helper.isComponent(value);
           suite.assertTrue(actual);
@@ -830,9 +870,7 @@
             name: "component",
             ccm: "./../ccm.js",
             config: {},
-            Instance: function () {
-              this.start = async () => {};
-            },
+            Instance: function () {},
           });
           actual = fut.helper.isInstance(value);
           suite.assertFalse(actual);
