@@ -419,14 +419,9 @@
         );
       }
 
-      // Does this component use another framework version? => register a component via another framework version (backward compatibility)
+      // component uses another framework version? => register the component via the other framework version
       if (version && version !== ccm.version())
-        return new Promise((resolve, reject) =>
-          window.ccm[version]
-            .component(component, config, resolve) // before ccm v18, callbacks were used instead of promises
-            ?.then(resolve)
-            .catch(reject),
-        );
+        return backwardsCompatibility(version, "component", component, config);
 
       // set component index
       component.index =
@@ -533,16 +528,16 @@
       // no component object? => abort
       if (!ccm.helper.isComponent(component)) return component;
 
-      // Does the instance use another framework version? => register a component via another framework version (backward compatibility)
+      // component uses another framework version? => create the instance via the other framework version
       const version = component.ccm.version();
       if (version && version !== ccm.version())
-        return new Promise((resolve, reject) => {
-          const major = parseInt(version.split(".")[0]);
-          window.ccm[version]
-            .instance(component, config, major < 18 ? resolve : element) // before version 18, callbacks were used instead of promises (and there was no 3rd parameter)
-            ?.then(resolve)
-            .catch(reject);
-        });
+        return backwardsCompatibility(
+          version,
+          "instance",
+          component,
+          config,
+          element,
+        );
 
       // render loading icon in the webpage area
       element.innerHTML = "";
@@ -715,20 +710,23 @@
      * @param {Element} [element=document.createElement("div")] - webpage area where the component instance will be embedded (default: on-the-fly <div>)
      * @returns {Promise<ccm.types.instance>}
      */
-    start: async (
-      component,
-      config = {},
-      element = document.createElement("div"),
-    ) => {
+    start: async (component, config, element) => {
       // register component
       component = await ccm.component(component, { ccm: config?.ccm });
 
       // no component object? => abort
       if (!ccm.helper.isComponent(component)) return component;
 
-      // component uses another framework version? => create an instance via another framework version
-      if (component.ccm.version() !== ccm.version())
-        return component.ccm.start(component, config, element);
+      // component uses another framework version? => create and start the instance via the other framework version
+      const version = component.ccm.version();
+      if (version && version !== ccm.version())
+        return backwardsCompatibility(
+          version,
+          "start",
+          component,
+          config,
+          element,
+        );
 
       const instance = await ccm.instance(component, config, element);
       if (!ccm.helper.isInstance(instance)) return instance;
@@ -1602,6 +1600,35 @@
   if (!window.ccm[ccm.version()]) {
     window.ccm[ccm.version()] = ccm; // set version specific namespace
     ccm.components = {}; // set namespace for loaded components
+  }
+
+  /**
+   * When the requested component uses another framework version.
+   * This function performs the method call in the other framework version.
+   * @param {number} version - major number of the necessary framework version
+   * @param {string} method - name of the method to be called ('component', 'instance' or 'start')
+   * @param {ccm.types.component_obj|string} component - object, index or URL of component
+   * @param {ccm.types.config} config - priority data for instance configuration
+   * @param {Element} element - webpage area where the component instance will be embedded (default: on-the-fly <div>)
+   * @returns {Promise<ccm.types.component|ccm.types.instance>}
+   */
+  async function backwardsCompatibility(
+    version,
+    method,
+    component,
+    config,
+    element,
+  ) {
+    return new Promise((resolve, reject) => {
+      const major = parseInt(version.split(".")[0]);
+      window.ccm[version][method](
+        component,
+        config,
+        major < 18 ? resolve : element,
+      ) // before version 18, callbacks were used instead of promises (and there was no 3rd parameter for ccm.instance and ccm.start)
+        ?.then(resolve)
+        .catch(reject);
+    });
   }
 
   /**
