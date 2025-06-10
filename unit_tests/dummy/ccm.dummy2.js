@@ -3,6 +3,6 @@ ccm.files["ccm.dummy2.js"] = {
   ccm: "./../ccm.js",
   config: {},
   Instance: function () {
-    this.start = async () => {};
+    this.start = async () => (this.started = true);
   },
 };
