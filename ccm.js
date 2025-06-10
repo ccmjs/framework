@@ -525,7 +525,7 @@
       // register component
       component = await ccm.component(component, { ccm: config?.ccm });
 
-      // no component object? => abort
+      // no valid component object? => abort
       if (!ccm.helper.isComponent(component)) return component;
 
       // component uses another framework version? => create the instance via the other framework version
@@ -714,7 +714,7 @@
       // register component
       component = await ccm.component(component, { ccm: config?.ccm });
 
-      // no component object? => abort
+      // no valid component object? => abort
       if (!ccm.helper.isComponent(component)) return component;
 
       // component uses another framework version? => create and start the instance via the other framework version
@@ -728,7 +728,10 @@
           element,
         );
 
+      // create an instance out of the component
       const instance = await ccm.instance(component, config, element);
+
+      // no valid instance? => abort
       if (!ccm.helper.isInstance(instance)) return instance;
       instance.init ? (instance._start = true) : await instance.start();
       return instance;

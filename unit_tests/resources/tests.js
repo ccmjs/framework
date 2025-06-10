@@ -565,9 +565,9 @@
                     shadow: "none",
                   },
                 ],
-                //start: ["ccm.start", "./dummy/ccm.dummy3.js"], TODO: test ccm.start
-                //store: ["ccm.store", "./dummy/data.json"], TODO: test ccm.store
-                //get: ["ccm.get", "./dummy/data.json"], TODO: test ccm.get
+                other: ["ccm.start", "./dummy/ccm.dummy2.js"],
+                //store: ["ccm.store", "./dummy/data.json"], // TODO: test ccm.store
+                //get: ["ccm.get", "./dummy/data.json"], // TODO: test ccm.get
                 ignore: {
                   data: ["ccm.load", "./dummy/data.json"],
                 },
@@ -586,6 +586,8 @@
           suite.assertEquals({ foo: "baz" }, instance.obj);
           suite.assertTrue(fut.helper.isComponent(instance.comp));
           suite.assertTrue(fut.helper.isInstance(instance.inst));
+          suite.assertTrue(fut.helper.isInstance(instance.other));
+          suite.assertTrue(instance.other.started);
           suite.assertEquals(
             ["ccm.load", "./dummy/data.json"],
             instance.ignore.data,
@@ -612,7 +614,7 @@
         },
         async function initReady(suite) {
           const actual = [];
-          await fut.instance({
+          const instance = await fut.instance({
             name: "component1",
             ccm: "./../ccm.js",
             config: {
@@ -634,6 +636,15 @@
                           this.ready = async () =>
                             actual.push("D-" + this.index);
                         },
+                      },
+                    ],
+                    other: [
+                      "ccm.instance",
+                      {
+                        name: "component4",
+                        ccm: "./../ccm.js",
+                        config: {},
+                        Instance: function () {},
                       },
                     ],
                   },
@@ -660,6 +671,20 @@
             ],
             actual,
           );
+          suite.assertEquals(1, Object.keys(instance.children).length);
+          suite.assertTrue(
+            instance.children[instance.inst.index] === instance.inst,
+          );
+          suite.assertTrue(instance.inst.parent === instance);
+          suite.assertEquals(2, Object.keys(instance.inst.children).length);
+          instance.inst.children[instance.inst.inst.index] ===
+            instance.inst.inst;
+          instance.inst.children[instance.inst.other.index] ===
+            instance.inst.other;
+          suite.assertTrue(!Object.keys(instance.inst.inst.children).length);
+          suite.assertTrue(instance.inst.inst.parent === instance.inst);
+          suite.assertTrue(!Object.keys(instance.inst.other.children).length);
+          suite.assertTrue(instance.inst.other.parent === instance.inst);
         },
         async function backwardCompatibility(suite) {
           // tests backward compatibility for all compatible major versions of ccm.js
@@ -696,6 +721,79 @@
               },
             );
             suite.assertTrue(suite.ccm.helper.isInstance(instance));
+            suite.assertEquals(
+              version,
+              suite.ccm.helper.isObject(instance.ccm)
+                ? instance.ccm.version()
+                : ccm[version].version(),
+            );
+          }
+        },
+      ],
+    },
+    start: {
+      tests: [
+        async function createAndStart(suite) {
+          let flag = false;
+          const instance = await fut.start({
+            name: "component",
+            ccm: "./../ccm.js",
+            config: {},
+            Instance: function () {
+              this.start = async () => {
+                flag = true;
+                suite.assertEquals("component-1", this.index);
+              };
+            },
+          });
+          suite.assertTrue(fut.helper.isInstance(instance)); // is a valid component instance
+        },
+        async function backwardCompatibility(suite) {
+          // tests backward compatibility for all compatible major versions of ccm.js
+          await testVersion("27.5.0");
+          await testVersion("26.4.4");
+          await testVersion("25.5.3");
+          await testVersion("24.2.0");
+          await testVersion("23.0.2");
+          await testVersion("22.7.2");
+          await testVersion("21.2.0");
+          await testVersion("20.9.1");
+          await testVersion("19.0.0");
+          await testVersion("18.6.8");
+          await testVersion("17.0.0");
+          await testVersion("16.7.0");
+          await testVersion("15.0.2");
+          await testVersion("14.3.0");
+          await testVersion("13.1.0");
+          await testVersion("12.12.0");
+          await testVersion("11.5.0");
+          await testVersion("10.2.0");
+          await testVersion("9.2.0");
+
+          async function testVersion(version) {
+            const major = parseInt(version.split(".")[0]);
+            let flag = false;
+            const instance = await fut.start(
+              {
+                name: "backwards",
+                ccm: "https://ccmjs.github.io/ccm/ccm.js",
+                config: {},
+                Instance: function () {
+                  this.start =
+                    major < 18 // before version 18, callbacks were used instead of promises
+                      ? (callback) => {
+                          flag = true;
+                          callback();
+                        }
+                      : async () => (flag = true);
+                },
+              },
+              {
+                ccm: `https://ccmjs.github.io/ccm/versions/ccm-${version}.js`,
+              },
+            );
+            suite.assertTrue(suite.ccm.helper.isInstance(instance));
+            suite.assertTrue(flag);
             suite.assertEquals(
               version,
               suite.ccm.helper.isObject(instance.ccm)
