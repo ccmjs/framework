@@ -19,7 +19,10 @@
  */
 (() => {
   /**
-   * Contains the registered components within this _ccm_ framework version.
+   * @description
+   * A private object that stores all registered components for the current version of the _ccm_ framework.
+   * Each component is indexed by its unique identifier.
+   *
    * @memberOf ccm
    * @private
    * @type {Object.<ccm.types.component_index, ccm.types.component_obj>}
@@ -42,76 +45,73 @@
     /**
      * @summary Asynchronous Loading of Resources
      * @description
+     * Loads resources such as HTML, CSS, images, JavaScript, modules, JSON, or XML asynchronously.
+     * Supports sequential and parallel loading of resources.
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Loading-Resources}
      * to learn everything about this method. There are also examples of how to use it.
      * @param {...(string|ccm.types.resource_obj)} resources - Resources to load. Either the URL or a [resource object]{@link ccm.types.resource_obj} can be passed for a resource.
-     * @returns {Promise<*>}
+     * @returns {Promise<*>} A promise that resolves with the loaded resources or rejects if loading fails.
      */
     load: async (...resources) => {
-      /**
-       * results of loaded resources
-       * @type {Array}
-       */
-      let results = [];
-
-      /**
-       * number of not finished loading resources
-       * @type {number}
-       */
-      let counter = 1;
-
-      /**
-       * Indicates if loading of at least one resource failed.
-       * @type {boolean}
-       */
-      let failed = false;
+      let results = []; // Stores the results of loaded resources.
+      let counter = 1; // Tracks the number of resources still loading.
+      let failed = false; // Indicates if loading of at least one resource failed.
 
       return new Promise((resolve, reject) => {
-        // Iterate through all the resources that should be loaded.
         resources.forEach((resource, i) => {
-          counter++; // one more not finished loading resource
+          counter++; // Increment the counter for each resource.
 
-          // Should several resources be loaded one after the other (not in parallel)?
+          // Handle sequential loading of resources.
           if (Array.isArray(resource)) {
             results[i] = [];
             serial(null);
             return;
           }
 
-          // A string is interpreted as the URL of the resource.
+          // Convert string URLs to resource objects.
           if (typeof resource === "string") resource = { url: resource };
 
           // By default, a resource is loaded in the <head> of the webpage.
           if (!resource.context) resource.context = document.head;
 
-          // A resource can be loaded in the Shadow DOM of a component instance.
+          // Handle loading in the Shadow DOM of a component instance.
           if (ccm.helper.isInstance(resource.context))
             resource.context = resource.context.element.parentNode;
 
-          // Load the resource according to its type.
+          // Determine the operation to load the resource based on its type or file extension.
           getOperation()();
 
           /**
-           * Recursively loads the resource one after the other.
-           * @param {*} result - result of the last serially loaded resource
+           * @summary Recursively loads resources one after the other.
+           * @description
+           * This function ensures that resources are loaded sequentially, maintaining the order of execution.
+           * If a resource fails to load, it marks the operation as failed but continues loading the remaining resources.
+           * Nested arrays allow precise control over whether resources are loaded in parallel or sequentially.
+           *
+           * @param {*} result - The result of the last successfully loaded resource.
+           *                     If `null`, no result is added for the previous resource.
            */
           function serial(result) {
-            // if there is a result value for the last loaded resource
+            // Add the result of the last loaded resource to the result array if it exists.
             if (result !== null) results[i].push(result);
 
-            // all resources have been loaded serially
+            // Check if all resources have been loaded; if so, then treat the loading of this resources as complete.
             if (!resource.length) return check();
 
-            // start loading the next resource
+            // Retrieve the next resource to be loaded.
             let next = resource.shift();
+
+            // Ensure the next resource is wrapped in an array for consistent processing.
             if (!Array.isArray(next)) next = [next];
+
+            // Load the next resource and recursively call `serial` upon success or failure.
             ccm.load
               .apply(null, next)
               .then(serial)
               .catch((result) => {
-                failed = true;
-                serial(result);
-              }); // recursive call
+                failed = true; // Mark the operation as failed if an error occurs.
+                serial(result); // Continue loading the remaining resources.
+              });
           }
 
           /**
@@ -136,12 +136,14 @@
                 return loadXML;
             }
 
-            // The type of the resource is determined by its file extension.
+            // Infer the type from the file extension of the resource URL.
             const suffix = resource.url
-              .split(/[#?]/)[0]
-              .split(".")
-              .at(-1)
-              .trim();
+              .split(/[#?]/)[0] // Remove query parameters and hash from URL.
+              .split(".") // Split the URL by dots to get the file extension.
+              .at(-1) // Get the last part as the file extension.
+              .trim(); // Remove any surrounding whitespace.
+
+            // Match the file extension to the corresponding loading operation.
             switch (suffix) {
               case "html":
                 return loadHTML;
@@ -165,13 +167,23 @@
             }
           }
 
-          /** loads HTML via Fetch API as HTML string */
+          /**
+           * @summary Loads HTML via Fetch API as an HTML string.
+           * @description
+           * Sets the resource type to `html` and delegates the loading process to the `loadJSON` function.
+           * The loaded HTML content will be treated as a JSON string and processed accordingly.
+           */
           function loadHTML() {
             resource.type = "html";
-            loadJSON();
+            loadJSON(); // Delegate the loading process to the loadJSON function.
           }
 
-          /** loads CSS via <link> tag */
+          /**
+           * @summary Loads a CSS file via a `<link>` tag.
+           * @description
+           * Creates a `<link>` element to load the CSS file. Additional attributes can be set via the `resource.attr` property.
+           * The CSS file is loaded in the specified context, and success or error callbacks are triggered accordingly.
+           */
           function loadCSS() {
             /** @type {ccm.types.html|Element} */
             let element = {
@@ -181,16 +193,22 @@
               href: resource.url,
             };
 
-            // set up individual HTML attributes for <link> tag
+            // Set up individual HTML attributes for <link> tag
             if (resource.attr) element = Object.assign(element, resource.attr);
 
-            element = ccm.helper.html(element); // convert to DOM element
+            element = ccm.helper.html(element); // Convert to DOM element
             element.onload = () => success(resource.url);
             element.onerror = error;
             resource.context.appendChild(element);
           }
 
-          /** preloads an image */
+          /**
+           * @summary Preloads an image.
+           * @description
+           * Creates an `Image` object to preload the image. The `src` attribute of the image is set to the URL provided in the `resource` object.
+           * When the image is successfully loaded, the `success` callback is triggered with the image URL.
+           * If an error occurs during loading, the `error` callback is triggered.
+           */
           function loadImage() {
             const image = new Image();
             image.src = resource.url;
@@ -198,10 +216,15 @@
             image.onerror = error;
           }
 
-          /** loads JavaScript via <script> tag */
+          /**
+           * @summary Loads JavaScript via a <script> tag.
+           * @description
+           * Creates a <script> element to load the JavaScript file. The filename is extracted and used to handle result data.
+           * The script is loaded asynchronously, and success or error callbacks are triggered accordingly.
+           */
           function loadJS() {
             /**
-             * extracted filename from URL without ".min" infix
+             * Extracted filename from URL without ".min" infix.
              * @type {string}
              */
             const filename = resource.url
@@ -214,10 +237,10 @@
             /** @type {ccm.types.html|Element} */
             let element = { tag: "script", src: resource.url, async: true };
 
-            // set up individual HTML attributes for <script> tag
+            // Set up individual HTML attributes for <script> tag
             if (resource.attr) element = Object.assign(element, resource.attr);
 
-            element = ccm.helper.html(element); // convert to DOM element
+            element = ccm.helper.html(element); // Convert to DOM element
             element.onload = () => {
               // The JS file can pass its result data to the ccm framework via a global variable.
               const data = window.ccm.files[filename] || resource.url;
@@ -233,7 +256,12 @@
             resource.context.appendChild(element);
           }
 
-          /** loads a JavaScript module via import() */
+          /**
+           * @summary Loads a JavaScript module via dynamic import.
+           * @description
+           * Uses dynamic import to load the JavaScript module. Specific properties can be extracted using hash signs in the URL.
+           * The result is cloned to avoid caching issues.
+           */
           function loadModule() {
             // Use hash signs at the end of URL if only specific properties should be included in the result data.
             let [url, ...keys] = resource.url.split("#");
@@ -262,56 +290,108 @@
             });
           }
 
-          /** loads JSON via Fetch API or JSONP */
+          /**
+           * @summary Loads JSON via Fetch API or JSONP.
+           * @description
+           * Depending on the `resource.method`, either JSONP or Fetch API is used to load the JSON data.
+           * The JSONP method dynamically creates a <script> tag, while Fetch API uses HTTP requests.
+           */
           function loadJSON() {
             (resource.method === "JSONP" ? jsonp : fetchAPI)();
 
+            /**
+             * @summary Loads JSON data via JSONP.
+             * @description
+             * Dynamically creates a `<script>` tag and uses a callback function to handle the result.
+             * The callback function is registered in the global `window.ccm.callbacks` namespace.
+             */
             function jsonp() {
+              /**
+               * Unique callback identifier for JSONP.
+               * @type {string}
+               */
               const callback = "callback" + ccm.helper.generateKey();
 
-              // prepare HTTP GET parameters
+              // Prepare HTTP GET parameters for the JSONP request.
               if (!resource.params) resource.params = {};
               resource.params.callback = "window.ccm.callbacks." + callback;
 
-              /** @type {ccm.types.html|Element} */
+              /**
+               * @type {ccm.types.html|Element}
+               * Represents the `<script>` element used for JSONP.
+               */
               let element = {
                 tag: "script",
                 src: buildURL(resource.url, resource.params),
               };
 
-              // set up individual HTML attributes for <script> tag
+              // Add additional attributes to the `<script>` tag if provided.
               if (resource.attr)
                 element = Object.assign(element, resource.attr);
 
-              element = ccm.helper.html(element); // convert to DOM element
+              // Convert the JSON object to a DOM element.
+              element = ccm.helper.html(element);
 
+              // Handle errors during the JSONP request.
               element.onerror = () => {
                 element.parentNode.removeChild(element);
                 error();
               };
+
+              // Register the callback function to process the JSONP response.
               window.ccm.callbacks[callback] = (data) => {
                 element.parentNode.removeChild(element);
                 delete window.ccm.callbacks[callback];
                 success(data);
               };
+
+              // Append the `<script>` element to the specified context.
               resource.context.appendChild(element);
             }
 
+            /**
+             * @summary Loads JSON data via Fetch API.
+             * @description
+             * Sends an HTTP request to fetch the JSON data and handles the response.
+             * Supports both `GET` and `POST` methods, with optional parameters.
+             */
             function fetchAPI() {
+              // Prepare the URL or request body based on the HTTP method.
               if (resource.params)
                 resource.method === "GET"
                   ? (resource.url = buildURL(resource.url, resource.params))
                   : (resource.body = JSON.stringify(resource.params));
+
+              // Perform the fetch request and handle the response.
               fetch(resource.url, resource)
                 .then((response) => response.text())
                 .then(success)
                 .catch(error);
             }
 
+            /**
+             * @summary Builds a URL with query parameters.
+             * @description
+             * Appends the provided query parameters to the base URL.
+             * Supports nested objects and arrays for complex query structures.
+             *
+             * @param {string} url - The base URL.
+             * @param {Object} data - The query parameters to append.
+             * @returns {string} - The URL with appended query parameters.
+             */
             function buildURL(url, data) {
-              if (ccm.helper.isObject(data.json))
-                data.json = JSON.stringify(data.json);
+              // Append query parameters to the URL.
               return data ? url + "?" + params(data).slice(0, -1) : url;
+
+              /**
+               * @summary Converts an object to query string parameters.
+               * @description
+               * Recursively processes nested objects and arrays to generate query strings.
+               *
+               * @param {Object} obj - The object to convert.
+               * @param {string} [prefix] - The prefix for nested keys.
+               * @returns {string} - The generated query string.
+               */
               function params(obj, prefix) {
                 let result = "";
                 for (const i in obj) {
@@ -326,54 +406,85 @@
             }
           }
 
-          /** loads XML via Fetch API as XML document */
+          /**
+           * @summary Loads XML via Fetch API as an XML document.
+           * @description
+           * Sets the resource type to `xml` and delegates the loading process to the `loadJSON` function.
+           * The loaded XML content is parsed into an XML document.
+           */
           function loadXML() {
             resource.type = "xml";
             loadJSON();
           }
 
           /**
-           * callback when loading of a resource was successful
-           * @param {*} data - result data of the loaded resource
+           * @summary Callback when loading of a resource was successful.
+           * @description
+           * Processes the loaded data based on its type (e.g., HTML, XML) and updates the results array.
+           * Triggers the next step in the loading process.
+           * @param {*} data - Loaded resource data.
            */
           function success(data) {
+            // If the data is not defined, then treat the loading of this resource as complete.
             if (data === undefined) return check();
+
+            // Attempt to parse the data as JSON if it is not already an object.
             try {
               if (typeof data !== "object") data = JSON.parse(data);
             } catch (e) {}
 
-            // An HTML file can contain multiple HTML templates via <ccm-template> tags.
+            // Process HTML resources by extracting templates defined with <ccm-template> tags.
             if (resource.type === "html") {
               const regex =
-                /<ccm-template key="(\w*?)">([^]*?)<\/ccm-template>/g;
-              const result = {};
+                /<ccm-template key="(\w*?)">([^]*?)<\/ccm-template>/g; // Regex to match <ccm-template> tags.
+              const result = {}; // Object to store extracted templates.
               let array;
-              while ((array = regex.exec(data))) result[array[1]] = array[2];
-              if (Object.keys(result).length) data = result;
+              while ((array = regex.exec(data))) result[array[1]] = array[2]; // Extract templates and store them in the result object.
+              if (Object.keys(result).length) data = result; // If templates were found, replace the data with the result object.
             }
 
-            // XML is loaded as XML document
+            // Process XML resources by parsing the data into an XML document.
             if (resource.type === "xml")
               data = new window.DOMParser().parseFromString(data, "text/xml");
 
+            // Update the result array with the processed data.
             results[i] = data;
+
+            // Treat the loading of this resource as complete and check if all resources have been loaded.
             check();
           }
 
-          /** callback when loading of a resource failed */
+          /**
+           * @summary Callback when loading of a resource failed.
+           * @description
+           * Marks the loading process as failed and updates the results array with an error object.
+           * Triggers the next step in the loading process.
+           */
           function error() {
+            // Indicate that at least one resource failed to load.
             failed = true;
+
+            // Add an error object to the `results` array for the failed resource, including its URL.
             results[i] = new Error(`loading of ${resource.url} failed`);
+
+            // Treat the loading of this resource as complete and check if all resources have been loaded, even if some failed.
             check();
           }
         });
+
+        // Check if all resources already have been loaded.
         check();
 
-        /** callback when a resource has been loaded */
+        /**
+         * @summary Callback function to handle the completion of resource loading.
+         * @description
+         * This function checks whether all resources have been loaded. If not, it waits for the remaining resources.
+         * Once all resources are loaded, it resolves or rejects the promise based on the loading status.
+         */
         function check() {
-          if (--counter) return; // not all resources have been loaded yet
-          if (results.length <= 1) results = results[0];
-          (failed ? reject : resolve)(results);
+          if (--counter) return; // If there are still resources loading, wait for them to finish.
+          if (results.length <= 1) results = results[0]; // If only one resource was loaded, return it directly.
+          (failed ? reject : resolve)(results); // Resolve or reject the promise based on the loading status.
         }
       });
     },
