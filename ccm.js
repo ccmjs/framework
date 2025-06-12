@@ -37,8 +37,12 @@
    */
   const ccm = {
     /**
-     * @sumary Returns the _ccm_ framework version.
-     * @returns {ccm.types.version_nr}
+     * @summary Retrieves the current version of the _ccm_ framework.
+     * @description
+     * This function returns the version number of the _ccm_ framework as a string.
+     * The version number follows Semantic Versioning 2.0.0.
+     *
+     * @returns {ccm.types.version_nr} The version number of the framework.
      */
     version: () => "28.0.0",
 
@@ -89,7 +93,6 @@
            * Nested arrays allow precise control over whether resources are loaded in parallel or sequentially.
            *
            * @param {*} result - The result of the last successfully loaded resource.
-           *                     If `null`, no result is added for the previous resource.
            */
           function serial(result) {
             // Add the result of the last loaded resource to the result array if it exists.
@@ -493,35 +496,36 @@
      * @summary Registers a _ccm_ component.
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
      * to learn everything about embedding components in _ccm_. There are also examples how to use this method.
-     * @param {ccm.types.component_obj|string} component - object, index or URL of component
-     * @param {ccm.types.config} [config={}] - priodata for component default instance configuration
-     * @returns {Promise<ccm.types.component_obj>|Error} clone of registered component object
-     * @throws {Error} if component is not valid
+     * @param {ccm.types.component_obj|string} component - The component object, index, or URL of the component to register.
+     * @param {ccm.types.config} [config={}] - Priority data for the component's default instance configuration.
+     * @returns {Promise<ccm.types.component_obj>} A clone of the registered component object.
+     * @throws {Error} If the provided component is not valid.
      */
     component: async (component, config = {}) => {
+      // Retrieve the component object via index, URL or directly as JavaScript object.
       component = await getComponentObject();
+
+      // If the component is not a valid object, throw an error.
       if (!ccm.helper.isComponent(component))
         throw new Error("invalid component: " + component);
 
-      // the framework version used by a component can be adjusted via config
+      // Adjust the framework version used by the component via config.
       if (config.ccm) component.ccm = config.ccm;
       delete config.ccm;
 
-      /**
-       * framework version that the component has to use
-       * @type {ccm.types.version_nr}
-       */
+      // Determine the framework version the component must use.
       let version;
       if (ccm.helper.isCore(component.ccm)) version = component.ccm.version();
       else {
+        // Extract the version from the framework URL.
         const [url] = component.ccm.split("#");
         if (url.includes("-"))
           version = url.split("-").at(-1).split(".").slice(0, 3).join(".");
       }
 
-      // framework version is not present in the current webpage?
+      // Load the required framework version if not already present in the webpage.
       if (!window.ccm[version]) {
-        // load framework version from URL (SRI hash can be added with '#')
+        // The framework version is loaded with SRI when the SRI hash is appended to the URL with “#”.
         const [url, sri] = component.ccm.split("#");
         await ccm.load(
           sri
@@ -530,35 +534,35 @@
         );
       }
 
-      // component uses another framework version? => register the component via the other framework version
+      // If the component uses a different framework version, handle backwards compatibility.
       if (version && version !== ccm.version())
         return backwardsCompatibility(version, "component", component, config);
 
-      // set component index
+      // Set the component index based on its name and version.
       component.index =
         component.name +
         (component.version ? "-" + component.version.join("-") : "");
 
-      // component isn't registered yet?
+      // Register the component if it is not already registered.
       if (!_components[component.index]) {
-        _components[component.index] = component; // register component
-        ccm.components[component.index] = {}; // create global component namespaces
-        component.instances = 0; // add ccm instance counter
-        component.ready && (await component.ready.call(component)); // execute “ready” callback, if any
-        delete component.ready; // "ready" callback is no more needed (one-time call)
-        await defineCustomElement(component.index); // define HTML tag for component
+        _components[component.index] = component; // Register component: Store the component object encapsulated in the framework.
+        ccm.components[component.index] = {}; // Create global component namespaces.
+        component.instances = 0; // Add a counter for component instances.
+        component.ready && (await component.ready.call(component)); // Execute the "ready" callback if defined.
+        delete component.ready; // Remove the "ready" callback after execution.
+        await defineCustomElement(component.index); // Define a custom HTML tag for the component.
       }
 
-      // never give out the original reference to a component object once registered (security reasons)
+      // Clone the registered component object to avoid direct modifications.
       component = ccm.helper.clone(_components[component.index]);
 
-      // set reference to the used framework version
+      // Set the reference to the used framework version.
       component.ccm = window.ccm[version] || ccm;
 
-      // prepare default instance configuration
+      // Prepare the default instance configuration.
       component.config = await prepareConfig(config, component.config);
 
-      // add functions for creating and starting instances
+      // Add methods for creating and starting instances of the component.
       component.instance = async (config = {}, element) =>
         ccm.instance(
           component,
@@ -575,15 +579,15 @@
       return component;
 
       /**
-       * get component object via index or URL
-       * @returns {Promise<ccm.types.component_obj>}
+       * @summary Retrieves the component object via index, URL or directly as JavaScript object.
+       * @returns {Promise<ccm.types.component_obj>} The component object.
        */
       async function getComponentObject() {
-        // no string? => abort
+        // Return the component directly if it is not a string.
         if (typeof component !== "string") return component;
 
         /**
-         * data extracted from component URL
+         * @summary Extracts metadata from the component URL.
          * @type {{name: string, index: string, version: string, filename: string, url: string, minified: boolean, sri: string}}
          */
         const url_data = component.includes(".js")
@@ -591,19 +595,20 @@
           : null;
 
         /**
-         * index of the component
+         * @summary The index of the component.
          * @type {ccm.types.component_index}
          */
         const index = url_data?.index || component;
 
-        // component already registered? => use clone of an already registered component object
+        // Return a clone of the registered component object if already registered.
         if (_components[index]) return ccm.helper.clone(_components[index]);
 
-        // no component URL? => abort
+        // Abort if the component URL is not provided.
         if (!url_data) return component;
 
-        // load component from URL (SRI hash can be added with '#')
+        // Load the component from the URL.
         const response = await ccm.load(
+          // If the SRI hash is provided, load the component with SRI.
           url_data.sri
             ? {
                 url: url_data.url,
@@ -612,7 +617,7 @@
             : url_data.url,
         );
 
-        response.url = url_data.url; // a component remembers its URL
+        response.url = url_data.url; // A component remembers its URL.
         return response;
       }
     },
