@@ -565,26 +565,29 @@
     /**
      * @summary Registers a _ccm_ component and creates an instance out of it.
      * @description
+     * This function registers a _ccm_ component and creates an instance from it. It handles the registration process,
+     * prepares the instance configuration, and initializes the created instance. The function also resolves dependencies
+     * and sets up the instance's DOM structure.
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
      * to learn everything about embedding components in _ccm_. There are also examples how to use this method.
-     * @param {ccm.types.component_obj|string} component - object, index or URL of component
-     * @param {ccm.types.config} [config={}] - priority data for instance configuration
-     * @param {Element} [element=document.createElement("div")] - webpage area where the component instance will be embedded (default: on-the-fly <div>)
-     * @returns {Promise<ccm.types.instance>}
-     * @throws {Error} if component is not valid
+     * @param {ccm.types.component_obj|string} component - The component object, index, or URL of the component to register.
+     * @param {ccm.types.config} [config={}] - Priority data for the instance configuration.
+     * @param {Element} [element=document.createElement("div")] - The webpage area where the component instance will be embedded (default: on-the-fly `<div>`).
+     * @returns {Promise<ccm.types.instance>} A promise that resolves to the created instance.
+     * @throws {Error} If the provided component is not valid.
      */
     instance: async (
       component,
       config = {},
       element = document.createElement("div"),
     ) => {
-      // register component
+      // Register the component.
       component = await ccm.component(component, { ccm: config?.ccm });
 
-      // no valid component object? => abort
+      // Abort if the component is not valid.
       if (!ccm.helper.isComponent(component)) return component;
 
-      // component uses another framework version? => create the instance via the other framework version
+      // Handle backwards compatibility if the component uses another framework version.
       const version = component.ccm.version();
       if (version && version !== ccm.version())
         return backwardsCompatibility(
@@ -595,127 +598,134 @@
           element,
         );
 
-      // render loading icon in the webpage area
+      // Render a loading icon in the webpage area.
       element.innerHTML = "";
       const loading = ccm.helper.loading();
       element.appendChild(loading);
 
-      // prepare instance configuration
+      // Prepare the instance configuration.
       config = await prepareConfig(config, component.config);
 
       /**
-       * an instance newly created out of the component
+       * @summary Creates a new instance from the component.
        * @type {ccm.types.instance}
        */
       const instance = new component.Instance();
 
-      // set ccm-specific properties
-      instance.ccm = component.ccm; // reference to the used framework version
-      instance.component = component; // an instance knows which component it comes from
-      instance.id = ++_components[component.index].instances; // instance ID
-      instance.index = component.index + "-" + instance.id; // instance index (unique in hole webpage)
-      if (!instance.init) instance.init = async () => {}; // each instance must have an init method
-      instance.parent = config.parent; // an instance knows which parent instance is using it as a child
-      delete config.parent; // prevents cyclic recursion when resolving dependencies
-      instance.children = {}; // an instance knows all child instances that it uses
-      instance.config = ccm.helper.stringify(config); // each instance knows his original config
+      // Set _ccm_-specific properties for the instance.
+      instance.ccm = component.ccm; // Reference to the used framework version.
+      instance.component = component; // The component the instance is created from.
+      instance.id = ++_components[component.index].instances; // Instance ID. Unique within the component.
+      instance.index = component.index + "-" + instance.id; // Instance index. Unqiue within the webpage.
+      if (!instance.init) instance.init = async () => {}; // Ensure the instance has an init method.
+      instance.children = {}; // Store child instances used by this instance.
+      instance.parent = config.parent; // Reference to the parent instance.
+      delete config.parent; // Prevent cyclic recursion when resolving dependencies.
+      instance.config = ccm.helper.stringify(config); // Store the original configuration.
 
-      // convert Light DOM to Element Node
+      // Convert Light DOM to an Element Node.
       if (config.inner)
         config.inner = ccm.helper.html(config.inner, undefined, {
           ignore_apps: true,
         });
 
-      // add instance as child to parent instance
+      // Add the instance as a child to its parent instance.
       if (instance.parent) instance.parent.children[instance.index] = instance;
 
-      // set the root element of the created instance
+      // Set the root element of the created instance.
       instance.root = ccm.helper.html({ id: instance.index });
-      // create a Shadow DOM in the root element
+
+      // Create a Shadow DOM in the root element if specified.
       if (config.shadow !== "none")
         instance.shadow = instance.root.attachShadow({
           mode: config.shadow || "closed",
         });
       delete config.shadow;
 
-      // set content element of created instance
+      // Set the content element of the created instance.
       (instance.shadow || instance.root).appendChild(
         (instance.element = ccm.helper.html({ id: "element" })),
       );
 
+      // Temporarily move the root element to `<head>` for resolving dependencies.
       document.head.appendChild(instance.root); // move root element temporary to <head> (resolving dependencies requires DOM contact)
       config = await ccm.helper.solveDependencies(config, instance); // resolve all dependencies in config
       element.appendChild(instance.root); // move the root element back to the webpage area
       instance.element.appendChild(loading); // move loading icon to content element
 
-      Object.assign(instance, config); // integrate config in the created instance
-      if (!instance.parent?.init) await initialize(); // initialize created and dependent instances
+      // Integrate the configuration into the created instance.
+      Object.assign(instance, config);
+
+      // Initialize the created and dependent instances if necessary.
+      if (!instance.parent?.init) await initialize();
 
       return instance;
 
       /**
-       * calls init and ready method of created instance and all dependent ccm instances
-       * @returns {Promise<void>}
+       * @summary Initializes the created instance and all dependent _ccm_ instances.
+       * @returns {Promise<void>} A promise that resolves when initialization is complete.
        */
       function initialize() {
         return new Promise((resolve) => {
           /**
-           * found ccm instances
+           * @summary Stores all found _ccm_ instances.
            * @type {ccm.types.instance[]}
            */
           const instances = [instance];
 
-          // find all sub-instances dependent on the created instance
+          // Find all sub-instances dependent on the created instance.
           find(instance);
 
-          // call init methods of all found ccm instances
+          // Call init methods of all found _ccm_ instances.
           let i = 0;
           init();
 
           /**
-           * finds all dependent ccm instances (breadth-first-order, recursive)
-           * @param {Array|Object} obj - array/object that is searched
+           * @summary Finds all dependent _ccm_ instances (breadth-first-order, recursive).
+           * @param {Array|Object} obj - The array or object to search.
            */
           function find(obj) {
             /**
-             * found relevant inner objects/arrays (needed for breath-first-order)
+             * @summary Stores relevant inner objects/arrays for breadth-first-order.
              * @type {Array.<Array|Object>}
              */
             const relevant = [];
 
-            // search object/array
+            // Search the object/array.
             for (const key in obj)
               if (Object.hasOwn(obj, key)) {
                 const value = obj[key];
 
-                // value is a ccm instance? (not parent instance) => add to found instances
+                // Add _ccm_ instances to the list of found instances.
                 if (ccm.helper.isInstance(value) && key !== "parent") {
                   instances.push(value);
                   relevant.push(value);
                 }
-                // value is an array/object?
+                // Add relevant inner arrays/objects for further searching.
                 else if (Array.isArray(value) || ccm.helper.isObject(value)) {
                   // relevant object type? => add to relevant inner arrays/objects
                   if (!ccm.helper.isSpecialObject(value)) relevant.push(value);
                 }
               }
 
-            // search relevant inner arrays/objects (recursive calls)
+            // Recursively search relevant inner arrays/objects.
             relevant.forEach(find);
           }
 
-          /** calls init methods (forward) of all found ccm instances (recursive, asynchron) */
+          /**
+           * @summary Calls init methods (forward) of all found _ccm_ instances (recursive, asynchronous).
+           */
           function init() {
-            // all init methods called? => call ready methods
+            // If all init methods are called, proceed to ready methods.
             if (i === instances.length) return ready();
 
             /**
-             * first founded ccm instance with didn't call init method
+             * @summary The next _ccm_ instance to call the init method.
              * @type {ccm.types.instance}
              */
             const next = instances[i++];
 
-            // call and delete the init method and continue with the next found ccm instance (recursive call)
+            // Call and delete the init method, then continue with the next instance.
             next.init
               ? next.init().then(() => {
                   delete next.init;
@@ -724,18 +734,20 @@
               : init();
           }
 
-          /** calls ready methods (backward) of all found ccm instances (recursive, asynchron) */
+          /**
+           * @summary Calls ready methods (backward) of all found _ccm_ instances (recursive, asynchronous).
+           */
           function ready() {
-            // all ready methods called? => perform callback
+            // If all ready methods are called, resolve the promise.
             if (!instances.length) return resolve();
 
             /**
-             * last founded ccm instance with a not called ready method
+             * @summary The next _ccm_ instance to call the ready method.
              * @type {ccm.types.instance}
              */
             const next = instances.pop();
 
-            // result has a ready function? => perform and delete the ready function and check the next result afterward (recursive call)
+            // Call and delete the ready method, then proceed to the next instance.
             next.ready
               ? next.ready().then(() => {
                   delete next.ready;
@@ -743,9 +755,11 @@
                 })
               : proceed();
 
-            /** when instance is ready */
+            /**
+             * @summary Handles the next step after the instance is ready.
+             */
             function proceed() {
-              // does the app have to be started directly? => do it (otherwise: continue with next instance)
+              // Start the app directly if required, otherwise continue with the next instance.
               if (next._start) {
                 delete next._start;
                 next.start().then(ready);
