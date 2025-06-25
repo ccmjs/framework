@@ -771,23 +771,27 @@
     },
 
     /**
-     * @summary Registers a _ccm_ component, creates an instance out of it and starts the instance.
+     * @summary Registers a _ccm_ component, creates an instance out of it, and starts the instance.
      * @description
+     * This function handles the registration of a _ccm_ component, creates an instance from it, and starts the instance.
+     * It ensures compatibility with different framework versions and initializes the instance if required.
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
      * to learn everything about embedding components in _ccm_. There are also examples how to use this method.
-     * @param {ccm.types.component_obj|string} component - object, index or URL of component
-     * @param {ccm.types.config} [config={}] - priority data for instance configuration
-     * @param {Element} [element=document.createElement("div")] - webpage area where the component instance will be embedded (default: on-the-fly <div>)
-     * @returns {Promise<ccm.types.instance>}
+
+     * @param {ccm.types.component_obj|string} component - The component object, index, or URL of the component to register.
+     * @param {ccm.types.config} [config={}] - Priority data for the instance configuration.
+     * @param {Element} [element=document.createElement("div")] - The webpage area where the component instance will be embedded (default: on-the-fly `<div>`).
+     * @returns {Promise<ccm.types.instance>} A promise that resolves to the created and started instance.
+     * @throws {Error} If the provided component is not valid.
      */
     start: async (component, config, element) => {
-      // register component
+      // Register the component.
       component = await ccm.component(component, { ccm: config?.ccm });
 
-      // no valid component object? => abort
+      // Abort if the component is not valid.
       if (!ccm.helper.isComponent(component)) return component;
 
-      // component uses another framework version? => create and start the instance via the other framework version
+      // Handle backwards compatibility if the component uses another framework version.
       const version = component.ccm.version();
       if (version && version !== ccm.version())
         return backwardsCompatibility(
@@ -798,12 +802,16 @@
           element,
         );
 
-      // create an instance out of the component
+      // Create an instance out of the component.
       const instance = await ccm.instance(component, config, element);
 
-      // no valid instance? => abort
+      // Abort if the instance is not valid.
       if (!ccm.helper.isInstance(instance)) return instance;
+
+      // Start the instance directly (is standalone) or mark it for starting after initialization (is child instance).
       instance.init ? (instance._start = true) : await instance.start();
+
+      // Return the created and started instance.
       return instance;
     },
 
