@@ -86,7 +86,7 @@
           getOperation()();
 
           /**
-           * @summary Recursively loads resources one after the other.
+           * @summary Recursively loads a resource one after the other.
            * @description
            * This function ensures that resources are loaded sequentially, maintaining the order of execution.
            * If a resource fails to load, it marks the operation as failed but continues loading the remaining resources.
@@ -98,7 +98,7 @@
             // Add the result of the last loaded resource to the result array if it exists.
             if (result !== null) results[i].push(result);
 
-            // Check if all resources have been loaded; if so, then treat the loading of this resources as complete.
+            // Check if all resources have been loaded; if so, then treat the loading of these resources as complete.
             if (!resource.length) return check();
 
             // Retrieve the next resource to be loaded.
@@ -139,7 +139,7 @@
                 return loadXML;
             }
 
-            // Infer the type from the file extension of the resource URL.
+            // Infer the type from the file extension of the resource URL when no type is given.
             const suffix = resource.url
               .split(/[#?]/)[0] // Remove query parameters and hash from URL.
               .split(".") // Split the URL by dots to get the file extension.
@@ -248,7 +248,7 @@
               // The JS file can pass its result data to the ccm framework via a global variable.
               const data = window.ccm.files[filename] || resource.url;
               delete window.ccm.files[filename];
-              element.parentNode.removeChild(element);
+              element.parentNode.removeChild(element); // Remove no more necessary script element from the DOM.
               success(data);
             };
             element.onerror = () => {
@@ -294,118 +294,58 @@
           }
 
           /**
-           * @summary Loads JSON via Fetch API or JSONP.
+           * @summary Loads JSON data via Fetch API.
            * @description
-           * Depending on the `resource.method`, either JSONP or Fetch API is used to load the JSON data.
-           * The JSONP method dynamically creates a <script> tag, while Fetch API uses HTTP requests.
+           * Sends an HTTP request to fetch the JSON data and handles the response.
+           * Supports both `GET` and `POST` methods, with optional parameters.
            */
           function loadJSON() {
-            (resource.method === "JSONP" ? jsonp : fetchAPI)();
+            // Prepare the URL or request body based on the HTTP method.
+            if (resource.params)
+              resource.method === "GET"
+                ? (resource.url = buildURL(resource.url, resource.params))
+                : (resource.body = JSON.stringify(resource.params));
+
+            // Perform the fetch request and handle the response.
+            fetch(resource.url, resource)
+              .then((response) => response.text())
+              .then(success)
+              .catch(error);
+          }
+
+          /**
+           * @summary Builds a URL with query parameters.
+           * @description
+           * Appends the provided query parameters to the base URL.
+           * Supports nested objects and arrays for complex query structures.
+           *
+           * @param {string} url - The base URL.
+           * @param {Object} data - The query parameters to append.
+           * @returns {string} - The URL with appended query parameters.
+           */
+          function buildURL(url, data) {
+            // Append query parameters to the URL.
+            return data ? url + "?" + params(data).slice(0, -1) : url;
 
             /**
-             * @summary Loads JSON data via JSONP.
+             * @summary Converts an object to query string parameters.
              * @description
-             * Dynamically creates a `<script>` tag and uses a callback function to handle the result.
-             * The callback function is registered in the global `window.ccm.callbacks` namespace.
-             */
-            function jsonp() {
-              /**
-               * Unique callback identifier for JSONP.
-               * @type {string}
-               */
-              const callback = "callback" + ccm.helper.generateKey();
-
-              // Prepare HTTP GET parameters for the JSONP request.
-              if (!resource.params) resource.params = {};
-              resource.params.callback = "window.ccm.callbacks." + callback;
-
-              /**
-               * @type {ccm.types.html|Element}
-               * Represents the `<script>` element used for JSONP.
-               */
-              let element = {
-                tag: "script",
-                src: buildURL(resource.url, resource.params),
-              };
-
-              // Add additional attributes to the `<script>` tag if provided.
-              if (resource.attr)
-                element = Object.assign(element, resource.attr);
-
-              // Convert the JSON object to a DOM element.
-              element = ccm.helper.html(element);
-
-              // Handle errors during the JSONP request.
-              element.onerror = () => {
-                element.parentNode.removeChild(element);
-                error();
-              };
-
-              // Register the callback function to process the JSONP response.
-              window.ccm.callbacks[callback] = (data) => {
-                element.parentNode.removeChild(element);
-                delete window.ccm.callbacks[callback];
-                success(data);
-              };
-
-              // Append the `<script>` element to the specified context.
-              resource.context.appendChild(element);
-            }
-
-            /**
-             * @summary Loads JSON data via Fetch API.
-             * @description
-             * Sends an HTTP request to fetch the JSON data and handles the response.
-             * Supports both `GET` and `POST` methods, with optional parameters.
-             */
-            function fetchAPI() {
-              // Prepare the URL or request body based on the HTTP method.
-              if (resource.params)
-                resource.method === "GET"
-                  ? (resource.url = buildURL(resource.url, resource.params))
-                  : (resource.body = JSON.stringify(resource.params));
-
-              // Perform the fetch request and handle the response.
-              fetch(resource.url, resource)
-                .then((response) => response.text())
-                .then(success)
-                .catch(error);
-            }
-
-            /**
-             * @summary Builds a URL with query parameters.
-             * @description
-             * Appends the provided query parameters to the base URL.
-             * Supports nested objects and arrays for complex query structures.
+             * Recursively processes nested objects and arrays to generate query strings.
              *
-             * @param {string} url - The base URL.
-             * @param {Object} data - The query parameters to append.
-             * @returns {string} - The URL with appended query parameters.
+             * @param {Object} obj - The object to convert.
+             * @param {string} [prefix] - The prefix for nested keys.
+             * @returns {string} - The generated query string.
              */
-            function buildURL(url, data) {
-              // Append query parameters to the URL.
-              return data ? url + "?" + params(data).slice(0, -1) : url;
-
-              /**
-               * @summary Converts an object to query string parameters.
-               * @description
-               * Recursively processes nested objects and arrays to generate query strings.
-               *
-               * @param {Object} obj - The object to convert.
-               * @param {string} [prefix] - The prefix for nested keys.
-               * @returns {string} - The generated query string.
-               */
-              function params(obj, prefix) {
-                let result = "";
-                for (const i in obj) {
-                  const key = prefix
-                    ? prefix + "[" + encodeURIComponent(i) + "]"
-                    : encodeURIComponent(i);
-                  if (typeof obj[i] === "object") result += params(obj[i], key);
-                  else result += key + "=" + encodeURIComponent(obj[i]) + "&";
-                }
-                return result;
+            function params(obj, prefix) {
+              let result = "";
+              for (const i in obj) {
+                const key = prefix
+                  ? prefix + "[" + encodeURIComponent(i) + "]"
+                  : encodeURIComponent(i);
+                if (typeof obj[i] === "object") result += params(obj[i], key);
+                else result += key + "=" + encodeURIComponent(obj[i]) + "&";
               }
+              return result;
             }
           }
 
@@ -1696,15 +1636,6 @@
     /**
      * @description
      * This namespace is only used internally.
-     * JSONP callbacks for loading data via {@link ccm.load} are temporarily stored here (is always emptied directly).
-     * @namespace ccm.callbacks
-     * @type {Object.<string,function>}
-     */
-    ccm.callbacks = {};
-
-    /**
-     * @description
-     * This namespace is only used internally.
      * Result data of loaded JavaScript files via {@link ccm.load} are temporarily stored here (is always emptied directly).
      * @namespace ccm.files
      * @type {Object}
@@ -1890,7 +1821,7 @@
  * @property {string} [type] - Resource is loaded as <code>'css'</code>, <code>'html'</code>, <code>'image'</code>, <code>'js'</code>, <code>'module'</code>, <code>'json'</code> or <code>'xml'</code>. If not specified, the type is automatically recognized by the file extension. If the file extension is unknown, <code>'json'</code> is used by default.
  * @property {string} [attr] - Additional HTML attributes to be set for the HTML tag that loads the resource. Only relevant when loading CSS or JavaScript. CSS is loaded via <code>\<link></code> and JavaScript is loaded via <code>\<script></code>. With the additional attributes <code>integrity</code> and <code>crossorigin</code> the resource can be loaded with Subresource Integrity (SRI).
  * @property {string} [method] - The request method, e.g., <code>"GET"</code>, <code>"POST"</code>. The default is <code>"GET"</code>. Only relevant when loading data. <code>"JSONP"</code> is also supported.
- * @property {string} [params] - HTTP parameters to send. Only relevant when loading data.
+ * @property {Object} [params] - HTTP parameters to send. Only relevant when loading data.
  * @tutorial loading-of-resources
  */
 

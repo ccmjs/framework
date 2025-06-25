@@ -706,7 +706,6 @@
           await testVersion("12.12.0");
           await testVersion("11.5.0");
           await testVersion("10.2.0");
-          await testVersion("9.2.0");
 
           async function testVersion(version) {
             const instance = await fut.instance(
@@ -768,7 +767,6 @@
           await testVersion("12.12.0");
           await testVersion("11.5.0");
           await testVersion("10.2.0");
-          await testVersion("9.2.0");
 
           async function testVersion(version) {
             const major = parseInt(version.split(".")[0]);
