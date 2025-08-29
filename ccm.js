@@ -51,6 +51,7 @@
      * @description
      * Loads resources such as HTML, CSS, images, JavaScript, modules, JSON, or XML asynchronously.
      * Supports sequential and parallel loading of resources.
+     *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Loading-Resources}
      * to learn everything about this method. There are also examples of how to use it.
      * @param {...(string|ccm.types.resource_obj)} resources - Resources to load. Either the URL or a [resource object]{@link ccm.types.resource_obj} can be passed for a resource.
@@ -297,7 +298,7 @@
            * @summary Loads JSON data via Fetch API.
            * @description
            * Sends an HTTP request to fetch the JSON data and handles the response.
-           * Supports both `GET` and `POST` methods, with optional parameters.
+           * Supports both `GET` and `POST` methods, with optional parameters. Default is `POST`.
            */
           function loadJSON() {
             // Prepare the URL or request body based on the HTTP method.
@@ -403,12 +404,12 @@
            * Marks the loading process as failed and updates the results array with an error object.
            * Triggers the next step in the loading process.
            */
-          function error() {
+          function error(e) {
             // Indicate that at least one resource failed to load.
             failed = true;
 
             // Add an error object to the `results` array for the failed resource, including its URL.
-            results[i] = new Error(`loading of ${resource.url} failed`);
+            results[i] = e || new Error(`loading of ${resource.url} failed`);
 
             // Treat the loading of this resource as complete and check if all resources have been loaded, even if some failed.
             check();
@@ -434,8 +435,15 @@
 
     /**
      * @summary Registers a _ccm_ component.
+     * @description
+     * This method registers a _ccm_ component, ensuring compatibility with different framework versions.
+     * It retrieves the component object, validates it, adjusts the framework version, and registers the component.
+     * If the component uses a different framework version, it handles backwards compatibility.
+     * The method also prepares the default instance configuration and adds methods for creating and starting instances.
+     *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
-     * to learn everything about embedding components in _ccm_. There are also examples how to use this method.
+     * to learn everything about embedding components in _ccm_. There are also examples of how to use this method.
+     *
      * @param {ccm.types.component_obj|string} component - The component object, index, or URL of the component to register.
      * @param {ccm.types.config} [config={}] - Priority data for the component's default instance configuration.
      * @returns {Promise<ccm.types.component_obj>} A clone of the registered component object.
@@ -568,8 +576,10 @@
      * This function registers a _ccm_ component and creates an instance from it. It handles the registration process,
      * prepares the instance configuration, and initializes the created instance. The function also resolves dependencies
      * and sets up the instance's DOM structure.
+     *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
      * to learn everything about embedding components in _ccm_. There are also examples how to use this method.
+     *
      * @param {ccm.types.component_obj|string} component - The component object, index, or URL of the component to register.
      * @param {ccm.types.config} [config={}] - Priority data for the instance configuration.
      * @param {Element} [element=document.createElement("div")] - The webpage area where the component instance will be embedded (default: on-the-fly `<div>`).
@@ -775,9 +785,10 @@
      * @description
      * This function handles the registration of a _ccm_ component, creates an instance from it, and starts the instance.
      * It ensures compatibility with different framework versions and initializes the instance if required.
+     *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
      * to learn everything about embedding components in _ccm_. There are also examples how to use this method.
-
+     *
      * @param {ccm.types.component_obj|string} component - The component object, index, or URL of the component to register.
      * @param {ccm.types.config} [config={}] - Priority data for the instance configuration.
      * @param {Element} [element=document.createElement("div")] - The webpage area where the component instance will be embedded (default: on-the-fly `<div>`).
@@ -816,11 +827,71 @@
     },
 
     /**
+     * Provides access to a datastore.
+     *
+     * Supports three data levels:
+     * 1. **InMemoryStore** – Volatile, stored only in a JS object.
+     * 2. **OfflineStore** – Persistent in the browser storage IndexedDB.
+     * 3. **RemoteStore** – Persistent on a remote server via API.
+     *
+     * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Data-Management}
+     * to learn more about data management in _ccm_. The page also includes usage examples.
+     *
+     * @param {Object} [config={}] - Datastore configuration.
+     * @returns {Promise<Datastore>} Resolves to the initialized datastore accessor.
+     */
+    store: async (config = {}) => {
+      const store = new (
+        config.name ? (config.url ? RemoteStore : OfflineStore) : InMemoryStore
+      )();
+      config = await ccm.helper.solveDependency(config);
+      Object.assign(store, config); // sets local, name and url properties
+      await store.init();
+      return store;
+    },
+
+    /**
+     * @summary Reads one or more datasets from a datastore.
+     * @description
+     * This method works similarly to {@link ccm.store}, with the difference that one or more [dataset(s)]{@link ccm.types.dataset} are directly read from the accessed datastore.
+     * Use this method if you only need to read data once and do not require further access to the datastore.
+     *
+     * This method can be used to define dependencies to other datasets in [instance configurations]{@link ccm.types.instance_config}.
+     *
+     * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Data-Management}
+     * to learn everything about data management in _ccm_. There are also examples of how to use this method.
+     *
+     * @param {Object} [config={}] - Configuration for the datastore accessor.
+     * @param {ccm.types.key|Object} [key_or_query={}] - Either a dataset key or a query to read multiple datasets. Default: Read all datasets.
+     * @param {Object} [projection] - Specifies the fields to return in the dataset(s). Default: Return all fields.
+     * @param {Object} [options] - Specifies additional options to modify query behavior and how results are returned.
+     * @returns {Promise<ccm.types.dataset|ccm.types.dataset[]>} A promise that resolves to the read dataset or multiple datasets.
+     */
+    get: (config = {}, key_or_query = {}, projection, options) =>
+      ccm.store(config).then((store) => store.get(key_or_query)),
+
+    /**
      * @summary Contains framework-relevant helper functions.
      * @description These are also useful for component developers.
      * @namespace
      */
     helper: {
+      /**
+       * @summary converts an array of datasets to a collection of _ccmjs_ datasets
+       * @param {ccm.types.dataset[]} arr - array of datasets
+       * @returns {ccm.types.datasets} collection of _ccmjs_ datasets
+       */
+      arrToStore: (arr) => {
+        if (!Array.isArray(arr)) return arr;
+
+        const obj = {};
+        arr.forEach((value) => {
+          if (ccm.helper.isDataset(value)) obj[value.key] = value;
+        });
+
+        return obj;
+      },
+
       /**
        * @summary Creates a deep copy of a value.
        * @param {any} value
@@ -913,6 +984,21 @@
         }
       },
 
+      findInAncestors: (instance, prop) => {
+        let current = instance;
+        while (current) {
+          if (prop in current && current[prop] !== undefined)
+            return current[prop];
+          current = current.parent;
+        }
+        return null;
+      },
+
+      findRoot: (instance) => {
+        while (instance.parent) instance = instance.parent;
+        return instance;
+      },
+
       /**
        * @summary Replaces placeholders in data with values.
        * @param {string|Array|Object} data
@@ -995,7 +1081,11 @@
        * @returns {ccm.types.key} Universally Unique Identifier ([UUID](https://developer.mozilla.org/en-US/docs/Glossary/UUID)) without dashes
        * @example console.log(ccm.helper.generateKey()); // => 8aacc6ad149047eaa2a89096ecc5a95b
        */
-      generateKey: () => crypto.randomUUID().replaceAll("-", ""),
+      generateKey: () => {
+        let key = crypto.randomUUID().replaceAll("-", ""); // 32 Characters, 0-9a-f
+        if (/^\d/.test(key)) key = "_" + key.slice(1);
+        return key;
+      },
 
       /**
        * @summary Converts HTML given as a string or JSON into HTML elements.
@@ -1376,7 +1466,11 @@
        * const value = await ccm.generateKey();
        * ccm.helper.isKey(value); // => true
        */
-      isKey: (value) => /^[a-z0-9]{32}$/.test(value),
+      isKey: (value) => {
+        const regex = ccm.helper.regex("key");
+        const check = (v) => typeof v === "string" && regex.test(v);
+        return Array.isArray(value) ? value.every(check) : check(value);
+      },
 
       /**
        * @summary Checks whether a value is a DOM Node.
@@ -1458,6 +1552,67 @@
       },
 
       /**
+       * checks if an object is a subset of another object
+       * @param {Object} obj - object
+       * @param {Object} other - another object
+       * @returns {boolean}
+       * @example
+       * const obj = {
+       *   name: 'John Doe',
+       *   counter: 3,
+       *   isValid: true,
+       *   x: { y: 'z' },                 // check of inner object
+       *   'values.1': 123,               // check of deeper array value
+       *   'settings.title': 'Welcome!',  // check of deeper object value
+       *   onLoad: true,                  // checks for truthy (is not falsy)
+       *   search: '/foo,bar,baz/',       // checks with regular expression
+       *   title: null                    // checks if property does not exist
+       * };
+       * const other = {
+       *   name: 'John Doe',
+       *   counter: 3,
+       *   isValid: true,
+       *   x: { y: 'z' },
+       *   values: [ 'abc', 123, false ],
+       *   settings: { title: 'Welcome!', year: 2017, greedy: true },
+       *   onLoad: function () { console.log( 'Loading..' ); },
+       *   search: 'foo,bar,baz'
+       * };
+       * const result = isSubset( obj, other );
+       * console.log( result );  // => true
+       */
+      isSubset(obj, other) {
+        for (const key in obj)
+          if (obj[key] === null) {
+            if (other[key] !== undefined) return false;
+          } else if (obj[key] === true) {
+            if (!other[key]) return false;
+          } else if (
+            typeof obj[key] === "string" &&
+            obj[key].startsWith("/") &&
+            obj[key].endsWith("/")
+          ) {
+            if (
+              !new RegExp(obj[key].slice(1, -1)).test(
+                other[key] && typeof other[key] === "object"
+                  ? other[key].toString()
+                  : other[key],
+              )
+            )
+              return false;
+          } else if (
+            typeof obj[key] === "object" &&
+            typeof other[key] === "object"
+          ) {
+            if (JSON.stringify(obj[key]) !== JSON.stringify(other[key]))
+              return false;
+          } else if (key.includes(".")) {
+            if (ccm.helper.deepValue(other, key) !== obj[key]) return false;
+          } else if (obj[key] !== other[key]) return false;
+        return true;
+      },
+
+      /**
        * returns the _ccm_ loading icon
        * @param {ccm.types.instance} [instance] - then the keyframe animation of the icon is placed within the Shadow DOM of this instance (default: <code>document.head</code>)
        * @returns {Element}
@@ -1521,13 +1676,29 @@
        * var result = ccm.helper.regex( 'key' ).test( string );
        * console.log( result );  // => true
        */
-      regex: function (index) {
+      regex: (index) => {
         switch (index) {
           case "filename":
             return /^ccm\.([a-z][a-z_0-9]*)(-(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))?(\.min)?(\.js)$/;
           case "key":
-            return /^[a-zA-Z0-9_-]+$/;
+            return /^[a-z_][a-z0-9_]{0,31}$/;
+          default:
+            throw new Error(`Unknown regex index: ${index}`);
         }
+      },
+
+      /**
+       * @summary Runs a query on objects and returns the results. If you want a deep copy, then call ccm.helper.clone for the results.
+       * @param {Object} query
+       * @param {Object[]|Object.<String,Object>} objects
+       * @returns {Object[]}
+       */
+      runQuery: (query, objects) => {
+        const results = [];
+        for (const key in objects)
+          ccm.helper.isSubset(query, objects[key]) &&
+            results.push(objects[key]);
+        return results;
       },
 
       /**
@@ -1712,7 +1883,7 @@
     // no support of Custom Elements in current webbrowser? => abort
     if (!("customElements" in window)) return;
 
-    // Custom Element already exists in current webpage? => abort
+    // Custom Element already exists in the current webpage? => abort
     if (customElements.get("ccm-" + name)) return;
 
     window.customElements.define(
@@ -1765,6 +1936,302 @@
     delete result.ccm;
 
     return result;
+  }
+
+  class Datastore {
+    init() {
+      this.init = undefined;
+    }
+
+    async clear() {
+      const datasets = await this.get();
+      const results = await Promise.allSettled(
+        datasets.map((dataset) => this.del(dataset)),
+      );
+      results.forEach((res, i) => {
+        if (res.status === "rejected") {
+          console.error("Failed to delete dataset", datasets[i], res.reason);
+        }
+      });
+    }
+
+    source() {
+      return { name: this.name, url: this.url, db: this.db };
+    }
+
+    _checkKey(key) {
+      if (!ccm.helper.isKey(key))
+        throw new Error(`Invalid dataset key: ${JSON.stringify(key_or_query)}`);
+    }
+  }
+
+  class InMemoryStore extends Datastore {
+    datasets;
+
+    async init() {
+      super.init();
+      if (!this.datasets) this.datasets = {};
+      this.datasets = await ccm.helper.solveDependency(this.datasets);
+      this.datasets = ccm.helper.arrToStore(this.datasets);
+    }
+
+    async get(key_or_query) {
+      let result;
+      if (ccm.helper.isObject(key_or_query))
+        result = ccm.helper.runQuery(key_or_query, this.datasets);
+      else {
+        this._checkKey(key_or_query);
+        result = this.datasets[key_or_query] || null;
+      }
+
+      return ccm.helper.clone(result);
+    }
+
+    async set(priodata) {
+      if (!priodata.key) priodata.key = ccm.helper.generateKey();
+
+      this._checkKey(priodata.key);
+
+      if (this.datasets[priodata.key])
+        this.datasets[priodata.key] = await ccm.helper.integrate(
+          priodata,
+          this.datasets[priodata.key],
+        );
+      else this.datasets[priodata.key] = priodata;
+
+      return ccm.helper.clone(this.datasets[priodata.key]);
+    }
+
+    async del(key) {
+      this._checkKey(key);
+      const dataset = this.datasets[key];
+      delete this.datasets[key];
+      return ccm.helper.clone(dataset) || null;
+    }
+
+    async clear() {
+      this.datasets = {};
+    }
+
+    async count(query) {
+      return ccm.helper.runQuery(query, this.datasets).length;
+    }
+  }
+
+  class OfflineStore extends Datastore {
+    dbName = "ccm";
+    database;
+
+    async init() {
+      super.init();
+
+      const existingDB = await this.#pReq(indexedDB.open(this.dbName));
+      if (existingDB.objectStoreNames.contains(this.name)) {
+        this.#setupDatabase(existingDB);
+        return;
+      }
+
+      const newVersion = existingDB.version + 1;
+      existingDB.close();
+
+      const request = indexedDB.open(this.dbName, newVersion);
+      request.onupgradeneeded = (event) =>
+        event.target.result.createObjectStore(this.name, { keyPath: "key" });
+
+      this.#setupDatabase(await this.#pReq(request));
+    }
+
+    async get(key_or_query) {
+      if (ccm.helper.isObject(key_or_query))
+        return ccm.helper.runQuery(
+          key_or_query,
+          await this.#pReq(this.#getStore().getAll()),
+        );
+
+      this._checkKey(key_or_query);
+      return this.#pReq(this.#getStore().get(key_or_query));
+    }
+
+    async set(priodata) {
+      if (!priodata.key) priodata.key = ccm.helper.generateKey();
+
+      this._checkKey(priodata.key);
+
+      let dataset = await this.get(priodata.key);
+      if (dataset) dataset = await ccm.helper.integrate(priodata, dataset);
+      else dataset = priodata;
+
+      await this.#pReq(this.#getStore("readwrite").put(dataset));
+      return dataset;
+    }
+
+    async del(key) {
+      this._checkKey(key);
+
+      const dataset = await this.get(key);
+      await this.#pReq(this.#getStore("readwrite").delete(key));
+      return dataset || null;
+    }
+
+    async clear() {
+      await super.clear();
+
+      if (!(await this.count())) {
+        const newVersion = this.database.version + 1;
+        this.database.close();
+
+        const request = indexedDB.open(this.dbName, newVersion);
+        request.onupgradeneeded = (event) =>
+          event.target.result.deleteObjectStore(this.name);
+
+        this.#setupDatabase(await this.#pReq(request));
+      }
+    }
+
+    async names() {
+      return Array.from(this.database.objectStoreNames);
+    }
+
+    #getStore(mode = "readonly") {
+      const tx = this.database.transaction(this.name, mode);
+      return tx.objectStore(this.name);
+    }
+
+    #pReq(request) {
+      return new Promise((resolve, reject) => {
+        request.onsuccess = (e) => resolve(e.target.result);
+        request.onerror = (e) => reject(e.target.error);
+        request.onblocked = () => {
+          console.error(
+            `[IndexedDB] Open request blocked for '${this.dbName}'. Please close all other tabs that use this database.`,
+          );
+        };
+      });
+    }
+
+    #setupDatabase(db) {
+      db.onversionchange = () => {
+        console.warn(
+          `[IndexedDB] Database '${this.dbName}' version change detected. Closing connection.`,
+        );
+        console.log(
+          "The local database was updated by another app. Please reload!",
+        );
+        db.close();
+      };
+
+      db.onclose = () => {
+        console.log(`[IndexedDB] Database '${this.dbName}' connection closed.`);
+      };
+
+      this.database = db;
+    }
+  }
+
+  class RemoteStore extends Datastore {
+    user;
+
+    async init() {
+      super.init();
+
+      this.user = ccm.helper.findInAncestors(this, "user");
+
+      if (this.observe) {
+        if (!this.onchange && this.parent) this.onchange = this.parent.start;
+        this.connect();
+      }
+    }
+
+    async get(key_or_query) {
+      if (!ccm.helper.isObject(key_or_query)) this._checkKey(key_or_query);
+      return this._send({ get: key_or_query });
+    }
+
+    async set(priodata) {
+      if (!priodata.key) priodata.key = ccm.helper.generateKey();
+      this._checkKey(priodata.key);
+      return this._send({ set: priodata });
+    }
+
+    async del(key) {
+      this._checkKey(key);
+      return this._send({ del: key });
+    }
+
+    async names() {
+      return this._send({ names: this.db });
+    }
+
+    async dbs() {
+      return this._send({ names: "dbs" });
+    }
+
+    async _send(params = {}) {
+      params.db = this.db || "";
+      params.store = this.name;
+
+      if (this.user?.isLoggedIn()) params.token = this.user.getState().token;
+      if (this.token) params.token = this.token;
+
+      try {
+        return await ccm.load({ url: this.url, params });
+      } catch (e) {
+        if (this.user && (e.status === 401 || e.status === 403)) {
+          try {
+            await this.user.logout();
+            await this.user.login();
+            params.token = this.user.getState().token;
+            return await ccm.load({ url: this.url, params });
+          } catch (e) {
+            if (this.parent) await ccm.helper.findRoot(this).start();
+            else throw e;
+          }
+        } else throw e;
+      }
+    }
+
+    connect() {
+      this.socket = new WebSocket(this.url.replace("http", "ws"));
+      this.socket.onopen = () => {
+        this.socket.send(
+          JSON.stringify({
+            db: this.db,
+            store: this.name,
+            observe: this.observe,
+          }),
+        );
+      };
+      this.socket.onmessage = (message) => {
+        try {
+          this.onchange && this.onchange(JSON.parse(message.data));
+        } catch (e) {
+          console.error("Failed to parse WebSocket message:", message.data, e);
+        }
+      };
+      this.socket.onerror = (err) => {
+        console.error("WebSocket error:", err);
+      };
+
+      this.socket.onclose = (event) => {
+        console.warn(
+          `WebSocket closed, code=${event.code}, reason=${event.reason}`,
+        );
+        if (!this._manualClose && !this._reconnect) {
+          this._reconnect = true;
+          this.connect();
+          delete this._reconnect;
+        }
+      };
+    }
+
+    close() {
+      if (this.socket) {
+        this._manualClose = true;
+        this.socket.close();
+        delete this._manualClose;
+        this.socket = null;
+      }
+    }
   }
 })();
 
