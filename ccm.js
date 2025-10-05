@@ -148,7 +148,7 @@
               .trim(); // Remove any surrounding whitespace.
 
             // Match the file extension to the corresponding loading operation.
-            switch (suffix) {
+            switch (file_extension) {
               case "html":
                 return loadHTML;
               case "css":
