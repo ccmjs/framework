@@ -83,7 +83,7 @@
           if (ccm.helper.isInstance(resource.context))
             resource.context = resource.context.element.parentNode;
 
-          // Determine the operation to load the resource based on its type or file extension.
+          // Determine and call the operation to load the resource based on its type or file extension.
           getOperation()();
 
           /**
