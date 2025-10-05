@@ -422,7 +422,7 @@
         /**
          * @summary Callback function to handle the completion of resource loading.
          * @description
-         * This function checks whether all resources have been loaded. If not, it waits for the remaining resources.
+         * This function is called whenever a resource is finished loading and checks whether all resources have been loaded. If not, it waits for the remaining resources.
          * Once all resources are loaded, it resolves or rejects the promise based on the loading status.
          */
         function check() {
