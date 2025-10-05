@@ -25,17 +25,28 @@
     },
     load: {
       tests: [
+        /**
+         * Tests the functionality of loading HTML files, converting them to DOM elements,
+         * and serializing them to JSON. Also verifies the loading of template files and their conversion.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} - Resolves when the test completes.
+         */
         async function loadHTML(suite) {
+          // Load a single HTML file and verify its string content
           expected = "Hello, <b>World</b>!";
           actual = await fut.load("./dummy/hello.html");
           suite.assertEquals(expected, actual);
 
+          // Convert the loaded string to a DOM element and verify its type
           actual = fut.helper.html(actual);
           suite.assertTrue(fut.helper.isElement(actual));
 
+          // Extract and compare the innerHTML of the DOM element with the expected string
           actual = actual.innerHTML;
           suite.assertEquals(expected, actual);
 
+          // Convert the HTML content to JSON and validate the structure
           expected = {
             inner: [
               "Hello, ",
@@ -49,6 +60,7 @@
           actual = fut.helper.html2json(actual);
           suite.assertEquals(expected, actual);
 
+          // Load a template HTML file and verify the returned map of named templates
           expected = {
             hello: "\n  Hello, <b>World</b>!\n",
             home: "\n  <h1>Welcome</h1>\n  <p>Hello, <b>World</b>!</p>\n",
@@ -56,9 +68,11 @@
           actual = await fut.load("./dummy/templates.html");
           suite.assertEquals(expected, actual);
 
+          // Convert the "hello" template to a DOM node and verify its type
           actual = fut.helper.html(actual.hello);
           suite.assertTrue(fut.helper.isElement(actual));
 
+          // Extract and compare the innerHTML of the "hello" template with the expected string
           expected = "Hello, <b>World</b>!";
           actual = actual.innerHTML.trim();
           suite.assertEquals(expected, actual);
