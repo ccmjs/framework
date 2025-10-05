@@ -141,7 +141,7 @@
             }
 
             // Infer the type from the file extension of the resource URL when no type is given.
-            const suffix = resource.url
+            const file_extension = resource.url
               .split(/[#?]/)[0] // Remove query parameters and hash from URL.
               .split(".") // Split the URL by dots to get the file extension.
               .at(-1) // Get the last part as the file extension.
