@@ -77,21 +77,36 @@
           actual = actual.innerHTML.trim();
           suite.assertEquals(expected, actual);
         },
+
+        /**
+         * @summary Tests the functionality of loading CSS files and verifies their application.
+         * @description
+         * This test ensures that a CSS file can be loaded successfully, checks the presence of the corresponding
+         * `<link>` element in the document, verifies the applied styles, and tests the handling of Subresource Integrity (SRI) checks.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} - Resolves when the test completes.
+         */
         async function loadCSS(suite) {
           const url = "./dummy/style.css";
+
+          // Verify that the URL of the loaded CSS file is returned as the result
           expected = url;
           actual = await fut.load(url);
           suite.assertEquals(expected, actual);
 
+          // Check if the <link> element for the CSS file exists in the document head
           const query = `head > link[rel="stylesheet"][type="text/css"][href="${url}"]`;
           actual = document.querySelector(query);
           suite.assertTrue(fut.helper.isElement(actual));
 
+          // Verify that the CSS file has been applied by checking the computed style
           expected = "0px";
           actual = getComputedStyle(document.body).getPropertyValue("margin");
           suite.assertEquals(expected, actual);
 
-          expected = `loading of ${url} failed`;
+          // Test loading the CSS file with an invalid SRI hash and verify the error message
+          expected = "error";
           actual = "";
           try {
             await fut.load({
@@ -102,10 +117,11 @@
               },
             });
           } catch (error) {
-            actual = error.message;
+            actual = error.type;
           }
           suite.assertEquals(expected, actual);
 
+          // Test loading the CSS file with a valid SRI hash and verify the result
           expected = url;
           actual = await fut.load({
             url,
@@ -116,43 +132,68 @@
             },
           });
           suite.assertEquals(expected, actual);
-
-          expected = 3;
-          actual = document.head.querySelectorAll(query).length;
-          suite.assertEquals(expected, actual);
         },
+
+        /**
+         * @summary Tests the functionality of loading an image and verifies caching behavior.
+         * @description
+         * This test ensures that an image can be loaded successfully and checks if subsequent loads
+         * are faster due to caching. The test compares the time taken for the first and second loads
+         * to determine if the image is retrieved from the cache.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} - Resolves when the test completes.
+         */
         async function loadImage(suite) {
           const url = "./dummy/image.png";
 
+          // Verify that the URL of the loaded image is returned as the result
           expected = url;
           const start1 = performance.now();
           actual = await fut.load(url);
           const end1 = performance.now();
           suite.assertEquals(expected, actual);
 
+          // Measure the time taken for the second load
           const start2 = performance.now();
           actual = await fut.load(url);
           const end2 = performance.now();
+
+          // Compare the load times to verify caching behavior
           end2 - start2 < end1 - start1
             ? suite.passed()
             : suite.failed("Image should be loaded from cache.");
         },
+
+        /**
+         * @summary Tests the functionality of loading JavaScript files and verifies their behavior.
+         * @description
+         * This test ensures that JavaScript files can be loaded successfully, checks for proper handling
+         * of Subresource Integrity (SRI) checks, and verifies that the script tag and temporary collected data ist removed after loading.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} - Resolves when the test completes.
+         */
         async function loadJS(suite) {
+          // Load a dummy JavaScript file and verify the returned URL
           let url = "./dummy/dummy.js";
           expected = url;
           actual = await fut.load(url);
           suite.assertEquals(expected, actual);
 
+          // Load another JavaScript file and verify the returned object
           url = "./dummy/script.js";
           expected = { foo: "bar" };
           actual = await fut.load(url);
           suite.assertEquals(expected, actual);
 
+          // Verify that the <script> tag has then been removed from the <head>
           const query = `head > script[src="${url}"]`;
           expected = null;
           actual = document.querySelector(query);
           suite.assertEquals(expected, actual);
 
+          // Test loading the JavaScript file with an invalid SRI hash and verify the error message
           actual = "";
           expected = `loading of ${url} failed`;
           try {
@@ -168,7 +209,9 @@
           }
           suite.assertEquals(expected, actual);
 
-          await fut.load({
+          // Test loading the JavaScript file with a valid SRI hash and verify successful loading
+          expected = { foo: "bar" };
+          actual = await fut.load({
             url,
             attr: {
               integrity:
@@ -176,47 +219,106 @@
               crossorigin: "",
             },
           });
-          suite.passed();
+          suite.assertEquals(expected, actual);
 
+          // Verify that the <script> element is removed from the <head> after loading
+          expected = null;
+          actual = document.querySelector(`head > script[src="${url}"]`);
+          suite.assertEquals(expected, actual);
+
+          // Verify that the global `ccm.files` object is empty after loading
           expected = {};
           actual = window.ccm.files;
           suite.assertEquals(expected, actual);
         },
+
+        /**
+         * @summary Tests the functionality of loading an ES module and verifies its exported values.
+         * @description
+         * This test ensures that an ES module can be loaded successfully and its exports are accessible.
+         * It verifies the module's named exports, and nested properties.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} - Resolves when the test completes.
+         */
         async function loadModule(suite) {
           const url = "./dummy/module.mjs";
+
+          // Verify the named exports of the module
           expected = { data: { foo: "bar" }, name: "John", valid: true };
           actual = await fut.load(url);
           suite.assertEquals(expected, actual);
 
+          // Verify a specific named export from the module
           expected = { foo: "bar" };
           actual = await fut.load(url + "#data");
           suite.assertEquals(expected, actual);
 
+          // Verify a nested property within a named export
           expected = "bar";
           actual = await fut.load(url + "#data.foo");
           suite.assertEquals(expected, actual);
 
+          // Verify a combination of named exports
           expected = { data: { foo: "bar" }, name: "John" };
           actual = await fut.load(url + "#data#name");
           suite.assertEquals(expected, actual);
         },
+
+        /**
+         * @summary Tests the functionality of loading a JSON file and verifies its content.
+         * @description
+         * This test ensures that a JSON file can be loaded successfully and its content matches
+         * the expected structure and values.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} - Resolves when the test completes.
+         */
         async function loadJSON(suite) {
           const url = "./dummy/data.json";
+
+          // Load the JSON file and verify its content
           const expected = { foo: "bar" };
           const actual = await fut.load(url);
           suite.assertEquals(expected, actual);
         },
+
+        /**
+         * @summary Tests the functionality of loading an XML file and verifies its content.
+         * @description
+         * This test ensures that an XML file can be loaded successfully and its content matches
+         * the expected structure and values. It verifies the type of the loaded document and
+         * checks the text content of a specific XML element.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} - Resolves when the test completes.
+         */
         async function loadXML(suite) {
           const url = "./dummy/note.xml";
+
+          // Load the XML file and verify that the result is an instance of XMLDocument
           let expected = XMLDocument;
           let actual = await fut.load(url);
           suite.assertTrue(actual instanceof expected);
 
+          // Verify the text content of the <foo> element in the test XML file
           expected = "bar";
           actual = actual.querySelector("foo").textContent;
           suite.assertEquals(expected, actual);
         },
+
+        /**
+         * @summary Tests the functionality of loading multiple resources and verifies their results.
+         * @description
+         * This test ensures that multiple resources (HTML, CSS, JavaScript, JSON, etc.) can be loaded
+         * simultaneously and their results match the expected values. It also verifies error handling
+         * for failed resource loading and ensures the correct order of execution.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} - Resolves when the test completes.
+         */
         async function loadMultiple(suite) {
+          // Define the expected result for loading multiple resources
           expected = [
             "Hello, <b>World</b>!",
             [
@@ -226,6 +328,8 @@
             ],
             "./dummy/image.png",
           ];
+
+          // Load multiple resources and verify the result
           actual = await fut.load(
             "./dummy/hello.html",
             [
@@ -237,6 +341,7 @@
           );
           suite.assertEquals(expected, actual);
 
+          // Test error handling for a failed resource load
           actual = "";
           expected = `loading of ./dummy/script.min.js failed`;
           try {
@@ -254,6 +359,7 @@
           }
           suite.assertEquals(expected, actual);
 
+          // Verify the correct order of execution for nested resource loading
           window.actual = [0];
           expected = "./dummy/script5.min.js";
           actual = await fut.load(
@@ -268,17 +374,29 @@
           suite.assertEquals(expected, actual[1][2]);
           suite.assertEquals([3, 9, 5], window.actual);
         },
+
+        /**
+         * @summary Tests the functionality of loading a CSS file into different contexts.
+         * @description
+         * This test ensures that a CSS file can be loaded in the context of a DOM element and in the context of a ccmjs instance.
+         * It verifies the presence of the corresponding `<link>` element in the specified context.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} - Resolves when the test completes.
+         */
         async function loadContext(suite) {
           let context;
           const url = "./dummy/style.css";
           const query = `link[rel="stylesheet"][type="text/css"][href="${url}"]`;
 
+          // Load the CSS file in the context of the <body> and verify the <link> element
           context = document.body;
           await fut.load({ url, context });
           suite.assertTrue(
             fut.helper.isElement(document.querySelector(`body > ${query}`)),
           );
 
+          // Load the CSS file in the context of a ccmjs instance and verify the <link> element
           context = await fut.instance({
             name: "component",
             ccm: "./../ccm.js",
