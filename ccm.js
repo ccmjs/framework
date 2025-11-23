@@ -69,7 +69,7 @@
           // Handle sequential loading of resources.
           if (Array.isArray(resource)) {
             results[i] = [];
-            serial(null);
+            sequential(null);
             return;
           }
 
@@ -95,7 +95,7 @@
            *
            * @param {*} result - The result of the last successfully loaded resource.
            */
-          function serial(result) {
+          function sequential(result) {
             // Add the result of the last loaded resource to the result array if it exists.
             if (result !== null) results[i].push(result);
 
@@ -108,13 +108,13 @@
             // Ensure the next resource is wrapped in an array for consistent processing.
             if (!Array.isArray(next)) next = [next];
 
-            // Load the next resource and recursively call `serial` upon success or failure.
+            // Load the next resource and recursively call `sequential` upon success or failure.
             ccm.load
               .apply(null, next)
-              .then(serial)
+              .then(sequential)
               .catch((result) => {
                 failed = true; // Mark the operation as failed if an error occurs.
-                serial(result); // Continue loading the remaining resources.
+                sequential(result); // Continue loading the remaining resources.
               });
           }
 
