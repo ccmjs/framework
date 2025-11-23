@@ -112,7 +112,7 @@
             await fut.load({
               url,
               attr: {
-                integrity: "sha384-x",
+                integrity: "sha256-x",
                 crossorigin: "",
               },
             });
@@ -126,8 +126,7 @@
           actual = await fut.load({
             url,
             attr: {
-              integrity:
-                "sha384-RjoiwomcPuuT7xWNyE4qcAcC51FFmr1WTjKQviUZrZ5WNnfnQbKwnd3tKAGxzbSZ",
+              integrity: "sha256-Pme0qVBbJGACcvHOa2d2xK4uveiPdlWdSipR9gLYAMQ=",
               crossorigin: "",
             },
           });
@@ -194,7 +193,7 @@
             await fut.load({
               url,
               attr: {
-                integrity: "sha384-x",
+                integrity: "sha256-x",
                 crossorigin: "",
               },
             });
@@ -208,8 +207,7 @@
           actual = await fut.load({
             url,
             attr: {
-              integrity:
-                "sha384-OLBgp1GsljhM2TJ+sbHjaiH9txEUvgdDTAzHv2P24donTt6/529l+9Ua0vFImLlb",
+              integrity: "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
               crossorigin: "",
             },
           });
