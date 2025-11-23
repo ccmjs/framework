@@ -55,7 +55,7 @@
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Loading-Resources}
      * to learn everything about this method. There are also examples of how to use it.
      * @param {...(string|ccm.types.resource_obj)} resources - Resources to load. Either the URL or a [resource object]{@link ccm.types.resource_obj} can be passed for a resource.
-     * @returns {Promise<*>} A promise that resolves with the loaded resources or rejects if loading fails.
+     * @returns {Promise<*>} A promise that resolves with the loaded resources or rejects if loading of at least one resource fails.
      */
     load: async (...resources) => {
       let results = []; // Stores the results of loaded resources.
@@ -79,7 +79,7 @@
           // By default, a resource is loaded in the <head> of the webpage.
           if (!resource.context) resource.context = document.head;
 
-          // Handle loading in the Shadow DOM of a component instance.
+          // Handle loading in the Shadow DOM of a ccmjs instance.
           if (ccm.helper.isInstance(resource.context))
             resource.context = resource.context.element.parentNode;
 
