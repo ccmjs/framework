@@ -169,21 +169,15 @@
          * @summary Tests the functionality of loading JavaScript files and verifies their behavior.
          * @description
          * This test ensures that JavaScript files can be loaded successfully, checks for proper handling
-         * of Subresource Integrity (SRI) checks, and verifies that the script tag and temporary collected data ist removed after loading.
+         * of Subresource Integrity (SRI) checks, and verifies that the script tag is removed after loading.
          *
          * @param {Object} suite - The test suite object providing assertion methods.
          * @returns {Promise<void>} - Resolves when the test completes.
          */
         async function loadJS(suite) {
-          // Load a dummy JavaScript file and verify the returned URL
-          let url = "./dummy/dummy.js";
+          // Load a JavaScript file and verify the returned URL
+          let url = "./dummy/script.js";
           expected = url;
-          actual = await fut.load(url);
-          suite.assertEquals(expected, actual);
-
-          // Load another JavaScript file and verify the returned object
-          url = "./dummy/script.js";
-          expected = { foo: "bar" };
           actual = await fut.load(url);
           suite.assertEquals(expected, actual);
 
@@ -210,25 +204,20 @@
           suite.assertEquals(expected, actual);
 
           // Test loading the JavaScript file with a valid SRI hash and verify successful loading
-          expected = { foo: "bar" };
+          expected = url;
           actual = await fut.load({
             url,
             attr: {
               integrity:
-                "sha384-6wt5L34ia4nMOnVRL++defJ1AQii2ChOENX3oLFIT3pUDLmaA1U3RwPFBgjGPulG",
+                "sha384-OLBgp1GsljhM2TJ+sbHjaiH9txEUvgdDTAzHv2P24donTt6/529l+9Ua0vFImLlb",
               crossorigin: "",
             },
           });
           suite.assertEquals(expected, actual);
 
-          // Verify that the <script> element is removed from the <head> after loading
+          // Verify that the <script> element is removed from the <head> after loading fails
           expected = null;
           actual = document.querySelector(`head > script[src="${url}"]`);
-          suite.assertEquals(expected, actual);
-
-          // Verify that the global `ccm.files` object is empty after loading
-          expected = {};
-          actual = window.ccm.files;
           suite.assertEquals(expected, actual);
         },
 
@@ -324,7 +313,7 @@
             [
               "./dummy/style.css",
               [{ foo: "bar" }, { foo: "bar" }],
-              { foo: "bar" },
+              "./dummy/script.js",
             ],
             "./dummy/image.png",
           ];

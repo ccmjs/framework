@@ -1,1 +1,0 @@
-ccm.files["script.js"]={foo:"bar"};
