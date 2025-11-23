@@ -246,14 +246,10 @@
 
             element = ccm.helper.html(element); // Convert to DOM element
             element.onload = () => {
-              // The JS file can pass its result data to the ccm framework via a global variable.
-              const data = window.ccm.files[filename] || resource.url;
-              delete window.ccm.files[filename];
               element.parentNode.removeChild(element); // Remove no more necessary script element from the DOM.
-              success(data);
+              success(resource.url);
             };
             element.onerror = () => {
-              delete window.ccm.files[filename];
               element.parentNode.removeChild(element);
               error();
             };
