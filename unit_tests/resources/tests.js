@@ -222,8 +222,9 @@
         /**
          * @summary Tests the functionality of loading an ES module and verifies its exported values.
          * @description
-         * This test ensures that an ES module can be loaded successfully and its exports are accessible.
-         * It verifies the module's named exports, and nested properties.
+         * This test ensures that an ES module can be loaded successfully, checks for proper handling
+         * of Subresource Integrity (SRI) checks, and verifies its exports. It also validates the module's
+         * named exports, nested properties, and combinations of exports.
          *
          * @param {Object} suite - The test suite object providing assertion methods.
          * @returns {Promise<void>} - Resolves when the test completes.

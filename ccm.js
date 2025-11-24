@@ -259,35 +259,61 @@
           /**
            * @summary Loads a JavaScript module via dynamic import.
            * @description
-           * Uses dynamic import to load the JavaScript module. Specific properties can be extracted using hash signs in the URL.
-           * The result is cloned to avoid caching issues.
+           * This function dynamically imports an ES module from a given URL. It supports Subresource Integrity (SRI) checks
+           * to ensure the module's integrity. If specific properties of the module are requested (indicated by hash signs in the URL),
+           * only those properties are included in the result. The function also clones the imported module to avoid caching issues.
            */
-          function loadModule() {
+          async function loadModule() {
             // Use hash signs at the end of URL if only specific properties should be included in the result data.
             let [url, ...keys] = resource.url.split("#");
 
-            // convert relative URL to absolute URL (dynamic imports don't work with relative URL's)
+            // Convert relative URL to absolute URL (dynamic imports don't work with relative URL's).
             if (url.startsWith("./"))
               url = url.replace(
                 "./",
                 location.href.substring(0, location.href.lastIndexOf("/") + 1),
               );
 
-            import(url).then((result) => {
-              // if only one specific deeper value has to be the result
-              if (keys.length === 1)
-                result = ccm.helper.deepValue(result, keys[0]);
+            // If SRI is given, fetch the module, verify integrity and create a blob URL for dynamic import.
+            let result;
+            if (resource.attr?.integrity) {
+              // fetch the module
+              const text = await (await fetch(url)).text();
 
-              // if more than one specific property has to be included
-              if (keys.length > 1) {
-                const obj = {};
-                keys.forEach((key) => (obj[key] = result[key]));
-                result = obj;
-              }
+              // calculate SRI hash
+              const prefix = resource.attr.integrity.slice(
+                0,
+                resource.attr.integrity.indexOf("-"),
+              );
+              let algorithm = prefix.replace("sha", "SHA-");
+              const data = new TextEncoder().encode(text);
+              const hash = await crypto.subtle.digest(algorithm, data);
+              const base64 = btoa(String.fromCharCode(...new Uint8Array(hash)));
+              const sri = `${prefix}-${base64}`;
 
-              // A dynamic import caches the module by reference, so we have to clone the result.
-              success(ccm.helper.clone(result));
-            });
+              // verify integrity
+              if (sri !== resource.attr.integrity) return error();
+
+              // create a blob for dynamic import
+              const blob = new Blob([text], { type: "text/javascript" });
+              const blobUrl = URL.createObjectURL(blob);
+
+              result = await import(blobUrl);
+            } else result = await import(url);
+
+            // if only one specific deeper value has to be the result
+            if (keys.length === 1)
+              result = ccm.helper.deepValue(result, keys[0]);
+
+            // if more than one specific property has to be included
+            if (keys.length > 1) {
+              const obj = {};
+              keys.forEach((key) => (obj[key] = result[key]));
+              result = obj;
+            }
+
+            // A dynamic import caches the module by reference, so we have to clone the result.
+            success(ccm.helper.clone(result));
           }
 
           /**
