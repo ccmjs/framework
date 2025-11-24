@@ -250,6 +250,55 @@
           expected = { data: { foo: "bar" }, name: "John" };
           actual = await fut.load(url + "#data#name");
           suite.assertEquals(expected, actual);
+
+          // Test loading the module with an invalid SRI hash and verify the error message
+          actual = "";
+          expected = `loading of ${url} failed`;
+          try {
+            await fut.load({
+              url,
+              attr: {
+                integrity: "sha256-x",
+                crossorigin: "",
+              },
+            });
+          } catch (error) {
+            actual = error.message;
+          }
+          suite.assertEquals(expected, actual);
+
+          // Test loading the module with a valid SRI hash with SHA-256 and verify successful loading
+          expected = { data: { foo: "bar" }, name: "John", valid: true };
+          actual = await fut.load({
+            url,
+            attr: {
+              integrity: "sha256-UbYrXTwEWM3+HFWnf22XZhN8zRUHbFzJlE6Fs6q9fV8=",
+              crossorigin: "",
+            },
+          });
+          suite.assertEquals(expected, actual);
+
+          // Test loading the module with a valid SRI hash with SHA-384 and verify successful loading
+          actual = await fut.load({
+            url,
+            attr: {
+              integrity:
+                "sha384-HUXdHqTt4miSLn4X4gaWsM8XlJuzTYeaIeI23MDnpjnUW2vRxWiDnG4XZBM49Vs9",
+              crossorigin: "",
+            },
+          });
+          suite.assertEquals(expected, actual);
+
+          // Test loading the module with a valid SRI hash with SHA-512 and verify successful loading
+          actual = await fut.load({
+            url,
+            attr: {
+              integrity:
+                "sha512-Ulhf2S10+YRZflRHtYHA8a5akIMAZds8CM60s3IqI17qqZZlUpQXgQjiTdtJy+WqAFEL5XotrHRQiTMUP0xEqw==",
+              crossorigin: "",
+            },
+          });
+          suite.assertEquals(expected, actual);
         },
 
         /**
