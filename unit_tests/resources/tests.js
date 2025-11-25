@@ -112,7 +112,7 @@
             await fut.load({
               url,
               attr: {
-                integrity: "sha256-x",
+                integrity: "sha256-wrong-hash",
                 crossorigin: "",
               },
             });
@@ -193,7 +193,7 @@
             await fut.load({
               url,
               attr: {
-                integrity: "sha256-x",
+                integrity: "sha256-wrong-hash",
                 crossorigin: "",
               },
             });
@@ -259,7 +259,7 @@
             await fut.load({
               url,
               attr: {
-                integrity: "sha256-x",
+                integrity: "sha256-wrong-hash",
                 crossorigin: "",
               },
             });
