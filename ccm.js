@@ -53,7 +53,8 @@
      * Supports sequential and parallel loading of resources.
      *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Loading-Resources}
-     * to learn everything about this method. There are also examples of how to use it.
+     * to learn everything about loading resources in ccmjs.
+     *
      * @param {...(string|ccm.types.resource_obj)} resources - Resources to load. Either the URL or a [resource object]{@link ccm.types.resource_obj} can be passed for a resource.
      * @returns {Promise<*>} A promise that resolves with the loaded resources or rejects if loading of at least one resource fails.
      */
@@ -197,10 +198,10 @@
               href: resource.url,
             };
 
-            // Set up individual HTML attributes for <link> tag
+            // Set up individual HTML attributes for <link> tag.
             if (resource.attr) element = Object.assign(element, resource.attr);
 
-            element = ccm.helper.html(element); // Convert to DOM element
+            element = ccm.helper.html(element); // Convert to DOM element.
             element.onload = () => success(resource.url);
             element.onerror = error;
             resource.context.appendChild(element);
@@ -230,10 +231,10 @@
             /** @type {ccm.types.html|Element} */
             let element = { tag: "script", src: resource.url, async: true };
 
-            // Set up individual HTML attributes for <script> tag
+            // Set up individual HTML attributes for <script> tag.
             if (resource.attr) element = Object.assign(element, resource.attr);
 
-            element = ccm.helper.html(element); // Convert to DOM element
+            element = ccm.helper.html(element); // Convert to DOM element.
             element.onload = () => {
               element.parentNode.removeChild(element); // Remove no more necessary script element from the DOM.
               success(resource.url);
@@ -266,10 +267,10 @@
             // If SRI is given, fetch the module, verify integrity and create a blob URL for dynamic import.
             let result;
             if (resource.attr?.integrity) {
-              // fetch the module
+              // Fetch the module.
               const text = await (await fetch(url)).text();
 
-              // calculate SRI hash
+              // Calculate SRI hash.
               const prefix = resource.attr.integrity.slice(
                 0,
                 resource.attr.integrity.indexOf("-"),
@@ -280,21 +281,21 @@
               const base64 = btoa(String.fromCharCode(...new Uint8Array(hash)));
               const sri = `${prefix}-${base64}`;
 
-              // verify integrity
+              // Verify integrity.
               if (sri !== resource.attr.integrity) return error();
 
-              // create a blob for dynamic import
+              // .Create a blob for dynamic import.
               const blob = new Blob([text], { type: "text/javascript" });
               const blobUrl = URL.createObjectURL(blob);
 
               result = await import(blobUrl);
             } else result = await import(url);
 
-            // if only one specific deeper value has to be the result
+            // If only one specific deeper value has to be the result.
             if (keys.length === 1)
               result = ccm.helper.deepValue(result, keys[0]);
 
-            // if more than one specific property has to be included
+            // If more than one specific property has to be included.
             if (keys.length > 1) {
               const obj = {};
               keys.forEach((key) => (obj[key] = result[key]));
