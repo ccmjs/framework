@@ -506,14 +506,12 @@
           component = await fut.component("./not_exist/ccm.dummy.js");
           suite.assertTrue(fut.helper.isComponent(component));
 
-          /*
           // Load component with valid SRI hash
           actual = "";
           component = await fut.component(
-            "./dummy/ccm.dummy.js#sha256-wrong-hash",
+            "./dummy/ccm.dummy.js#sha256-JqPRGv730LFBWHeLAxarXc4W5rI3djioGnx6Z9hEyiQ=",
           );
           suite.assertTrue(fut.helper.isComponent(component));
-           */
 
           // Load component with valid SRI hash for ccmjs
           expected = "loading of ./libs/ccm/ccm.js failed";
