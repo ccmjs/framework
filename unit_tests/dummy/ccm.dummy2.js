@@ -1,4 +1,4 @@
-ccm.files["ccm.dummy2.js"] = {
+export const component = {
   name: "dummy2",
   ccm: "./../ccm.js",
   config: {},
