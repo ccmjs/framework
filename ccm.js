@@ -320,14 +320,14 @@
            * @summary Loads JSON data via Fetch API.
            * @description
            * Sends an HTTP request to fetch the JSON data and handles the response.
-           * Supports both `GET` and `POST` methods, with optional parameters. Default is `POST`.
+           * Supports both `GET` and `POST` methods, with optional parameters. Default is `GET`.
            */
           function loadJSON() {
             // Prepare the URL or request body based on the HTTP method.
             if (resource.params)
-              resource.method === "GET"
-                ? (resource.url = buildURL(resource.url, resource.params))
-                : (resource.body = JSON.stringify(resource.params));
+              resource.method === "POST"
+                ? (resource.body = JSON.stringify(resource.params))
+                : (resource.url = buildURL(resource.url, resource.params));
 
             // Perform the fetch request and handle the response.
             fetch(resource.url, resource)
