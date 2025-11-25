@@ -39,10 +39,10 @@
     /**
      * @summary Retrieves the current version of the _ccm_ framework.
      * @description
-     * This function returns the version number of the _ccm_ framework as a string.
-     * The version number follows Semantic Versioning 2.0.0.
+     * Returns the version number of the _ccm_ framework as a string following Semantic Versioning 2.0.0.
+     * Use this as a synchronous, stable accessor for the framework version.
      *
-     * @returns {ccm.types.version_nr} The version number of the framework.
+     * @returns {ccm.types.version_nr} version number of the framework
      */
     version: () => "28.0.0",
 
@@ -227,17 +227,6 @@
            * The script is loaded asynchronously, and success or error callbacks are triggered accordingly.
            */
           function loadJS() {
-            /**
-             * Extracted filename from URL without ".min" infix.
-             * @type {string}
-             */
-            const filename = resource.url
-              .split("?")
-              .at(0)
-              .split("/")
-              .at(-1)
-              .replace(".min.", ".");
-
             /** @type {ccm.types.html|Element} */
             let element = { tag: "script", src: resource.url, async: true };
 
