@@ -848,33 +848,58 @@
     },
 
     /**
-     * Provides access to a datastore.
-     *
-     * Supports three data levels:
-     * 1. **InMemoryStore** – Volatile, stored only in a JS object.
-     * 2. **OfflineStore** – Persistent in the browser storage IndexedDB.
-     * 3. **RemoteStore** – Persistent on a remote server via API.
+     * @summary Provides access to a datastore.
+     * @description
+     * Initializes and returns a datastore accessor based on the provided configuration.
+     * The specific datastore type is selected automatically:
+     * 1. **InMemoryStore** – Volatile, stored only in a JavaScript object.
+     * 2. **OfflineStore** – Persistent in browser storage (IndexedDB).
+     * 3. **RemoteStore** – Persistent on a remote server via HTTP(S)/WebSocket API.
      *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Data-Management}
      * to learn more about data management in _ccm_. The page also includes usage examples.
      *
      * @param {Object} [config={}] - Datastore configuration.
+     *
+     * @param {string} [config.name] - Name of the store/collection (mandatory for Offline/Remote).
+     * @param {string} [config.url] - Server endpoint for remote access (triggers `RemoteStore`).
+     * @param {string} [config.db] - Database identifier (Offline/Remote). Only needed if the server supports multiple databases.
+     *
+     * @param {Object.<string,ccm.types.dataset>|Array<ccm.types.dataset>} [config.datasets] - (InMemoryStore) Initial datasets, either as associative object `{ key: dataset }` or array `[ { key, ...}, ... ]`.
+     *
+     * @param {Object} [config.observe] - (RemoteStore) Query defining which datasets to observe.
+     * @param {function(Object):void} [config.onchange] - (RemoteStore) Callback triggered when an observed dataset changes.
+     * @param {Object} [config.user] - (RemoteStore) Component instance for user authentication.
+     *
      * @returns {Promise<Datastore>} Resolves to the initialized datastore accessor.
      */
     store: async (config = {}) => {
+      // Determine the type of datastore to use based on the configuration.
       const store = new (
         config.name ? (config.url ? RemoteStore : OfflineStore) : InMemoryStore
       )();
+
+      // Resolve any dependencies in the configuration.
       config = await ccm.helper.solveDependency(config);
-      Object.assign(store, config); // sets local, name and url properties
+
+      // Assign the resolved configuration properties to the datastore instance.
+      Object.assign(store, config);
+
+      // Initialize the datastore.
       await store.init();
+
+      // Return the initialized datastore instance.
       return store;
     },
 
     /**
      * @summary Reads one or more datasets from a datastore.
      * @description
-     * This method works similarly to {@link ccm.store}, with the difference that one or more [dataset(s)]{@link ccm.types.dataset} are directly read from the accessed datastore.
+     * This method retrieves [datasets]{@link ccm.types.dataset} from a datastore based on the provided configuration and query.
+     * It supports reading a single dataset or multiple datasets using a query.
+     * Optionally, specific fields can be projected, and additional query options can be applied.
+     *
+     * This method works exactly like {@link ccm.store}, with the difference that one or more [datasets]{@link ccm.types.dataset} are loaded directly from the datastore.
      * Use this method if you only need to read data once and do not require further access to the datastore.
      *
      * This method can be used to define dependencies to other datasets in [instance configurations]{@link ccm.types.instance_config}.
@@ -884,8 +909,8 @@
      *
      * @param {Object} [config={}] - Configuration for the datastore accessor.
      * @param {ccm.types.key|Object} [key_or_query={}] - Either a dataset key or a query to read multiple datasets. Default: Read all datasets.
-     * @param {Object} [projection] - Specifies the fields to return in the dataset(s). Default: Return all fields.
-     * @param {Object} [options] - Specifies additional options to modify query behavior and how results are returned.
+     * @param {Object} [projection] - Specifies the fields to include in the result. Default: includes all fields.
+     * @param {Object} [options] - Additional options to modify query behavior and result processing.
      * @returns {Promise<ccm.types.dataset|ccm.types.dataset[]>} A promise that resolves to the read dataset or multiple datasets.
      */
     get: (config = {}, key_or_query = {}, projection, options) =>
@@ -1338,7 +1363,7 @@
        * console.log( result );  // { value: 'foo' }
        * @example
        * const store = { data: { key: 'data', foo: 'bar' } };
-       * const result = await ccm.helper.integrate( { 'value.foo': 'baz' }, { value: [ 'ccm.get', { local: store }, 'data' ] } );
+       * const result = await ccm.helper.integrate( { 'value.foo': 'baz' }, { value: [ 'ccm.get', { datasets: store }, 'data' ] } );
        * console.log( result );  // { value: { foo: 'baz' } }
        */
       integrate: async (priodata, dataset) => {
@@ -1407,7 +1432,7 @@
        * const value = await ccm.store();
        * ccm.helper.isDatastore(value); // => true
        */
-      isDatastore: (value) => value?.get && value.local && value.source && true,
+      isDatastore: (value) => value?.get && value.source && true,
 
       /**
        * check value if it is a _ccm_ dependency
@@ -1950,11 +1975,42 @@
     return result;
   }
 
+  /**
+   * @class Datastore
+   * @summary Base class for all datastore types in ccm.
+   * @description
+   * Provides a common API for data access.
+   * Concrete subclasses handle the actual storage: {@link InMemoryStore}, {@link OfflineStore}, {@link RemoteStore}
+   *
+   * Main conventions:
+   * - All methods are asynchronous (return Promises).
+   * - `get()` fetches datasets by key or query.
+   * - `set()` creates or updates a dataset and returns it.
+   * - `del()` deletes a dataset and returns the deleted one or `null`.
+   * - `clear()` removes all datasets from the store.
+   * - `count()` returns number of datasets matching a query.
+   * - Subclasses define additional methods:
+   *   - `names()` in {@link OfflineStore} and {@link RemoteStore}
+   *   - `dbs()` in {@link RemoteStore}
+   *   - `onchange()` in {@link RemoteStore}
+   *   - `connect()` in {@link RemoteStore}
+   *   - `close()` in {@link RemoteStore}
+   */
   class Datastore {
+    /**
+     * Marks this datastore as initialized.
+     * Called once at setup time.
+     */
     init() {
       this.init = undefined;
     }
 
+    /**
+     * Removes all datasets from this datastore.
+     * Errors are logged but do not stop the process.
+     *
+     * @returns {Promise<void>}
+     */
     async clear() {
       const datasets = await this.get();
       const results = await Promise.allSettled(
@@ -1967,19 +2023,38 @@
       });
     }
 
+    /**
+     * Returns metadata that identifies this datastore.
+     *
+     * @returns {{name: string, url: string, db: string}}
+     */
     source() {
       return { name: this.name, url: this.url, db: this.db };
     }
 
+    /**
+     * Checks if a given value is a valid dataset key.
+     * Throws an error if the value is not valid.
+     *
+     * @param {*} key - The value to check.
+     * @throws {Error} If the value is not a valid key.
+     * @protected
+     */
     _checkKey(key) {
       if (!ccm.helper.isKey(key))
         throw new Error(`Invalid dataset key: ${JSON.stringify(key_or_query)}`);
     }
   }
 
+  /**
+   * @class InMemoryStore
+   * @extends Datastore
+   * @summary Simple datastore that keeps all datasets in memory.
+   * @description
+   * Stores datasets in a plain JavaScript object.
+   * Data is lost when the page is reloaded.
+   */
   class InMemoryStore extends Datastore {
-    datasets;
-
     async init() {
       super.init();
       if (!this.datasets) this.datasets = {};
@@ -2100,6 +2175,13 @@
       }
     }
 
+    async count(query) {
+      return ccm.helper.runQuery(
+        query,
+        await this.#pReq(this.#getStore().getAll()),
+      ).length;
+    }
+
     async names() {
       return Array.from(this.database.objectStoreNames);
     }
@@ -2141,8 +2223,6 @@
   }
 
   class RemoteStore extends Datastore {
-    user;
-
     async init() {
       super.init();
 
@@ -2156,29 +2236,33 @@
 
     async get(key_or_query) {
       if (!ccm.helper.isObject(key_or_query)) this._checkKey(key_or_query);
-      return this._send({ get: key_or_query });
+      return this.#send({ get: key_or_query });
     }
 
     async set(priodata) {
       if (!priodata.key) priodata.key = ccm.helper.generateKey();
       this._checkKey(priodata.key);
-      return this._send({ set: priodata });
+      return this.#send({ set: priodata });
     }
 
     async del(key) {
       this._checkKey(key);
-      return this._send({ del: key });
+      return this.#send({ del: key });
+    }
+
+    async count(query) {
+      return this.#send({ count: query });
     }
 
     async names() {
-      return this._send({ names: this.db });
+      return this.#send({ names: this.db });
     }
 
     async dbs() {
-      return this._send({ names: "dbs" });
+      return this.#send({ names: "dbs" });
     }
 
-    async _send(params = {}) {
+    async #send(params = {}) {
       params.db = this.db || "";
       params.store = this.name;
 
