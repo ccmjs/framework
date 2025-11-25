@@ -84,7 +84,7 @@
           // Convert string URLs to resource objects.
           if (typeof resource === "string") resource = { url: resource };
 
-          // By default, a resource is loaded in the <head> of the webpage.
+          // By default, a resource is loaded in the <head> of the web page.
           if (!resource.context) resource.context = document.head;
 
           // Handle loading in the Shadow DOM of a ccmjs instance.
@@ -476,23 +476,23 @@
       if (!ccm.helper.isComponent(component))
         throw new Error("invalid component: " + component);
 
-      // Adjust the framework version used by the component via config.
+      // Adjust the ccmjs version used by the component via config.
       if (config.ccm) component.ccm = config.ccm;
       delete config.ccm;
 
-      // Determine the framework version the component must use.
+      // Determine the ccmjs version the component must use.
       let version;
       if (ccm.helper.isCore(component.ccm)) version = component.ccm.version();
       else {
-        // Extract the version from the framework URL.
+        // Extract the version from the ccmjs URL.
         const [url] = component.ccm.split("#");
         if (url.includes("-"))
           version = url.split("-").at(-1).split(".").slice(0, 3).join(".");
       }
 
-      // Load the required framework version if not already present in the web page.
+      // Load the required ccmjs version if not already present in the web page.
       if (!window.ccm[version]) {
-        // The framework version is loaded with SRI when the SRI hash is appended to the URL with “#”.
+        // The ccmjs version is loaded with SRI when the SRI hash is appended to the URL with “#”.
         const [url, sri] = component.ccm.split("#");
         await ccm.load(
           sri
@@ -501,7 +501,7 @@
         );
       }
 
-      // If the component uses a different framework version, handle backwards compatibility.
+      // If the component uses a different ccmjs version, handle backwards compatibility.
       if (version && version !== ccm.version())
         return backwardsCompatibility(version, "component", component, config);
 
@@ -512,7 +512,7 @@
 
       // Register the component if it is not already registered.
       if (!_components[component.index]) {
-        _components[component.index] = component; // Register component: Store the component object encapsulated in the framework.
+        _components[component.index] = component; // Register component: Store the component object encapsulated in ccmjs.
         ccm.components[component.index] = {}; // Create global component namespaces.
         component.instances = 0; // Add a counter for component instances.
         component.ready && (await component.ready.call(component)); // Execute the "ready" callback if defined.
@@ -523,7 +523,7 @@
       // Clone the registered component object to avoid direct modifications.
       component = ccm.helper.clone(_components[component.index]);
 
-      // Set the reference to the used framework version.
+      // Set the reference to the used ccmjs version.
       component.ccm = window.ccm[version] || ccm;
 
       // Prepare the default instance configuration.
@@ -592,18 +592,18 @@
     },
 
     /**
-     * @summary Registers a _ccm_ component and creates an instance out of it.
+     * @summary Registers a ccmjs component and creates an instance out of it.
      * @description
-     * This function registers a _ccm_ component and creates an instance from it. It handles the registration process,
+     * This function registers a ccmjs component and creates an instance from it. It handles the registration process,
      * prepares the instance configuration, and initializes the created instance. The function also resolves dependencies
      * and sets up the instance's DOM structure.
      *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
-     * to learn everything about embedding components in _ccm_. There are also examples how to use this method.
+     * to learn everything about embedding components in ccmjs.
      *
      * @param {ccm.types.component_obj|string} component - The component object, index, or URL of the component to register.
      * @param {ccm.types.config} [config={}] - Priority data for the instance configuration.
-     * @param {Element} [element=document.createElement("div")] - The webpage area where the component instance will be embedded (default: on-the-fly `<div>`).
+     * @param {Element} [element=document.createElement("div")] - The web page area where the component instance will be embedded (default: on-the-fly `<div>`).
      * @returns {Promise<ccm.types.instance>} A promise that resolves to the created instance.
      * @throws {Error} If the provided component is not valid.
      */
@@ -618,7 +618,7 @@
       // Abort if the component is not valid.
       if (!ccm.helper.isComponent(component)) return component;
 
-      // Handle backwards compatibility if the component uses another framework version.
+      // Handle backwards compatibility if the component uses another ccmjs version.
       const version = component.ccm.version();
       if (version && version !== ccm.version())
         return backwardsCompatibility(
@@ -629,7 +629,7 @@
           element,
         );
 
-      // Render a loading icon in the webpage area.
+      // Render a loading icon in the web page area.
       element.innerHTML = "";
       const loading = ccm.helper.loading();
       element.appendChild(loading);
@@ -643,11 +643,11 @@
        */
       const instance = new component.Instance();
 
-      // Set _ccm_-specific properties for the instance.
-      instance.ccm = component.ccm; // Reference to the used framework version.
+      // Set ccmjs-specific properties for the instance.
+      instance.ccm = component.ccm; // Reference to the used ccmjs version.
       instance.component = component; // The component the instance is created from.
       instance.id = ++_components[component.index].instances; // Instance ID. Unique within the component.
-      instance.index = component.index + "-" + instance.id; // Instance index. Unqiue within the webpage.
+      instance.index = component.index + "-" + instance.id; // Instance index. Unqiue within the web page.
       if (!instance.init) instance.init = async () => {}; // Ensure the instance has an init method.
       instance.children = {}; // Store child instances used by this instance.
       instance.parent = config.parent; // Reference to the parent instance.
@@ -681,7 +681,7 @@
       // Temporarily move the root element to `<head>` for resolving dependencies.
       document.head.appendChild(instance.root); // move root element temporary to <head> (resolving dependencies requires DOM contact)
       config = await ccm.helper.solveDependencies(config, instance); // resolve all dependencies in config
-      element.appendChild(instance.root); // move the root element back to the webpage area
+      element.appendChild(instance.root); // move the root element back to the web page area
       instance.element.appendChild(loading); // move loading icon to content element
 
       // Integrate the configuration into the created instance.
@@ -693,13 +693,13 @@
       return instance;
 
       /**
-       * @summary Initializes the created instance and all dependent _ccm_ instances.
+       * @summary Initializes the created instance and all dependent ccmjs instances.
        * @returns {Promise<void>} A promise that resolves when initialization is complete.
        */
       function initialize() {
         return new Promise((resolve) => {
           /**
-           * @summary Stores all found _ccm_ instances.
+           * @summary Stores all found ccmjs instances.
            * @type {ccm.types.instance[]}
            */
           const instances = [instance];
@@ -707,12 +707,12 @@
           // Find all sub-instances dependent on the created instance.
           find(instance);
 
-          // Call init methods of all found _ccm_ instances.
+          // Call init methods of all found ccmjs instances.
           let i = 0;
           init();
 
           /**
-           * @summary Finds all dependent _ccm_ instances (breadth-first-order, recursive).
+           * @summary Finds all dependent ccmjs instances (breadth-first-order, recursive).
            * @param {Array|Object} obj - The array or object to search.
            */
           function find(obj) {
@@ -727,7 +727,7 @@
               if (Object.hasOwn(obj, key)) {
                 const value = obj[key];
 
-                // Add _ccm_ instances to the list of found instances.
+                // Add ccmjs instances to the list of found instances.
                 if (ccm.helper.isInstance(value) && key !== "parent") {
                   instances.push(value);
                   relevant.push(value);
@@ -744,14 +744,14 @@
           }
 
           /**
-           * @summary Calls init methods (forward) of all found _ccm_ instances (recursive, asynchronous).
+           * @summary Calls init methods (forward) of all found ccmjs instances (recursive, asynchronous).
            */
           function init() {
             // If all init methods are called, proceed to ready methods.
             if (i === instances.length) return ready();
 
             /**
-             * @summary The next _ccm_ instance to call the init method.
+             * @summary The next ccmjs instance to call the init method.
              * @type {ccm.types.instance}
              */
             const next = instances[i++];
@@ -766,14 +766,14 @@
           }
 
           /**
-           * @summary Calls ready methods (backward) of all found _ccm_ instances (recursive, asynchronous).
+           * @summary Calls ready methods (backward) of all found ccmjs instances (recursive, asynchronous).
            */
           function ready() {
             // If all ready methods are called, resolve the promise.
             if (!instances.length) return resolve();
 
             /**
-             * @summary The next _ccm_ instance to call the ready method.
+             * @summary The next ccmjs instance to call the ready method.
              * @type {ccm.types.instance}
              */
             const next = instances.pop();
@@ -802,17 +802,17 @@
     },
 
     /**
-     * @summary Registers a _ccm_ component, creates an instance out of it, and starts the instance.
+     * @summary Registers a ccmjs component, creates an instance out of it, and starts the instance.
      * @description
-     * This function handles the registration of a _ccm_ component, creates an instance from it, and starts the instance.
-     * It ensures compatibility with different framework versions and initializes the instance if required.
+     * This function handles the registration of a ccmjs component, creates an instance from it, and starts the instance.
+     * It ensures compatibility with different ccmjs versions and initializes the instance if required.
      *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
-     * to learn everything about embedding components in _ccm_. There are also examples how to use this method.
+     * to learn everything about embedding components in ccmjs.
      *
      * @param {ccm.types.component_obj|string} component - The component object, index, or URL of the component to register.
      * @param {ccm.types.config} [config={}] - Priority data for the instance configuration.
-     * @param {Element} [element=document.createElement("div")] - The webpage area where the component instance will be embedded (default: on-the-fly `<div>`).
+     * @param {Element} [element=document.createElement("div")] - The web page area where the component instance will be embedded (default: on-the-fly `<div>`).
      * @returns {Promise<ccm.types.instance>} A promise that resolves to the created and started instance.
      * @throws {Error} If the provided component is not valid.
      */
@@ -823,7 +823,7 @@
       // Abort if the component is not valid.
       if (!ccm.helper.isComponent(component)) return component;
 
-      // Handle backwards compatibility if the component uses another framework version.
+      // Handle backwards compatibility if the component uses another ccmjs version.
       const version = component.ccm.version();
       if (version && version !== ccm.version())
         return backwardsCompatibility(
@@ -857,7 +857,7 @@
      * 3. **RemoteStore** – Persistent on a remote server via HTTP(S)/WebSocket API.
      *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Data-Management}
-     * to learn more about data management in _ccm_. The page also includes usage examples.
+     * to learn more about data management in ccmjs.
      *
      * @param {Object} [config={}] - Datastore configuration.
      *
@@ -905,7 +905,7 @@
      * This method can be used to define dependencies to other datasets in [instance configurations]{@link ccm.types.instance_config}.
      *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Data-Management}
-     * to learn everything about data management in _ccm_. There are also examples of how to use this method.
+     * to learn everything about data management in ccmjs.
      *
      * @param {Object} [config={}] - Configuration for the datastore accessor.
      * @param {ccm.types.key|Object} [key_or_query={}] - Either a dataset key or a query to read multiple datasets. Default: Read all datasets.
@@ -917,15 +917,15 @@
       ccm.store(config).then((store) => store.get(key_or_query)),
 
     /**
-     * @summary Contains framework-relevant helper functions.
+     * @summary Contains ccmjs-relevant helper functions.
      * @description These are also useful for component developers.
      * @namespace
      */
     helper: {
       /**
-       * @summary converts an array of datasets to a collection of _ccmjs_ datasets
+       * @summary converts an array of datasets to a collection of ccmjs datasets
        * @param {ccm.types.dataset[]} arr - array of datasets
-       * @returns {ccm.types.datasets} collection of _ccmjs_ datasets
+       * @returns {ccm.types.datasets} collection of ccmjs datasets
        */
       arrToStore: (arr) => {
         if (!Array.isArray(arr)) return arr;
@@ -957,7 +957,7 @@
       },
 
       /**
-       * @summary Extract data from a _ccm_ component URL. (TODO: SRI in doc)
+       * @summary Extract data from a component URL. (TODO: SRI in doc)
        * @param {string} url
        * @returns {{name: string, index: string, version: string, filename: string, url: string, minified: boolean, sri: string}}
        * @throws {Error} if component filename is not valid
@@ -1400,7 +1400,7 @@
       },
 
       /**
-       * @summary Checks whether a value is a [_ccm_ component object]{@link ccm.types.component_obj}.
+       * @summary Checks whether a value is a [component object]{@link ccm.types.component_obj}.
        * @param {any} value
        * @returns {boolean}
        * @example
@@ -1418,14 +1418,14 @@
         value?.name && value.ccm && value.config && value.Instance && true,
 
       /**
-       * @summary Checks if a value is a _ccm_ core object.
+       * @summary Checks if a value is a ccmjs object.
        * @param {*} value - value to check
        * @returns {boolean}
        */
       isCore: (value) => value?.components && value.version && true,
 
       /**
-       * @summary Checks whether a value is a [_ccm_ datastore object]{@link ccm.types.store}.
+       * @summary Checks whether a value is a [datastore object]{@link ccm.types.store}.
        * @param {any} value
        * @returns {boolean}
        * @example
@@ -1435,7 +1435,7 @@
       isDatastore: (value) => value?.get && value.source && true,
 
       /**
-       * check value if it is a _ccm_ dependency
+       * check value if it is a ccmjs dependency
        * @param {*} value
        * @returns {boolean}
        * @example ["ccm.load", ...]
@@ -1478,7 +1478,7 @@
         value instanceof Element || value instanceof DocumentFragment,
 
       /**
-       * @summary Checks whether a value is a [_ccm_ framework object]{@link ccm.types.framework}.
+       * @summary Checks whether a value is a [ccmjs object]{@link ccm.types.ccmjs}.
        * @param {any} value
        * @returns {boolean}
        * @example
@@ -1488,7 +1488,7 @@
       isFramework: (value) => value?.components && value.version && true,
 
       /**
-       * @summary Checks whether a value is a [_ccm_ component instance]{@link ccm.types.instance}.
+       * @summary Checks whether a value is a [ccmjs instance]{@link ccm.types.instance}.
        * @param {any} value
        * @returns {boolean}
        * @example
@@ -1582,7 +1582,7 @@
       /**
        * @summary checks if a value is a special object
        * @description
-       * A special object is Window Object, Node, _ccm_ Object, _ccm_ Instance and _ccm_ Datastore.
+       * A special object is Window Object, Node, ccmjs Object, ccmjs Instance and ccmjs Datastore.
        * These objects lead to endless loops if you recursively go through each property in depth.
        * @param {*} value
        * @returns {boolean}
@@ -1659,7 +1659,7 @@
       },
 
       /**
-       * returns the _ccm_ loading icon
+       * returns the ccmjs loading icon
        * @param {ccm.types.instance} [instance] - then the keyframe animation of the icon is placed within the Shadow DOM of this instance (default: <code>document.head</code>)
        * @returns {Element}
        * @example document.body.appendChild(loading())
@@ -1689,7 +1689,7 @@
       },
 
       /**
-       * @summary Provides a _ccm_-relevant regular expression.
+       * @summary Provides a ccmjs-relevant regular expression.
        * @description
        * Possible index values, it's meanings and it's associated regular expressions:
        * <table>
@@ -1700,12 +1700,12 @@
        *   </tr>
        *   <tr>
        *     <td><code>'filename'</code></td>
-       *     <td>filename for an _ccmjs_ instance</td>
+       *     <td>filename for a ccmjs instance</td>
        *     <td>/^(ccm.)?([^.-]+)(-(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))?(\.min)?(\.js)$/</td>
        *   </tr>
        *   <tr>
        *     <td><code>'key'</code></td>
-       *     <td>key for a _ccmjs_ dataset</td>
+       *     <td>key for a ccmjs dataset</td>
        *     <td>/^[a-z_0-9][a-zA-Z_0-9]*$/</td>
        *   </tr>
        * </table>
@@ -1748,9 +1748,9 @@
       },
 
       /**
-       * @summary solves _ccm_ dependencies contained in an array or object
+       * @summary solves ccmjs dependencies contained in an array or object
        * @param {Array|Object} obj - array or object
-       * @param {ccm.types.instance} [instance] - associated _ccm_ instance
+       * @param {ccm.types.instance} [instance] - associated ccmjs instance
        * @returns {Promise<void>}
        */
       solveDependencies: (obj, instance) =>
@@ -1795,7 +1795,7 @@
       /**
        * @summary solves a ccm dependency
        * @param {Array} dependency - ccm dependency
-       * @param {ccm.types.instance} [instance] - associated _ccm_ instance
+       * @param {ccm.types.instance} [instance] - associated ccmjs instance
        * @returns {Promise<*>}
        */
       solveDependency: async (dependency, instance) => {
@@ -1868,7 +1868,7 @@
     },
   };
 
-  // is this the first ccm framework version loaded on this webpage? => initialize global namespace
+  // is this the first ccmjs version loaded on this web page? => initialize global namespace
   if (!window.ccm) {
     window.ccm = ccm;
 
@@ -1876,20 +1876,20 @@
     defineCustomElement("app");
   }
 
-  // is this the first time this specific ccm framework version is loaded on this webpage?
+  // is this the first time this specific ccmjs version is loaded on this web page?
   if (!window.ccm[ccm.version()]) {
     window.ccm[ccm.version()] = ccm; // set version specific namespace
     ccm.components = {}; // set namespace for loaded components
   }
 
   /**
-   * When the requested component uses another framework version.
-   * This function performs the method call in the other framework version.
-   * @param {number} version - major number of the necessary framework version
+   * When the requested component uses another ccmjs version.
+   * This function performs the method call in the other ccmjs version.
+   * @param {number} version - major number of the necessary ccmjs version
    * @param {string} method - name of the method to be called ('component', 'instance' or 'start')
    * @param {ccm.types.component_obj|string} component - object, index or URL of component
    * @param {ccm.types.config} config - priority data for instance configuration
-   * @param {Element} element - webpage area where the component instance will be embedded (default: on-the-fly <div>)
+   * @param {Element} element - web page area where the component instance will be embedded (default: on-the-fly <div>)
    * @returns {Promise<ccm.types.component|ccm.types.instance>}
    */
   async function backwardsCompatibility(
@@ -1920,7 +1920,7 @@
     // no support of Custom Elements in current webbrowser? => abort
     if (!("customElements" in window)) return;
 
-    // Custom Element already exists in the current webpage? => abort
+    // Custom Element already exists in the current web page? => abort
     if (customElements.get("ccm-" + name)) return;
 
     window.customElements.define(
@@ -2333,7 +2333,7 @@
 
 /**
  * @namespace ccm.types
- * @description _ccm_-specific Type Definitions
+ * @description ccmjs-specific Type Definitions
  */
 
 /**
@@ -2350,7 +2350,7 @@
 
 /**
  * @typedef {Array} ccm.types.dependency
- * @summary _ccm_ dependency
+ * @summary ccmjs dependency
  * @example ["ccm.load", ...]
  * @example ["ccm.component", ...]
  * @example ["ccm.instance", ...]
@@ -2360,7 +2360,7 @@
  */
 
 /**
- * @typedef {Object} ccm.types.framework
+ * @typedef {Object} ccm.types.ccmjs
  */
 
 /**
@@ -2402,7 +2402,7 @@
  * Instead of a URL, a resource object can be passed to the method {@link ccm.load}, which then contains other information besides the URL, via which the loading of the resource is even more flexible controllable.
  * In the case of HTML, JSON and XML, the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch) is used to load the ressource. All properties in the resource object are also spread into the <code>options</code> object (2nd parameter of [fetch()](https://developer.mozilla.org/en-US/docs/Web/API/fetch)). This means that, for example, HTTP headers can also be set here.
  * @property {string} url - URL from which the resource should be loaded.
- * @property {Element|ccm.types.instance} [context] - Context in which the resource is loaded (default is <code>\<head></code>). Only relevant when loading CSS or JavaScript. CSS is loaded via <code>\<link></code> and JavaScript is loaded via <code>\<script></code>. When a [_ccmjs_ component instance]{@link ccm.types.instance} is passed, the resource is loaded in the Shadow DOM of that instance.
+ * @property {Element|ccm.types.instance} [context] - Context in which the resource is loaded (default is <code>\<head></code>). Only relevant when loading CSS or JavaScript. CSS is loaded via <code>\<link></code> and JavaScript is loaded via <code>\<script></code>. When a [ccmjs instance]{@link ccm.types.instance} is passed, the resource is loaded in the Shadow DOM of that instance.
  * @property {string} [type] - Resource is loaded as <code>'css'</code>, <code>'html'</code>, <code>'image'</code>, <code>'js'</code>, <code>'module'</code>, <code>'json'</code> or <code>'xml'</code>. If not specified, the type is automatically recognized by the file extension. If the file extension is unknown, <code>'json'</code> is used by default.
  * @property {string} [attr] - Additional HTML attributes to be set for the HTML tag that loads the resource. Only relevant when loading CSS or JavaScript. CSS is loaded via <code>\<link></code> and JavaScript is loaded via <code>\<script></code>. With the additional attributes <code>integrity</code> and <code>crossorigin</code> the resource can be loaded with Subresource Integrity (SRI).
  * @property {string} [method] - The request method, e.g., <code>"GET"</code>, <code>"POST"</code>. The default is <code>"GET"</code>. Only relevant when loading data. <code>"JSONP"</code> is also supported.
