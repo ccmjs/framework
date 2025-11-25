@@ -490,7 +490,7 @@
           version = url.split("-").at(-1).split(".").slice(0, 3).join(".");
       }
 
-      // Load the required framework version if not already present in the webpage.
+      // Load the required framework version if not already present in the web page.
       if (!window.ccm[version]) {
         // The framework version is loaded with SRI when the SRI hash is appended to the URL with “#”.
         const [url, sri] = component.ccm.split("#");
