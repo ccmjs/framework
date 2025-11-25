@@ -24,7 +24,7 @@
 (() => {
   /**
    * @description
-   * A private object that stores all registered components for the current version of the _ccm_ framework.
+   * A private object that stores all registered components for the current version of ccmjs.
    * Each component is indexed by its unique identifier.
    *
    * @memberOf ccm
@@ -34,19 +34,22 @@
   const _components = {};
 
   /**
-   * Encapsulates everything related to _ccm_.
-   * See [this wiki]{@link https://github.com/ccmjs/framework/wiki/} to learn everything about this web technology.
+   * Encapsulates everything related to ccmjs.
+   *
+   * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki}
+   * to learn everything about ccmjs.
+   *
    * @global
    * @namespace
    */
   const ccm = {
     /**
-     * @summary Retrieves the current version of the _ccm_ framework.
+     * @summary Retrieves the current version of the ccmjs.
      * @description
-     * Returns the version number of the _ccm_ framework as a string following Semantic Versioning 2.0.0.
-     * Use this as a synchronous, stable accessor for the framework version.
+     * Returns the version number of ccmjs as a string following Semantic Versioning 2.0.0.
+     * Use this as a synchronous, stable accessor for the ccmjs version.
      *
-     * @returns {ccm.types.version_nr} version number of the framework
+     * @returns {ccm.types.version_nr} version number of ccmjs
      */
     version: () => "28.0.0",
 
@@ -450,15 +453,15 @@
     },
 
     /**
-     * @summary Registers a _ccm_ component.
+     * @summary Registers a component.
      * @description
-     * This method registers a _ccm_ component, ensuring compatibility with different framework versions.
-     * It retrieves the component object, validates it, adjusts the framework version, and registers the component.
-     * If the component uses a different framework version, it handles backwards compatibility.
-     * The method also prepares the default instance configuration and adds methods for creating and starting instances.
+     * This method registers a component, ensuring compatibility with different ccmjs versions.
+     * It retrieves the component object, validates it, adjusts the ccmjs version, and registers the component.
+     * If the component uses a different ccmjs version, it handles backwards compatibility.
+     * The method also prepares the default instance configuration and adds methods for creating and starting instances out of the component.
      *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
-     * to learn everything about embedding components in _ccm_. There are also examples of how to use this method.
+     * to learn everything about embedding components with ccmjs.
      *
      * @param {ccm.types.component_obj|string} component - The component object, index, or URL of the component to register.
      * @param {ccm.types.config} [config={}] - Priority data for the component's default instance configuration.
