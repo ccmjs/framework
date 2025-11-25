@@ -505,6 +505,25 @@
           // If an already registered component is used via its URL, the URL is ignored and the component index is extracted from the URL instead.
           component = await fut.component("./not_exist/ccm.dummy.js");
           suite.assertTrue(fut.helper.isComponent(component));
+
+          /*
+          // Load component with valid SRI hash
+          actual = "";
+          component = await fut.component(
+            "./dummy/ccm.dummy.js#sha256-wrong-hash",
+          );
+          suite.assertTrue(fut.helper.isComponent(component));
+           */
+
+          // Load component with valid SRI hash for ccmjs
+          expected = "loading of ./libs/ccm/ccm.js failed";
+          component = await fut.component({
+            name: "component",
+            ccm: "./libs/ccm/ccm.js#sha256-qVMXqL/Zq1w9z0bA/N007k6/MzVDSjNEu0IJAv3onac=",
+            config: {},
+            Instance: function () {},
+          });
+          suite.assertTrue(fut.helper.isComponent(component));
         },
         async function invalidComponentCheck(suite) {
           // When registering a component via the URL, the filename is checked for the correct format.
