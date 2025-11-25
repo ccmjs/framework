@@ -546,7 +546,7 @@
           }
           suite.assertEquals(expected, actual);
 
-          // When the component is loaded with SRI, it checks whether the hashes match.
+          // Load component with invalid SRI hash
           expected = "loading of ./dummy/ccm.dummy.js failed";
           actual = "";
           try {
@@ -556,7 +556,7 @@
           }
           suite.assertEquals(expected, actual);
 
-          // SRI can also be used to load the framework version used by the component.
+          // Load component with invalid SRI hash for ccmjs
           expected = "loading of ./libs/ccm/ccm.js failed";
           actual = "";
           try {
