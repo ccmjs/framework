@@ -574,18 +574,20 @@
         if (!url_data) return component;
 
         // Load the component from the URL.
-        const response = await ccm.load(
-          // If the SRI hash is provided, load the component with SRI.
-          url_data.sri
-            ? {
-                url: url_data.url,
-                attr: { integrity: url_data.sri, crossorigin: "anonymous" },
-              }
-            : url_data.url,
-        );
+        const result = (
+          await ccm.load({
+            url: url_data.url,
+            type: "module",
+            // If the SRI hash is provided, load the component with SRI.
+            attr: url_data.sri && {
+              integrity: url_data.sri,
+              crossorigin: "anonymous",
+            },
+          })
+        ).component;
 
-        response.url = url_data.url; // A component remembers its URL.
-        return response;
+        result.url = url_data.url; // A component remembers its URL.
+        return result;
       }
     },
 
