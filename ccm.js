@@ -1847,15 +1847,6 @@
   if (!window.ccm) {
     window.ccm = ccm;
 
-    /**
-     * @description
-     * This namespace is only used internally.
-     * Result data of loaded JavaScript files via {@link ccm.load} are temporarily stored here (is always emptied directly).
-     * @namespace ccm.files
-     * @type {Object}
-     */
-    ccm.files = {};
-
     // define Custom Element <ccm-app>
     defineCustomElement("app");
   }
