@@ -2,7 +2,11 @@
 
 /**
  * @overview
- * Creates the global namespace [window.ccm]{@link ccm}.
+ * Defines the global namespace [window.ccm]{@link ccm} for accessing ccmjs services.
+ *
+ * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki}
+ * to learn everything about ccmjs.
+ *
  * @author André Kless <andre.kless@web.de> (https://github.com/akless) 2014-2024
  * @license The MIT License (MIT)
  * @version 28.0.0
