@@ -574,17 +574,30 @@
         if (!url_data) return component;
 
         // Load the component from the URL.
-        const result = (
-          await ccm.load({
-            url: url_data.url,
-            type: "module",
-            // If the SRI hash is provided, load the component with SRI.
-            attr: url_data.sri && {
-              integrity: url_data.sri,
-              crossorigin: "anonymous",
+        let result = await ccm.load({
+          url: url_data.url,
+          type: "module",
+          // If the SRI hash is provided, load the component with SRI.
+          attr: url_data.sri && {
+            integrity: url_data.sri,
+            crossorigin: "anonymous",
+          },
+        });
+        if (result?.component) result = result.component;
+        else {
+          // Component file did not return the component object => try to get the component from window.ccm.files. (backwards compatibility)
+          const filename = `ccm.${url_data.name}.js`;
+          if (!window.ccm.files) window.ccm.files = {};
+          window.ccm.files[filename] = null;
+          window.ccm.files = new Proxy(window.ccm.files, {
+            set(obj, key, value, receiver) {
+              if (key === filename) result = value;
+              return Reflect.set(...arguments);
             },
-          })
-        ).component;
+          });
+          await ccm.load(url_data.url);
+          delete window.ccm.files[filename];
+        }
 
         result.url = url_data.url; // A component remembers its URL.
         return result;

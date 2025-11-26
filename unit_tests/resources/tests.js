@@ -644,17 +644,14 @@
           await testVersion("8.1.0");
 
           async function testVersion(version) {
-            const component = await fut.component(
-              {
-                name: "dummy",
-                ccm: "https://ccmjs.github.io/ccm/ccm.js",
-                config: {},
-                Instance: function () {},
-              },
-              {
-                ccm: `https://ccmjs.github.io/ccm/versions/ccm-${version}.js`,
-              },
-            );
+            await useComponent("./dummy/ccm.dummy3.js", version);
+            await useComponent("./dummy/ccm.dummy4.js", version);
+          }
+
+          async function useComponent(component, version) {
+            component = await fut.component(component, {
+              ccm: `https://ccmjs.github.io/ccm/versions/ccm-${version}.js`,
+            });
             suite.assertTrue(suite.ccm.helper.isComponent(component));
             suite.assertEquals(
               version,
