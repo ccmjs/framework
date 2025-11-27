@@ -599,9 +599,8 @@
     /**
      * @summary Registers a ccmjs component and creates an instance out of it.
      * @description
-     * This function registers a ccmjs component and creates an instance from it. It handles the registration process,
-     * prepares the instance configuration, and initializes the created instance. The function also resolves dependencies
-     * and sets up the instance's DOM structure.
+     * This method handles the registration process, prepares the instance configuration, and initializes
+     * the created instance. It also resolves dependencies and sets up the instance's DOM structure.
      *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
      * to learn everything about embedding components in ccmjs.
@@ -1876,9 +1875,17 @@
   const _components = {};
 
   /**
-   * @summary embed a component in a <ccm> HTML element
+   * @summary Embeds a ccmjs component in a given <ccm> tag.
    * @description
-   * @param {Element} element - HTML element
+   * This function is automatically called for each <ccm> tag when it is connected with the DOM.
+   * It reads the tag's component and configuration attribute and launches the
+   * requested component with the specified configuration in the scope of the tag.
+   *
+   * The value of the config attribute is parsed as JSON.
+   * If the config attribute is a ccmjs dependency (e.g. ['ccm.load', ...] or ['ccm.get', ...]),
+   * it will be automatically resolved before starting the component.
+   *
+   * @param {Element} element - The <ccm> tag where the component will be embedded.
    * @returns {ccm.types.config}
    * @example
    * <ccm component="..." config='["ccm.load",...]'></ccm-app>
@@ -1900,6 +1907,7 @@
   /**
    * When a requested component uses another ccmjs version.
    * This function performs the method call in the other ccmjs version.
+   *
    * @param {number} version - major number of the necessary ccmjs version
    * @param {string} method - name of the method to be called ('component', 'instance' or 'start')
    * @param {ccm.types.component_obj|string} component - object, index or URL of component
@@ -1927,29 +1935,34 @@
   }
 
   /**
-   * prepares a ccm instance configuration
-   * @param {ccm.types.config|ccm.types.dependency} [config={}] - instance configuration
-   * @param {ccm.types.config} [defaults={}] - default configuration (from component object)
-   * @returns {Promise<ccm.types.config>}
+   * @summary Prepares a configuration object by resolving dependencies and integrating defaults.
+   * @description
+   * This function processes a given configuration object by:
+   * 1. Automatically resolving the configuration if it is given as a CCM dependency (e.g. ['ccm.load', ...] or ['ccm.get', ...]).
+   * 2. Iteratively resolving and integrating nested configurations, if present.
+   * 3. Integrating the provided defaults into the final configuration.
+   * 4. Removing the reserved `ccm` property from the resulting configuration.
+   *
+   * @param {Object} [config={}] - The initial configuration to process.
+   * @param {Object} [defaults={}] - Default values to integrate into the configuration.
+   * @returns {Promise<Object>} A promise that resolves to the prepared configuration object.
    */
   async function prepareConfig(config = {}, defaults = {}) {
-    // config is given as a dependency? => solve it
+    // Is the configuration given as CCM dependency? => Resolve it first.
     config = await ccm.helper.solveDependency(config);
 
-    // instance configuration contains a base configuration?
+    // Iteratively resolve and integrate nested configurations.
     while (config.config) {
       let base = config.config;
       delete config.config;
-      // base configuration is given as a dependency? => solve it
       base = await ccm.helper.solveDependency(base);
-      // integrate instance configuration into base configuration
       config = await ccm.helper.integrate(config, base);
     }
 
-    // integrate instance configuration into default configuration
+    // Integrate defaults into the configuration.
     const result = await ccm.helper.integrate(config, defaults);
 
-    // delete reserved properties
+    // Remove reserved `ccm` property from the resulting configuration.
     delete result.ccm;
 
     return result;
