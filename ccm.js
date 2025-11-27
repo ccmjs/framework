@@ -443,12 +443,12 @@
     },
 
     /**
-     * @summary Registers a component in ccmjs.
+     * @summary Registers a ccmjs component.
      * @description
      * This method registers a component, ensuring compatibility with different ccmjs versions.
      * It retrieves the component object, validates it, adjusts the ccmjs version, and registers the component.
      * If the component uses a different ccmjs version, it handles backwards compatibility.
-     * The method also prepares the default instance configuration and adds methods for creating and starting instances out of the component.
+     * The method also prepares the default instance configuration and adds methods for creating and starting ccmjs instances.
      *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
      * to learn everything about embedding components with ccmjs.
@@ -597,7 +597,7 @@
     },
 
     /**
-     * @summary Registers a component in ccmjs and creates an instance out of it.
+     * @summary Registers a ccmjs component and creates an instance out of it.
      * @description
      * This function registers a ccmjs component and creates an instance from it. It handles the registration process,
      * prepares the instance configuration, and initializes the created instance. The function also resolves dependencies
@@ -807,7 +807,7 @@
     },
 
     /**
-     * @summary Registers a component in ccmjs, creates an instance out of it, and starts the instance.
+     * @summary Registers a ccmjs component, creates an instance out of it, and starts the instance.
      * @description
      * This function handles the registration of a ccmjs component, creates an instance from it, and starts the instance.
      * It ensures compatibility with different ccmjs versions and initializes the instance if required.
