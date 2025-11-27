@@ -21,6 +21,7 @@
  * - refactor(ccm.helper.html)!: dynamic parameters must be passed via object.
  * - fix(ccm.helper.generateKey): generates a UUID without dashes (avoids bugs when using a UUID in a URL).
  */
+
 {
   /**
    * Encapsulates everything related to ccmjs.
