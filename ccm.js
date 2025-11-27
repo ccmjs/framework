@@ -443,7 +443,7 @@
     },
 
     /**
-     * @summary Registers a component.
+     * @summary Registers a component in ccmjs.
      * @description
      * This method registers a component, ensuring compatibility with different ccmjs versions.
      * It retrieves the component object, validates it, adjusts the ccmjs version, and registers the component.
@@ -502,7 +502,7 @@
 
       // Register the component if it is not already registered.
       if (!_components[component.index]) {
-        _components[component.index] = component; // Register component: Store the component object encapsulated in ccmjs.
+        _components[component.index] = component; // Store the component object encapsulated in ccmjs.
         ccm.components[component.index] = {}; // Create global component namespaces.
         component.instances = 0; // Add a counter for component instances.
         component.ready && (await component.ready.call(component)); // Execute the "ready" callback if defined.
@@ -577,10 +577,13 @@
           // Component file did not return the component object => try to get the component from window.ccm.files. (backwards compatibility)
           const filename = `ccm.${url_data.name}.js`;
           if (!window.ccm.files) window.ccm.files = {};
-          window.ccm.files[filename] = null;
+          window.ccm.files[filename] = null; // marks the component as 'loading'
           window.ccm.files = new Proxy(window.ccm.files, {
-            set(obj, key, value, receiver) {
-              if (key === filename) result = value;
+            set(obj, key, value) {
+              if (key === filename) {
+                result = value;
+                window.ccm.files = obj; // restore original files object
+              }
               return Reflect.set(...arguments);
             },
           });
@@ -594,7 +597,7 @@
     },
 
     /**
-     * @summary Registers a ccmjs component and creates an instance out of it.
+     * @summary Registers a component in ccmjs and creates an instance out of it.
      * @description
      * This function registers a ccmjs component and creates an instance from it. It handles the registration process,
      * prepares the instance configuration, and initializes the created instance. The function also resolves dependencies
@@ -804,7 +807,7 @@
     },
 
     /**
-     * @summary Registers a ccmjs component, creates an instance out of it, and starts the instance.
+     * @summary Registers a component in ccmjs, creates an instance out of it, and starts the instance.
      * @description
      * This function handles the registration of a ccmjs component, creates an instance from it, and starts the instance.
      * It ensures compatibility with different ccmjs versions and initializes the instance if required.
@@ -1882,7 +1885,7 @@
    * @example
    * <ccm component="..." config='["ccm.get",...]'></ccm-app>
    * @example
-   * <ccm component="..." config='{"foo":"bar",...}'></ccm-app>
+   * <ccm component="..." config='{...}'></ccm-app>
    */
   async function embed(element) {
     let config = {};
@@ -1901,7 +1904,7 @@
    * @param {string} method - name of the method to be called ('component', 'instance' or 'start')
    * @param {ccm.types.component_obj|string} component - object, index or URL of component
    * @param {ccm.types.config} config - priority data for instance configuration
-   * @param {Element} element - web page area where the component will be embedded (default: on-the-fly <div>)
+   * @param {Element} [element] - web page area where the component will be embedded (default: on-the-fly <div>)
    * @returns {Promise<ccm.types.component|ccm.types.instance>}
    */
   async function backwardsCompatibility(
