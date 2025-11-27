@@ -507,7 +507,6 @@
         component.instances = 0; // Add a counter for component instances.
         component.ready && (await component.ready.call(component)); // Execute the "ready" callback if defined.
         delete component.ready; // Remove the "ready" callback after execution.
-        await defineCustomElement(component.index); // Define a custom HTML tag for the component.
       }
 
       // Clone the registered component object to avoid direct modifications.
@@ -1091,41 +1090,6 @@
       },
 
       /**
-       * @summary generates an instance configuration out of a HTML element
-       * @description
-       * @param {Element} element - HTML element
-       * @returns {ccm.types.config}
-       * @example
-       * <ccm-app component="..." config='["ccm.load",...]'></ccm-app>
-       * @example
-       * <ccm-app component="..." config='["ccm.get",...]'></ccm-app>
-       * @example
-       * <ccm-app component="..." config='{"foo":"bar",...}'></ccm-app>
-       * @example
-       * <ccm-app component="...">
-       *   {
-       *     "foo": "bar",
-       *     ...
-       *   }
-       * <ccm-app>
-       */
-      generateConfig: async (element) => {
-        // innerHTML contains config as JSON? => move it to 'config' attribute
-        if (element.innerHTML.startsWith("{")) {
-          element.setAttribute("config", element.innerHTML);
-          element.innerHTML = "";
-        }
-
-        // get config from 'config' attribute
-        let config = element.getAttribute("config");
-        if (!config) return null;
-        try {
-          config = JSON.parse(config);
-        } catch (e) {}
-        return ccm.helper.solveDependency(config);
-      },
-
-      /**
        * @summary Generates a unique identifier.
        * @returns {ccm.types.key} Universally Unique Identifier ([UUID](https://developer.mozilla.org/en-US/docs/Glossary/UUID)) without dashes
        * @example console.log(ccm.helper.generateKey()); // => 8aacc6ad149047eaa2a89096ecc5a95b
@@ -1242,16 +1206,9 @@
           }
         }
 
-        // evaluate <ccm-app> tags
-        const prefix = "CCM-";
-        if (element.tagName.startsWith(prefix) && !settings.ignore_apps)
-          ccm.start(
-            element.tagName === "CCM-APP"
-              ? element.getAttribute("component")
-              : element.tagName.substring(prefix.length).toLowerCase(),
-            ccm.helper.generateConfig(element),
-            element,
-          );
+        // evaluate <ccm> tags
+        if (element.tagName === "CCM" && !settings.ignore_apps) embed(element);
+
         return element;
       },
 
@@ -1871,12 +1828,31 @@
     },
   };
 
-  // is this the first ccmjs version loaded on this web page? => initialize global namespace
+  // is this the first ccmjs version loaded on this web page?
   if (!window.ccm) {
+    // initialize global namespace
     window.ccm = ccm;
 
-    // define Custom Element <ccm-app>
-    defineCustomElement("app");
+    // define Custom Element <ccm>
+    if ("customElements" in window && !customElements.get("ccm")) {
+      window.customElements.define(
+        "ccm",
+        class extends HTMLElement {
+          async connectedCallback() {
+            // not connected with DOM? => abort
+            if (!document.body.contains(this)) return;
+
+            // within another ccm-specific HTML tag? => abort
+            let node = this;
+            while ((node = node.parentNode))
+              if (node.tagName && node.tagName.startsWith("CCM")) return;
+
+            // embed component
+            embed(this);
+          }
+        },
+      );
+    }
   }
 
   // is this the first time this specific ccmjs version is loaded on this web page?
@@ -1897,13 +1873,35 @@
   const _components = {};
 
   /**
-   * When the requested component uses another ccmjs version.
+   * @summary embed a component in a <ccm> HTML element
+   * @description
+   * @param {Element} element - HTML element
+   * @returns {ccm.types.config}
+   * @example
+   * <ccm component="..." config='["ccm.load",...]'></ccm-app>
+   * @example
+   * <ccm component="..." config='["ccm.get",...]'></ccm-app>
+   * @example
+   * <ccm component="..." config='{"foo":"bar",...}'></ccm-app>
+   */
+  async function embed(element) {
+    let config = {};
+    try {
+      config = ccm.helper.solveDependency(
+        JSON.parse(element.getAttribute("config")),
+      );
+    } catch (e) {}
+    return ccm.start(element.getAttribute("component"), config, this);
+  }
+
+  /**
+   * When a requested component uses another ccmjs version.
    * This function performs the method call in the other ccmjs version.
    * @param {number} version - major number of the necessary ccmjs version
    * @param {string} method - name of the method to be called ('component', 'instance' or 'start')
    * @param {ccm.types.component_obj|string} component - object, index or URL of component
    * @param {ccm.types.config} config - priority data for instance configuration
-   * @param {Element} element - web page area where the component instance will be embedded (default: on-the-fly <div>)
+   * @param {Element} element - web page area where the component will be embedded (default: on-the-fly <div>)
    * @returns {Promise<ccm.types.component|ccm.types.instance>}
    */
   async function backwardsCompatibility(
@@ -1923,41 +1921,6 @@
         ?.then(resolve)
         .catch(reject);
     });
-  }
-
-  /**
-   * defines a ccm-specific Custom Element
-   * @param {string} name - element name (without 'ccm-' prefix)
-   * @returns {Promise<void>}
-   */
-  async function defineCustomElement(name) {
-    // no support of Custom Elements in current webbrowser? => abort
-    if (!("customElements" in window)) return;
-
-    // Custom Element already exists in the current web page? => abort
-    if (customElements.get("ccm-" + name)) return;
-
-    window.customElements.define(
-      "ccm-" + name,
-      class extends HTMLElement {
-        async connectedCallback() {
-          // not connected with DOM? => abort
-          if (!document.body.contains(this)) return;
-
-          // within another ccm-specific HTML tag? => abort
-          let node = this;
-          while ((node = node.parentNode))
-            if (node.tagName && node.tagName.startsWith("CCM-")) return;
-
-          // embed ccm instance in this ccm-specific HTML tag
-          await ccm.start(
-            this.tagName === "CCM-APP" ? config.component : name,
-            ccm.helper.generateConfig(this),
-            this,
-          );
-        }
-      },
-    );
   }
 
   /**
