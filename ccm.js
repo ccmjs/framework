@@ -21,18 +21,7 @@
  * - refactor(ccm.helper.html)!: dynamic parameters must be passed via object.
  * - fix(ccm.helper.generateKey): generates a UUID without dashes (avoids bugs when using a UUID in a URL).
  */
-(() => {
-  /**
-   * @description
-   * A private object that stores all registered components for the current version of ccmjs.
-   * Each component is indexed by its unique identifier.
-   *
-   * @memberOf ccm
-   * @private
-   * @type {Object.<ccm.types.component_index, ccm.types.component_obj>}
-   */
-  const _components = {};
-
+{
   /**
    * Encapsulates everything related to ccmjs.
    *
@@ -1881,6 +1870,17 @@
     },
   };
 
+  /**
+   * @description
+   * A private object that stores all registered components for the current version of ccmjs.
+   * Each component is indexed by its unique identifier.
+   *
+   * @memberOf ccm
+   * @private
+   * @type {Object.<ccm.types.component_index, ccm.types.component_obj>}
+   */
+  const _components = {};
+
   // is this the first ccmjs version loaded on this web page? => initialize global namespace
   if (!window.ccm) {
     window.ccm = ccm;
@@ -2342,7 +2342,7 @@
       }
     }
   }
-})();
+}
 
 /**
  * @namespace ccm.types
