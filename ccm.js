@@ -1830,21 +1830,28 @@
     },
   };
 
-  // is this the first ccmjs version loaded on this web page?
+  // Check if this is the first ccmjs version loaded on the web page.
   if (!window.ccm) {
-    // initialize global namespace
+    // Initialize the global `ccm` namespace.
     window.ccm = ccm;
 
-    // define Custom Element <ccm>
+    // Define the `<ccm>` custom element if not already defined.
     if ("customElements" in window && !customElements.get("ccm")) {
       window.customElements.define(
         "ccm",
         class extends HTMLElement {
+          /**
+           * @summary Handles the connection of the `<ccm>` element to the DOM.
+           * @description
+           * This method is called when the `<ccm>` element is added to the DOM.
+           * It ensures that the element is not nested within another
+           * `<ccm>` tag and embeds the associated component.
+           */
           async connectedCallback() {
-            // not connected with DOM? => abort
+            // Abort if the element is not connected to the <body> (and not inside of a shadow-root).
             if (!document.body.contains(this)) return;
 
-            // within another ccm-specific HTML tag? => abort
+            // Abort if the element is nested within another `<ccm>` tag.
             let node = this;
             while ((node = node.parentNode))
               if (node.tagName && node.tagName.startsWith("CCM")) return;
@@ -1857,10 +1864,10 @@
     }
   }
 
-  // is this the first time this specific ccmjs version is loaded on this web page?
+  // Initialize the namespace for the current ccmjs version.
   if (!window.ccm[ccm.version()]) {
-    window.ccm[ccm.version()] = ccm; // set version specific namespace
-    ccm.components = {}; // set namespace for loaded components
+    window.ccm[ccm.version()] = ccm; // Set version-specific namespace.
+    ccm.components = {}; // Initialize the global namespace for loaded components.
   }
 
   /**
