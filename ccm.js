@@ -597,10 +597,11 @@
     },
 
     /**
-     * @summary Registers a ccmjs component and creates an instance out of it.
+     * @summary Creates and initializes a ccmjs instance from a given component.
      * @description
-     * This method handles the registration process, prepares the instance configuration, and initializes
-     * the created instance. It also resolves dependencies and sets up the instance's DOM structure.
+     * This method registers a ccmjs component, prepares its configuration, and creates an instance.
+     * It resolves dependencies, sets up the instance's DOM structure, and initializes the instance.
+     * If the component uses a different ccmjs version, it handles backwards compatibility.
      *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
      * to learn everything about embedding components in ccmjs.
@@ -642,7 +643,7 @@
       config = await prepareConfig(config, component.config);
 
       /**
-       * @summary Creates a new instance from the component.
+       * The created ccmjs instance.
        * @type {ccm.types.instance}
        */
       const instance = new component.Instance();
@@ -651,14 +652,14 @@
       instance.ccm = component.ccm; // Reference to the used ccmjs version.
       instance.component = component; // The component the instance is created from.
       instance.id = ++_components[component.index].instances; // Instance ID. Unique within the component.
-      instance.index = component.index + "-" + instance.id; // Instance index. Unqiue within the web page.
+      instance.index = component.index + "-" + instance.id; // Instance index. Unique within the web page.
       if (!instance.init) instance.init = async () => {}; // Ensure the instance has an init method.
       instance.children = {}; // Store child instances used by this instance.
       instance.parent = config.parent; // Reference to the parent instance.
       delete config.parent; // Prevent cyclic recursion when resolving dependencies.
       instance.config = ccm.helper.stringify(config); // Store the original configuration.
 
-      // Convert Light DOM to an Element Node.
+      // Convert the Light DOM to an Element Node.
       if (config.inner)
         config.inner = ccm.helper.html(config.inner, undefined, {
           ignore_apps: true,
@@ -667,26 +668,26 @@
       // Add the instance as a child to its parent instance.
       if (instance.parent) instance.parent.children[instance.index] = instance;
 
-      // Set the root element of the created instance.
-      instance.root = ccm.helper.html({ id: instance.index });
+      // Create the host element for the instance.
+      instance.host = document.createElement("div");
 
-      // Create a Shadow DOM in the root element if specified.
-      if (config.shadow !== "none")
-        instance.shadow = instance.root.attachShadow({
-          mode: config.shadow || "closed",
+      // Create a shadow root for the instance if required.
+      if (config.root !== "none")
+        instance.root = instance.host.attachShadow({
+          mode: config.root || "open",
         });
-      delete config.shadow;
+      delete config.root;
 
-      // Set the content element of the created instance.
-      (instance.shadow || instance.root).appendChild(
-        (instance.element = ccm.helper.html({ id: "element" })),
+      // Create the content element, which lies directly within the shadow root of the host element.
+      (instance.root || instance.host).appendChild(
+        (instance.element = document.createElement("div")),
       );
 
-      // Temporarily move the root element to `<head>` for resolving dependencies.
-      document.head.appendChild(instance.root); // move root element temporary to <head> (resolving dependencies requires DOM contact)
-      config = await ccm.helper.solveDependencies(config, instance); // resolve all dependencies in config
-      element.appendChild(instance.root); // move the root element back to the web page area
-      instance.element.appendChild(loading); // move loading icon to content element
+      // Temporarily move the host element to <head> for resolving dependencies.
+      document.head.appendChild(instance.host);
+      config = await ccm.helper.solveDependencies(config, instance); // Resolve all dependencies in the instance configuration.
+      element.appendChild(instance.host); // Move the host element back to the target web page area.
+      instance.element.appendChild(loading); // Move the loading icon to the content element.
 
       // Integrate the configuration into the created instance.
       Object.assign(instance, config);
@@ -721,7 +722,7 @@
            */
           function find(obj) {
             /**
-             * @summary Stores relevant inner objects/arrays for breadth-first-order.
+             * Stores relevant inner objects/arrays for breadth-first-order.
              * @type {Array.<Array|Object>}
              */
             const relevant = [];
@@ -748,14 +749,18 @@
           }
 
           /**
-           * @summary Calls init methods (forward) of all found ccmjs instances (recursive, asynchronous).
+           * @summary Calls the `init` methods of all ccmjs instances in sequence.
+           * @description
+           * This function processes a list of ccmjs instances and calls their `init` methods asynchronously.
+           * Once all `init` methods are called, it proceeds to the `ready` method.
+           * If an instance does not have an `init` method, it skips to the next instance.
            */
           function init() {
             // If all init methods are called, proceed to ready methods.
             if (i === instances.length) return ready();
 
             /**
-             * @summary The next ccmjs instance to call the init method.
+             * The next ccmjs instance to call the init method.
              * @type {ccm.types.instance}
              */
             const next = instances[i++];
@@ -770,14 +775,18 @@
           }
 
           /**
-           * @summary Calls ready methods (backward) of all found ccmjs instances (recursive, asynchronous).
+           * @summary Calls the `ready` methods of all ccmjs instances in reverse order.
+           * @description
+           * This function processes a stack of ccmjs instances, calling their `ready` methods asynchronously.
+           * Once all `ready` methods are called, the promise is resolved.
+           * If an instance does not have a `ready` method, it proceeds to the next instance.
            */
           function ready() {
             // If all ready methods are called, resolve the promise.
             if (!instances.length) return resolve();
 
             /**
-             * @summary The next ccmjs instance to call the ready method.
+             * @summary The next ccmjs instance to call the `ready` method.
              * @type {ccm.types.instance}
              */
             const next = instances.pop();
@@ -792,9 +801,12 @@
 
             /**
              * @summary Handles the next step after the instance is ready.
+             * @description
+             * If the instance is marked to start directly, it calls its `start` method.
+             * Otherwise, it continues with the next instance in the stack.
              */
             function proceed() {
-              // Start the app directly if required, otherwise continue with the next instance.
+              // If configured for immediate execution, start the instance first, then call ready.
               if (next._start) {
                 delete next._start;
                 next.start().then(ready);
@@ -1848,7 +1860,7 @@
            * `<ccm>` tag and embeds the associated component.
            */
           async connectedCallback() {
-            // Abort if the element is not connected to the <body> (and not inside of a shadow-root).
+            // Abort if the element is not connected to the <body> (and not inside of a Shadow DOM).
             if (!document.body.contains(this)) return;
 
             // Abort if the element is nested within another `<ccm>` tag.
