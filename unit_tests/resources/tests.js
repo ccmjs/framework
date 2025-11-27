@@ -452,10 +452,21 @@
     },
     component: {
       tests: [
+        /**
+         * @summary Tests registration of a ccmjs component using a minimal component object.
+         * @description
+         * This function tests the registration of a ccmjs component by providing a minimal component object.
+         * It verifies the validity of the registered component, its framework reference, version, index,
+         * and other properties. Additionally, it ensures that once a component is registered, it cannot
+         * be manipulated.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} - Resolves when the test completes.
+         */
         async function registerByObject(suite) {
           let component;
 
-          // using a minimal component object
+          // Register a minimal component object.
           component = await fut.component({
             name: "component",
             ccm: "./../ccm.js",
@@ -471,12 +482,28 @@
           suite.assertTrue(typeof component.instance === "function"); // has own instance method
           suite.assertTrue(typeof component.start === "function"); // has own start method
 
-          // Once a component is registered, it cannot be manipulated.
+          // Ensure that registered component cannot be manipulated externally.
           component.hack = true;
           component = await fut.component(component);
           suite.assertTrue(fut.helper.isComponent(component));
           suite.assertFalse(component.hack);
         },
+
+        /**
+         * @summary Tests registration of a ccmjs component via URL and verifies related behaviors.
+         * @description
+         * This function tests the registration of a ccmjs component via its URL. It ensures that:
+         * - Only already registered components can be used via their index.
+         * - Components can be registered using a valid URL.
+         * - Registered components retain their URL information.
+         * - Components can be accessed via their index after registration.
+         * - Re-registering a component via its URL uses the index instead of the URL.
+         * - Components can be loaded with valid Subresource Integrity (SRI) hashes.
+         * - Loading of the ccmjs version referenced by the component with a valid SRI hash.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} Resolves when the test completes.
+         */
         async function registerByURL(suite) {
           let component;
 
@@ -507,14 +534,12 @@
           suite.assertTrue(fut.helper.isComponent(component));
 
           // Load component with valid SRI hash
-          actual = "";
           component = await fut.component(
             "./dummy/ccm.dummy.js#sha256-JqPRGv730LFBWHeLAxarXc4W5rI3djioGnx6Z9hEyiQ=",
           );
           suite.assertTrue(fut.helper.isComponent(component));
 
-          // Load component with valid SRI hash for ccmjs
-          expected = "loading of ./libs/ccm/ccm.js failed";
+          // Load the ccmjs version used by the component with a valid SRI hash.
           component = await fut.component({
             name: "component",
             ccm: "./libs/ccm/ccm.js#sha256-qVMXqL/Zq1w9z0bA/N007k6/MzVDSjNEu0IJAv3onac=",
@@ -523,8 +548,21 @@
           });
           suite.assertTrue(fut.helper.isComponent(component));
         },
+
+        /**
+         * @summary Tests the handling of invalid component registrations and verifies error messages.
+         * @description
+         * This function tests the handling of various invalid component registrations. It ensures that:
+         * - Invalid component filenames are correctly detected.
+         * - Invalid component definitions are correctly detected.
+         * - Components with invalid Subresource Integrity (SRI) hashes are correctly detected.
+         * - Components referencing ccmjs versions with invalid SRI hashes are correctly detected.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} Resolves when the test completes.
+         */
         async function invalidComponentCheck(suite) {
-          // When registering a component via the URL, the filename is checked for the correct format.
+          // Invalid component filenames are correctly detected.
           expected = "invalid component filename: ccm_dummy.js";
           actual = "";
           try {
@@ -534,7 +572,7 @@
           }
           suite.assertEquals(expected, actual);
 
-          // Registration checks whether it is a valid component object.
+          // Invalid component definitions are correctly detected.
           expected = "invalid component: [object Object]";
           actual = "";
           try {
@@ -544,7 +582,7 @@
           }
           suite.assertEquals(expected, actual);
 
-          // Load component with invalid SRI hash
+          // Components with invalid SRI hashes are correctly detected.
           expected = "loading of ./dummy/ccm.dummy.js failed";
           actual = "";
           try {
@@ -554,7 +592,7 @@
           }
           suite.assertEquals(expected, actual);
 
-          // Load component with invalid SRI hash for ccmjs
+          // Components referencing ccmjs versions with invalid SRI hashes are correctly detected.
           expected = "loading of ./libs/ccm/ccm.js failed";
           actual = "";
           try {
@@ -569,6 +607,18 @@
           }
           suite.assertEquals(expected, actual);
         },
+
+        /**
+         * @summary Tests the execution of the 'ready' callback during component registration.
+         * @description
+         * This function tests the execution of the 'ready' callback function provided in the component definition.
+         * It ensures that:
+         * - The 'ready' callback is called during component registration.
+         * - The 'ready' callback is removed from the component definition after execution.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} Resolves when the test completes.
+         */
         async function withReadyCallback(suite) {
           let ready = false;
           const component = await fut.component({
@@ -580,13 +630,30 @@
             },
             Instance: function () {},
           });
-          suite.assertTrue(ready); // ready callback has been called
-          suite.assertFalse(component.ready); // ready callback has been deleted
+          suite.assertTrue(ready);
+          suite.assertFalse(component.ready);
         },
+
+        /**
+         * @summary Tests the integration of priority data into the default configuration of a component.
+         * @description
+         * This function tests the integration of priority data into the default configuration of a component.
+         * It ensures that:
+         * - Priority data provided during component registration correctly overrides the default configuration.
+         * - Priority data provided via a data dependency correctly overrides the default configuration.
+         * - A base configuration correctly integrates with priority data.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} Resolves when the test completes.
+         */
         async function adjustedDefaultConfiguration(suite) {
-          const component = await fut.component(
+          const expected = { val: true, arr: [1, 2, 4], obj: { foo: "baz" } };
+          let component;
+
+          // Directly providing priority data that overrides the default configuration.
+          component = await fut.component(
             {
-              name: "component",
+              name: "component1",
               ccm: "./../ccm.js",
               config: {
                 val: false,
@@ -601,27 +668,29 @@
               "obj.foo": "baz",
             },
           );
-          // check if priority data for default configuration was integrated correctly
+          suite.assertEquals(expected, component.config);
+
+          // Providing priority data via a data dependency that overrides the default configuration.
+          component.name = "component2";
+          component.config.arr = [1, 2];
+          component = await fut.component(component, [
+            "ccm.load",
+            "./dummy/configs.mjs#config", // contains also a base config
+          ]);
           suite.assertEquals(
             { val: true, arr: [1, 2, 4], obj: { foo: "baz" } },
             component.config,
           );
         },
-        async function adjustedViaDataDependency(suite) {
-          // Using a data dependency to reference the priority data for the default configuration.
-          const component = await fut.component(
-            {
-              name: "component",
-              ccm: "./../ccm.js",
-              config: { foo: "bar" },
-              Instance: function () {},
-            },
-            ["ccm.load", "./dummy/configs.mjs#config"],
-          );
-          suite.assertEquals({ foo: "baz", val: true }, component.config);
-        },
+
+        /**
+         * Tests backward compatibility of components with various major versions of ccmjs.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} Resolves when the test completes.
+         */
         async function backwardCompatibility(suite) {
-          // tests backward compatibility for all compatible major versions of ccm.js
+          // Test component compatibility with various major ccmjs versions.
           await testVersion("27.5.0");
           await testVersion("26.4.4");
           await testVersion("25.5.3");
@@ -643,9 +712,19 @@
           await testVersion("9.2.0");
           await testVersion("8.1.0");
 
+          /**
+           * Test a specific ccmjs version for component compatibility.
+           *
+           * @param {string} version - The ccmjs version to test.
+           * @returns {Promise<void>} - Resolves when the test completes.
+           */
           async function testVersion(version) {
-            await useComponent("./dummy/ccm.dummy3.js", version);
-            await useComponent("./dummy/ccm.dummy4.js", version);
+            if (parseInt(version.split(".")[0]) >= 28) {
+              await useComponent("./dummy/ccm.dummy.js", version);
+            } else {
+              await useComponent("./dummy/ccm.dummy3.js", version);
+              await useComponent("./dummy/ccm.dummy4.js", version);
+            }
           }
 
           async function useComponent(component, version) {

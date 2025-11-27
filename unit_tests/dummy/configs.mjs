@@ -1,8 +1,9 @@
 export const base = {
-  foo: "baz",
-  val: false,
+  val: true,
+  arr: [1, 2, 3],
 };
 export const config = {
   config: ["ccm.load", "./dummy/configs.mjs#base"],
-  val: true,
+  "arr.2": 4,
+  "obj.foo": "baz",
 };
