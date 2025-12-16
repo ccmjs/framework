@@ -1,10 +1,13 @@
 (() => {
   const component = {
-    name: "dummy4",
+    name: "dummy6",
     ccm: "./libs/ccm/ccm.js",
     config: {},
     Instance: function () {
-      this.start = async () => (this.started = true);
+      this.start = (callback) => {
+        this.started = true;
+        callback();
+      };
     },
   };
   let b =

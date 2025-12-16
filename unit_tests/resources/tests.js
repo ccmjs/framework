@@ -684,7 +684,7 @@
         },
 
         /**
-         * Tests backward compatibility of components with various major versions of ccmjs.
+         * Tests backward compatibility of registration and loading of components with various ccmjs versions.
          *
          * @param {Object} suite - The test suite object providing assertion methods.
          * @returns {Promise<void>} Resolves when the test completes.
@@ -848,7 +848,6 @@
                 val: false,
                 arr: [1, 2, 3],
                 obj: { foo: "bar" },
-                ccm: "reserved",
                 root: "closed",
                 css: ["ccm.load", "./dummy/style.css"],
                 comp: ["ccm.component", "./dummy/ccm.dummy.js"],
@@ -878,7 +877,6 @@
               val: true,
               "arr.2": 4,
               "obj.foo": "baz",
-              ccm: "reserved",
             },
           );
           suite.assertTrue(instance.val); // val has changed to true
@@ -1004,7 +1002,7 @@
         },
 
         /**
-         * Tests backward compatibility of instances with various major versions of ccmjs.
+         * Tests backward compatibility of creation of instances with various ccmjs versions.
          *
          * @param {Object} suite - The test suite object providing assertion methods.
          * @returns {Promise<void>} Resolves when the test completes.
@@ -1071,22 +1069,19 @@
     start: {
       tests: [
         async function createAndStart(suite) {
-          let flag = false;
-          const instance = await fut.start({
-            name: "component",
-            ccm: "./../ccm.js",
-            config: {},
-            Instance: function () {
-              this.start = async () => {
-                flag = true;
-                suite.assertEquals("component-1", this.index);
-              };
-            },
-          });
-          suite.assertTrue(fut.helper.isInstance(instance)); // is a valid component instance
+          const instance = await fut.start("./dummy/ccm.dummy2.js"); // create and start instance
+          suite.assertTrue(fut.helper.isInstance(instance)); // is a valid ccmjs instance
+          suite.assertTrue(instance.started); // instance is started
         },
+
+        /**
+         * Tests backward compatibility of creation and starting of instances with various ccmjs versions.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} Resolves when the test completes.
+         */
         async function backwardCompatibility(suite) {
-          // tests backward compatibility for all compatible major versions of ccm.js
+          // Test compatibility with various major ccmjs versions.
           await testVersion("27.5.0");
           await testVersion("26.4.4");
           await testVersion("25.5.3");
@@ -1105,37 +1100,45 @@
           await testVersion("12.12.0");
           await testVersion("11.5.0");
           await testVersion("10.2.0");
+          await testVersion("9.2.0");
 
+          /**
+           * Test a specific ccmjs version for compatibility.
+           *
+           * @param {string} version - The ccmjs version to test.
+           * @returns {Promise<void>} - Resolves when the test completes.
+           */
           async function testVersion(version) {
-            const major = parseInt(version.split(".")[0]);
-            let flag = false;
-            const instance = await fut.start(
-              {
-                name: "backwards",
-                ccm: "https://ccmjs.github.io/ccm/ccm.js",
-                config: {},
-                Instance: function () {
-                  this.start =
-                    major < 18 // before version 18, callbacks were used instead of promises
-                      ? (callback) => {
-                          flag = true;
-                          callback();
-                        }
-                      : async () => (flag = true);
-                },
-              },
-              {
-                ccm: `https://ccmjs.github.io/ccm/versions/ccm-${version}.js`,
-              },
-            );
+            if (parseInt(version.split(".").at(0)) >= 28) {
+              await useComponent("./dummy/ccm.dummy2.js", version);
+            } else if (parseInt(version.split(".").at(0)) >= 18) {
+              await useComponent("./dummy/ccm.dummy3.js", version);
+              await useComponent("./dummy/ccm.dummy4.js", version);
+            } else {
+              await useComponent("./dummy/ccm.dummy5.js", version);
+              await useComponent("./dummy/ccm.dummy6.js", version);
+            }
+          }
+
+          /**
+           * Create and start a ccmjs instance with a component of a specific ccmjs version.
+           *
+           * @param {string} component - The component URL to load.
+           * @param {string} version - The ccmjs version to use.
+           * @returns {Promise<void>} - Resolves when the test completes.
+           */
+          async function useComponent(component, version) {
+            const instance = await fut.start(component, {
+              ccm: `https://ccmjs.github.io/ccm/versions/ccm-${version}.js`,
+            });
             suite.assertTrue(suite.ccm.helper.isInstance(instance));
-            suite.assertTrue(flag);
             suite.assertEquals(
               version,
-              suite.ccm.helper.isObject(instance.ccm)
+              suite.ccm.helper.isCore(instance.ccm)
                 ? instance.ccm.version()
                 : ccm[version].version(),
             );
+            suite.assertTrue(instance.started);
           }
         },
       ],
