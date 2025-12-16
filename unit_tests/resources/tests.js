@@ -1068,6 +1068,14 @@
     },
     start: {
       tests: [
+        /**
+         * @summary Tests creation and starting of a ccmjs instance using a minimal component object.
+         * @description
+         * This function verifies that the created instance is a valid ccmjs instance and that it has been started successfully.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} Resolves when the test completes.
+         */
         async function createAndStart(suite) {
           const instance = await fut.start("./dummy/ccm.dummy2.js"); // create and start instance
           suite.assertTrue(fut.helper.isInstance(instance)); // is a valid ccmjs instance
