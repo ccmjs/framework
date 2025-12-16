@@ -690,7 +690,7 @@
          * @returns {Promise<void>} Resolves when the test completes.
          */
         async function backwardCompatibility(suite) {
-          // Test component compatibility with various major ccmjs versions.
+          // Test compatibility with various major ccmjs versions.
           await testVersion("27.5.0");
           await testVersion("26.4.4");
           await testVersion("25.5.3");
@@ -719,7 +719,7 @@
            * @returns {Promise<void>} - Resolves when the test completes.
            */
           async function testVersion(version) {
-            if (parseInt(version.split(".")[0]) >= 28) {
+            if (parseInt(version.split(".").at(0)) >= 28) {
               await useComponent("./dummy/ccm.dummy.js", version);
             } else {
               await useComponent("./dummy/ccm.dummy3.js", version);
@@ -727,6 +727,13 @@
             }
           }
 
+          /**
+           * Load and verify a component with a specific ccmjs version.
+           *
+           * @param {string} component - The component URL to load.
+           * @param {string} version - The ccmjs version to use.
+           * @returns {Promise<void>} - Resolves when the test completes.
+           */
           async function useComponent(component, version) {
             component = await fut.component(component, {
               ccm: `https://ccmjs.github.io/ccm/versions/ccm-${version}.js`,
@@ -734,7 +741,7 @@
             suite.assertTrue(suite.ccm.helper.isComponent(component));
             suite.assertEquals(
               version,
-              suite.ccm.helper.isObject(component.ccm)
+              suite.ccm.helper.isCore(component.ccm)
                 ? component.ccm.version()
                 : ccm[version].version(),
             );
@@ -744,7 +751,17 @@
     },
     instance: {
       tests: [
+        /**
+         * @summary Tests creation of a ccmjs instance using a minimal component object.
+         * @description
+         * This function verifies the validity of the created instance, its component reference, framework reference,
+         * instance ID, index, parent-child relationships, configuration, DOM elements, and methods.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} Resolves when the test completes.
+         */
         async function createByObject(suite) {
+          // Creation of an instance via a minimal component object.
           const instance = await fut.instance({
             name: "component",
             ccm: "./../ccm.js",
@@ -753,27 +770,24 @@
               this.start = async () => {};
             },
           });
-          suite.assertTrue(fut.helper.isInstance(instance)); // is a valid component instance
+
+          // Verify instance properties and methods.
+          suite.assertTrue(fut.helper.isInstance(instance)); // is a valid ccmjs instance
           suite.assertTrue(fut.helper.isComponent(instance.component)); // has a valid component reference
-          suite.assertTrue(fut.helper.isCore(instance.ccm)); // has a valid framework reference
-          suite.assertEquals(fv, instance.ccm.version()); // uses the correct framework version
+          suite.assertTrue(fut.helper.isCore(instance.ccm)); // has a valid ccmjs reference
+          suite.assertEquals(fv, instance.ccm.version()); // uses the correct ccmjs version
           suite.assertEquals(1, instance.id); // has the correct instance id
           suite.assertEquals("component-1", instance.index); // has the correct instance index
           suite.assertEquals(undefined, instance.parent); // has no parent
           suite.assertEquals({}, instance.children); // has zero children
           suite.assertEquals("{}", instance.config); // knows her own config as JSON string
-          suite.assertEquals(undefined, instance.inner); // has no light DOM
-          suite.assertTrue(fut.helper.isElement(instance.root)); // has root element reference
-          suite.assertTrue(fut.helper.isElement(instance.shadow)); // has Shadow DOM reference
+          suite.assertEquals(undefined, instance.inner); // has no Light DOM
+          suite.assertTrue(fut.helper.isElement(instance.host)); // has host element reference
+          suite.assertTrue(fut.helper.isElement(instance.root)); // has shadow root reference
           suite.assertTrue(fut.helper.isElement(instance.element)); // has content element reference
-          suite.assertSame("closed", instance.shadow.mode); // Shadow DOM is closed
-          suite.assertSame(null, instance.root.shadowRoot); // the root element has no access to the closed Shadow DOM
-          suite.assertSame(null, instance.shadow.parentNode); // the closed Shadow DOM has no access to the root element
-          suite.assertSame(instance.shadow, instance.element.parentNode); // the Shadow DOM contains the content element
-          suite.assertEquals(
-            '<div><div id="component-1"></div></div>',
-            instance.root.parentElement.outerHTML,
-          ); // the webpage area is an empty div element that contains an empty root element with the instance index as HTML ID
+          suite.assertSame("open", instance.root.mode); // the shadow root is open by default
+          suite.assertSame(instance.root, instance.host.shadowRoot); // the root element has access to the open shadow root
+          suite.assertSame(instance.root, instance.element.parentNode); // the shadow root contains the content element
           suite.assertTrue(
             document.head.querySelector(":scope > #ccm_keyframe"),
           ); // keyframe animation for the loading placeholder is in the Shadow DOM
@@ -782,6 +796,18 @@
           ); // loading placeholder is shown in the content element
           suite.assertTrue(typeof instance.start === "function"); // has own start method
         },
+
+        /**
+         * @summary Tests creation of a ccmjs instance via URL and verifies related behaviors.
+         * @description
+         * This function tests the creation of a ccmjs instance via its URL. It ensures that:
+         * - Only already registered components can be used via their index.
+         * - Instances can be created using a valid component URL.
+         * - Created instances are valid ccmjs instances.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} Resolves when the test completes.
+         */
         async function createByURL(suite) {
           // Only an already registered component can be used via its component index.
           expected = "invalid component: dummy";
@@ -793,12 +819,27 @@
           }
           suite.assertEquals(expected, actual);
 
-          // Creation of an instance via the URL.
+          // Creation of an instance via the component URL.
           const url = "./dummy/ccm.dummy.js";
           const instance = await fut.instance(url);
           suite.assertTrue(fut.helper.isInstance(instance));
+          // Only an already registered component can be used via its component index.
+
+          // Creation of a registered component instance via the index.
+          suite.assertTrue(fut.helper.isInstance(await fut.instance("dummy")));
         },
+
+        /**
+         * @summary Tests creation of a ccmjs instance with adjusted configuration.
+         * @description
+         * This function verifies that the instance's configuration properties are correctly set based on
+         * the provided adjustments, and checks various aspects of the instance's structure and behavior.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} Resolves when the test completes.
+         */
         async function createWithConfig(suite) {
+          // Creation of an instance with adjusted configuration.
           const instance = await fut.instance(
             {
               name: "component",
@@ -807,24 +848,21 @@
                 val: false,
                 arr: [1, 2, 3],
                 obj: { foo: "bar" },
-                shadow: "open",
-                css: ["ccm.load", "./dummy/style.css"], // not working when root is not moved temporary into <head>
+                ccm: "reserved",
+                root: "closed",
+                css: ["ccm.load", "./dummy/style.css"],
                 comp: ["ccm.component", "./dummy/ccm.dummy.js"],
                 inst: [
                   "ccm.instance",
                   "./dummy/ccm.dummy2.js",
                   {
-                    ccm: null,
                     config: {
-                      ccm: null,
                       config: ["ccm.load", "./dummy/configs.mjs#config"],
-                      obj: null,
+                      "arr.1": 3,
                     },
-                    arr: [1, 2, 3],
-                    obj: { foo: "bar" },
-                    data: ["ccm.load", "./dummy/data.json"],
+                    "arr.0": 2,
                     ignore: ["ccm.load", "./dummy/data.json"],
-                    shadow: "none",
+                    root: "none",
                   },
                 ],
                 other: ["ccm.start", "./dummy/ccm.dummy2.js"],
@@ -837,44 +875,56 @@
               Instance: function () {},
             },
             {
-              ccm: null,
               val: true,
               "arr.2": 4,
               "obj.foo": "baz",
+              ccm: "reserved",
             },
           );
-          suite.assertTrue(instance.val);
-          suite.assertEquals([1, 2, 4], instance.arr);
-          suite.assertEquals({ foo: "baz" }, instance.obj);
-          suite.assertTrue(fut.helper.isComponent(instance.comp));
-          suite.assertTrue(fut.helper.isInstance(instance.inst));
-          suite.assertTrue(fut.helper.isInstance(instance.other));
-          suite.assertTrue(instance.other.started);
+          suite.assertTrue(instance.val); // val has changed to true
+          suite.assertEquals([1, 2, 4], instance.arr); // arr[2] has changed to 4
+          suite.assertEquals({ foo: "baz" }, instance.obj); // obj.foo has changed to "baz"
+          suite.assertTrue(fut.helper.isCore(instance.ccm)); // has a valid ccmjs reference
+          suite.assertSame("closed", instance.root.mode); // shadow root is closed
+          suite.assertNotSame(instance.root, instance.host.shadowRoot); // the root element has no access to the closed shadow root
+          suite.assertSame(instance.root, instance.element.parentNode); // the shadow root contains the content element
+          suite.assertEquals(instance.css, "./dummy/style.css"); // ccm.load returns URL of loaded CSS file
+          suite.assertTrue(fut.helper.isComponent(instance.comp)); // comp is a valid component
+          suite.assertTrue(fut.helper.isInstance(instance.inst)); // inst is a valid instance
+          suite.assertFalse(instance.inst.started); // inner instance is not started yet
+          suite.assertTrue(instance.other.started); // other instance is already started
           suite.assertEquals(
             ["ccm.load", "./dummy/data.json"],
             instance.ignore.data,
-          );
-          suite.assertEquals(
-            '{"foo":"baz","val":true,"obj":{"foo":"bar"},"arr":[1,2,3],"data":["ccm.load","./dummy/data.json"],"ignore":["ccm.load","./dummy/data.json"],"shadow":"none"}',
-            instance.inst.config,
-          );
-          suite.assertEquals({ foo: "bar" }, instance.inst.data);
+          ); // everything in ignore remains unchanged
+          suite.assertEquals([2, 3, 4], instance.inst.arr); // inner properties are adjusted correctly over multiple levels
           suite.assertEquals(
             ["ccm.load", "./dummy/data.json"],
             instance.inst.ignore,
-          );
-          suite.assertTrue(fut.helper.isCore(instance.ccm));
-          suite.assertTrue(fut.helper.isCore(instance.inst.ccm));
-          suite.assertSame("open", instance.shadow.mode); // Shadow DOM is open
-          suite.assertSame(instance.shadow, instance.root.shadowRoot); // the root element has access to the opened Shadow DOM
-          suite.assertSame(null, instance.shadow.parentNode); // the opened Shadow DOM has no access to the root element
-          suite.assertFalse(instance.inst.shadow); // inner instance has no shadow DOM
+          ); // a dependency in ignore remains unchanged
+          suite.assertFalse(instance.inst.root); // inner instance has no shadow root
           suite.assertSame(
-            instance.inst.root,
+            instance.inst.host,
             instance.inst.element.parentNode,
-          ); // the root element contains directly the content element
+          ); // the host element contains directly the content element
+          suite.assertEquals(
+            '{"val":true,"arr":[1,2,4],"obj":{"foo":"baz"},"root":"closed","css":["ccm.load","./dummy/style.css"],"comp":["ccm.component","./dummy/ccm.dummy.js"],"inst":["ccm.instance","./dummy/ccm.dummy2.js",{"config":{"config":["ccm.load","./dummy/configs.mjs#config"],"arr.1":3},"arr.0":2,"ignore":["ccm.load","./dummy/data.json"],"root":"none"}],"other":["ccm.start","./dummy/ccm.dummy2.js"],"ignore":{"data":["ccm.load","./dummy/data.json"]}}',
+            instance.config,
+          ); // knows her own config as JSON string
         },
+
+        /**
+         * @summary Tests the execution order of `init` and `ready` callbacks in nested ccmjs instances.
+         * @description
+         * This function creates a hierarchy of nested ccmjs instances to verify the execution order
+         * of `init` and `ready` callbacks. It ensures that the callbacks are executed in the correct
+         * sequence and validates the parent-child relationships between the instances.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} Resolves when the test completes.
+         */
         async function initReady(suite) {
+          // Creation of nested instances to test init and ready callbacks.
           const actual = [];
           const instance = await fut.instance({
             name: "component1",
@@ -922,6 +972,8 @@
               this.ready = async () => actual.push("F-" + this.index);
             },
           });
+
+          // Verify the execution order of init and ready callbacks.
           suite.assertEquals(
             [
               "A-component1-1",
@@ -933,6 +985,8 @@
             ],
             actual,
           );
+
+          // Verify parent-child relationships.
           suite.assertEquals(1, Object.keys(instance.children).length);
           suite.assertTrue(
             instance.children[instance.inst.index] === instance.inst,
@@ -948,8 +1002,15 @@
           suite.assertTrue(!Object.keys(instance.inst.other.children).length);
           suite.assertTrue(instance.inst.other.parent === instance.inst);
         },
+
+        /**
+         * Tests backward compatibility of instances with various major versions of ccmjs.
+         *
+         * @param {Object} suite - The test suite object providing assertion methods.
+         * @returns {Promise<void>} Resolves when the test completes.
+         */
         async function backwardCompatibility(suite) {
-          // tests backward compatibility for all compatible major versions of ccm.js
+          // Test compatibility with various major ccmjs versions.
           await testVersion("27.5.0");
           await testVersion("26.4.4");
           await testVersion("25.5.3");
@@ -968,23 +1029,38 @@
           await testVersion("12.12.0");
           await testVersion("11.5.0");
           await testVersion("10.2.0");
+          await testVersion("9.2.0");
 
+          /**
+           * Test a specific ccmjs version for compatibility.
+           *
+           * @param {string} version - The ccmjs version to test.
+           * @returns {Promise<void>} - Resolves when the test completes.
+           */
           async function testVersion(version) {
-            const instance = await fut.instance(
-              {
-                name: "dummy",
-                ccm: "https://ccmjs.github.io/ccm/ccm.js",
-                config: {},
-                Instance: function () {},
-              },
-              {
-                ccm: `https://ccmjs.github.io/ccm/versions/ccm-${version}.js`,
-              },
-            );
+            if (parseInt(version.split(".").at(0)) >= 28) {
+              await useComponent("./dummy/ccm.dummy.js", version);
+            } else {
+              await useComponent("./dummy/ccm.dummy3.js", version);
+              await useComponent("./dummy/ccm.dummy4.js", version);
+            }
+          }
+
+          /**
+           * Create and verify a ccmjs instance with a component of a specific ccmjs version.
+           *
+           * @param {string} component - The component URL to load.
+           * @param {string} version - The ccmjs version to use.
+           * @returns {Promise<void>} - Resolves when the test completes.
+           */
+          async function useComponent(component, version) {
+            const instance = await fut.instance(component, {
+              ccm: `https://ccmjs.github.io/ccm/versions/ccm-${version}.js`,
+            });
             suite.assertTrue(suite.ccm.helper.isInstance(instance));
             suite.assertEquals(
               version,
-              suite.ccm.helper.isObject(instance.ccm)
+              suite.ccm.helper.isCore(instance.ccm)
                 ? instance.ccm.version()
                 : ccm[version].version(),
             );

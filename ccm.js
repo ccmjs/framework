@@ -516,19 +516,22 @@
       component.ccm = window.ccm[version] || ccm;
 
       // Prepare the default instance configuration.
-      component.config = await prepareConfig(config, component.config);
+      component.config = await ccm.helper.prepareConfig(
+        config,
+        component.config,
+      );
 
       // Add methods for creating and starting instances of the component.
       component.instance = async (config = {}, element) =>
         ccm.instance(
           component,
-          await prepareConfig(config, component.config),
+          await ccm.helper.prepareConfig(config, component.config),
           element,
         );
       component.start = async (config = {}, element) =>
         ccm.start(
           component,
-          await prepareConfig(config, component.config),
+          await ccm.helper.prepareConfig(config, component.config),
           element,
         );
 
@@ -640,7 +643,7 @@
       element.appendChild(loading);
 
       // Prepare the instance configuration.
-      config = await prepareConfig(config, component.config);
+      config = await ccm.helper.prepareConfig(config, component.config);
 
       /**
        * The created ccmjs instance.
@@ -1046,6 +1049,36 @@
         }
       },
 
+      /**
+       * @summary Embeds a ccmjs component in a given HTML tag.
+       * @description
+       * This function is automatically called for each <ccm> tag when it is connected with the DOM.
+       * It reads the tag's component and config attribute and launches the
+       * requested component with the specified configuration in the scope of the tag.
+       *
+       * The value of the config attribute is parsed as JSON.
+       * If the config attribute is a ccmjs dependency (e.g. ['ccm.load', ...] or ['ccm.get', ...]),
+       * it will be automatically resolved before starting the component.
+       *
+       * @param {Element} element - The HTML tag where the component will be embedded.
+       * @returns {ccm.types.config}
+       * @example
+       * <ccm component="..." config='["ccm.load",...]'></ccm-app>
+       * @example
+       * <ccm component="..." config='["ccm.get",...]'></ccm-app>
+       * @example
+       * <ccm component="..." config='{...}'></ccm-app>
+       */
+      embed: (element) => {
+        let config = {};
+        try {
+          config = ccm.helper.solveDependency(
+            JSON.parse(element.getAttribute("config")),
+          );
+        } catch (e) {}
+        return ccm.start(element.getAttribute("component"), config, this);
+      },
+
       findInAncestors: (instance, prop) => {
         let current = instance;
         while (current) {
@@ -1221,7 +1254,8 @@
         }
 
         // evaluate <ccm> tags
-        if (element.tagName === "CCM" && !settings.ignore_apps) embed(element);
+        if (element.tagName === "CCM" && !settings.ignore_apps)
+          ccm.helper.embed(element);
 
         return element;
       },
@@ -1663,6 +1697,39 @@
       },
 
       /**
+       * @summary Prepares a configuration object by resolving dependencies and integrating defaults.
+       * @description
+       * This function processes a given configuration object by:
+       * 1. Automatically resolving the configuration if it is given as a CCM dependency (e.g. ['ccm.load', ...] or ['ccm.get', ...]).
+       * 2. Recursively resolving and integrating nested configurations, if present.
+       * 3. Integrating the provided defaults into the final configuration.
+       * 4. Removing the reserved `ccm` property from the resulting configuration.
+       *
+       * @param {Object} [config={}] - The initial configuration to process.
+       * @param {Object} [defaults={}] - Default values to integrate into the configuration.
+       * @returns {Promise<Object>} A promise that resolves to the prepared configuration object.
+       */
+      prepareConfig: async (config = {}, defaults = {}) => {
+        // Is the configuration given as CCM dependency? => Resolve it first.
+        config = await ccm.helper.solveDependency(config);
+
+        // Recursively resolve and integrate nested configurations.
+        if (config.config) {
+          let base = await ccm.helper.prepareConfig(config.config);
+          delete config.config;
+          config = await ccm.helper.integrate(config, base);
+        }
+
+        // Integrate defaults into the configuration.
+        const result = await ccm.helper.integrate(config, defaults);
+
+        // Remove reserved `ccm` property from the resulting configuration.
+        delete result.ccm;
+
+        return result;
+      },
+
+      /**
        * @summary Provides a ccmjs-relevant regular expression.
        * @description
        * Possible index values, it's meanings and it's associated regular expressions:
@@ -1802,7 +1869,7 @@
         return ccm[operation].apply(null, dependency);
 
         /**
-         * The resources are automatically loaded in the shadow DOM of the associated ccm instance.
+         * The resources are automatically loaded in the shadow root of the associated ccm instance.
          * @param {Array} resources
          */
         function setContext(resources) {
@@ -1860,7 +1927,7 @@
            * `<ccm>` tag and embeds the associated component.
            */
           async connectedCallback() {
-            // Abort if the element is not connected to the <body> (and not inside of a Shadow DOM).
+            // Abort if the element is not connected to the <body> (and not inside a Shadow DOM).
             if (!document.body.contains(this)) return;
 
             // Abort if the element is nested within another `<ccm>` tag.
@@ -1869,7 +1936,7 @@
               if (node.tagName && node.tagName.startsWith("CCM")) return;
 
             // embed component
-            embed(this);
+            ccm.helper.embed(this);
           }
         },
       );
@@ -1892,36 +1959,6 @@
    * @type {Object.<ccm.types.component_index, ccm.types.component_obj>}
    */
   const _components = {};
-
-  /**
-   * @summary Embeds a ccmjs component in a given <ccm> tag.
-   * @description
-   * This function is automatically called for each <ccm> tag when it is connected with the DOM.
-   * It reads the tag's component and configuration attribute and launches the
-   * requested component with the specified configuration in the scope of the tag.
-   *
-   * The value of the config attribute is parsed as JSON.
-   * If the config attribute is a ccmjs dependency (e.g. ['ccm.load', ...] or ['ccm.get', ...]),
-   * it will be automatically resolved before starting the component.
-   *
-   * @param {Element} element - The <ccm> tag where the component will be embedded.
-   * @returns {ccm.types.config}
-   * @example
-   * <ccm component="..." config='["ccm.load",...]'></ccm-app>
-   * @example
-   * <ccm component="..." config='["ccm.get",...]'></ccm-app>
-   * @example
-   * <ccm component="..." config='{...}'></ccm-app>
-   */
-  async function embed(element) {
-    let config = {};
-    try {
-      config = ccm.helper.solveDependency(
-        JSON.parse(element.getAttribute("config")),
-      );
-    } catch (e) {}
-    return ccm.start(element.getAttribute("component"), config, this);
-  }
 
   /**
    * When a requested component uses another ccmjs version.
@@ -1951,40 +1988,6 @@
         ?.then(resolve)
         .catch(reject);
     });
-  }
-
-  /**
-   * @summary Prepares a configuration object by resolving dependencies and integrating defaults.
-   * @description
-   * This function processes a given configuration object by:
-   * 1. Automatically resolving the configuration if it is given as a CCM dependency (e.g. ['ccm.load', ...] or ['ccm.get', ...]).
-   * 2. Iteratively resolving and integrating nested configurations, if present.
-   * 3. Integrating the provided defaults into the final configuration.
-   * 4. Removing the reserved `ccm` property from the resulting configuration.
-   *
-   * @param {Object} [config={}] - The initial configuration to process.
-   * @param {Object} [defaults={}] - Default values to integrate into the configuration.
-   * @returns {Promise<Object>} A promise that resolves to the prepared configuration object.
-   */
-  async function prepareConfig(config = {}, defaults = {}) {
-    // Is the configuration given as CCM dependency? => Resolve it first.
-    config = await ccm.helper.solveDependency(config);
-
-    // Iteratively resolve and integrate nested configurations.
-    while (config.config) {
-      let base = config.config;
-      delete config.config;
-      base = await ccm.helper.solveDependency(base);
-      config = await ccm.helper.integrate(config, base);
-    }
-
-    // Integrate defaults into the configuration.
-    const result = await ccm.helper.integrate(config, defaults);
-
-    // Remove reserved `ccm` property from the resulting configuration.
-    delete result.ccm;
-
-    return result;
   }
 
   /**
