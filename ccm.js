@@ -611,14 +611,14 @@
      *
      * @param {ccm.types.component_obj|string} component - The component object, index, or URL of the component to register.
      * @param {ccm.types.config} [config={}] - Priority data for the instance configuration.
-     * @param {Element} [element=document.createElement("div")] - The web page area where the component instance will be embedded (default: on-the-fly `<div>`).
+     * @param {Element} [area=document.createElement("div")] - The web page area where the component instance will be embedded (default: on-the-fly `<div>`).
      * @returns {Promise<ccm.types.instance>} A promise that resolves to the created instance.
      * @throws {Error} If the provided component is not valid.
      */
     instance: async (
       component,
       config = {},
-      element = document.createElement("div"),
+      area = document.createElement("div"),
     ) => {
       // Register the component.
       component = await ccm.component(component, { ccm: config?.ccm });
@@ -634,13 +634,13 @@
           "instance",
           component,
           config,
-          element,
+          area,
         );
 
       // Render a loading icon in the web page area.
-      element.innerHTML = "";
+      area.innerHTML = "";
       const loading = ccm.helper.loading();
-      element.appendChild(loading);
+      area.appendChild(loading);
 
       // Prepare the instance configuration.
       config = await ccm.helper.prepareConfig(config, component.config);
@@ -689,7 +689,7 @@
       // Temporarily move the host element to <head> for resolving dependencies.
       document.head.appendChild(instance.host);
       config = await ccm.helper.solveDependencies(config, instance); // Resolve all dependencies in the instance configuration.
-      element.appendChild(instance.host); // Move the host element back to the target web page area.
+      area.appendChild(instance.host); // Move the host element back to the target web page area.
       instance.element.appendChild(loading); // Move the loading icon to the content element.
 
       // Integrate the configuration into the created instance.
@@ -831,11 +831,11 @@
      *
      * @param {ccm.types.component_obj|string} component - The component object, index, or URL of the component to register.
      * @param {ccm.types.config} [config={}] - Priority data for the instance configuration.
-     * @param {Element} [element=document.createElement("div")] - The web page area where the component instance will be embedded (default: on-the-fly `<div>`).
+     * @param {Element} [area=document.createElement("div")] - The web page area where the component instance will be embedded (default: on-the-fly `<div>`).
      * @returns {Promise<ccm.types.instance>} A promise that resolves to the created and started instance.
      * @throws {Error} If the provided component is not valid.
      */
-    start: async (component, config, element) => {
+    start: async (component, config, area) => {
       // Register the component.
       component = await ccm.component(component, { ccm: config?.ccm });
 
@@ -850,11 +850,11 @@
           "start",
           component,
           config,
-          element,
+          area,
         );
 
       // Create an instance out of the component.
-      const instance = await ccm.instance(component, config, element);
+      const instance = await ccm.instance(component, config, area);
 
       // Abort if the instance is not valid.
       if (!ccm.helper.isInstance(instance)) return instance;
