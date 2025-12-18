@@ -1063,11 +1063,11 @@
        * @param {Element} element - The HTML tag where the component will be embedded.
        * @returns {ccm.types.config}
        * @example
-       * <ccm component="..." config='["ccm.load",...]'></ccm-app>
+       * <ccm component="..." config='["ccm.load",...]'></ccm>
        * @example
-       * <ccm component="..." config='["ccm.get",...]'></ccm-app>
+       * <ccm component="..." config='["ccm.get",...]'></ccm>
        * @example
-       * <ccm component="..." config='{...}'></ccm-app>
+       * <ccm component="..." config='{...}'></ccm>
        */
       embed: (element) => {
         let config = {};
