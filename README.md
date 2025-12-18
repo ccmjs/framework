@@ -1,6 +1,11 @@
 # ccmjs – Client-side Component Model
 
-> content is up-to-date for `ccm.js` v28.0.0
+![version](https://img.shields.io/badge/version-28.0.0-blue)
+![License](https://img.shields.io/github/license/ccmjs/framework)
+![Wiki](https://img.shields.io/badge/docs-wiki-brightgreen)
+![No Build](https://img.shields.io/badge/build-none-lightgrey)
+![Runtime](https://img.shields.io/badge/runtime-browser-blue)
+![Version Isolation](https://img.shields.io/badge/versioning-isolated-important)
 
 The **Client-side Component Model (CCM)** defines a conceptual framework for developing modular and reusable web components.
 The **ccmjs framework** provides a JavaScript reference implementation that enables dynamic component loading, configuration, and composition at runtime — without a build step.
@@ -56,13 +61,6 @@ This enables highly dynamic applications, long-term compatibility, and safe inte
 
 ---
 
-### Status
-
-- Current framework version: v28.0.0
-- Actively maintained
-- Used in research, teaching, and production prototypes
-
 ### License
 
 ccmjs is released under the MIT License.
-It is developed with a focus on openness, long-term compatibility, and academic reuse.
