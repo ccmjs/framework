@@ -24,7 +24,7 @@ The **ccmjs framework** provides a JavaScript reference implementation that enab
 
 ---
 
-## Minimal Example
+## Quick Example
 
 ```html
 <!DOCTYPE html>
@@ -32,11 +32,26 @@ The **ccmjs framework** provides a JavaScript reference implementation that enab
 <body>
 <script src="https://ccmjs.github.io/framework/ccm.js"></script>
 <script>
-  ccm.start('./ccm.hello.js', { name: 'World' }, document.body);
+  const component = "https://ccmjs.github.io/quiz/ccm.quiz.js";
+  const config = {
+    feedback: true,
+    questions: [
+      {
+        text: "Does this example work?",
+        input: "radio",
+        answers: [
+          {text: "Yes", correct: true},
+          {text: "No"}
+        ]
+      }
+    ]
+  };
+  const area = document.body;
+  ccm.start(component, config, area);
 </script>
 ```
 
-This loads a component at runtime, applies a configuration, and embeds the resulting app into the page.
+This embeds a quiz component with a specific configuration into the web page.
 
 ---
 
