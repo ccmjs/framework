@@ -1,2 +1,2 @@
-# _ccm_ Framework
-Framework of the _ccm_ Web Technology.
+# ccmjs Framework
+All information about the ccmjs framework is available in the [Wiki](https://github.com/ccmjs/framework/wiki).
