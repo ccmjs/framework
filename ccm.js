@@ -549,7 +549,7 @@
          * @summary Extracts metadata from the component URL.
          * @type {{name: string, index: string, version: string, filename: string, url: string, minified: boolean, sri: string}}
          */
-        const url_data = component.includes(".js")
+        const url_data = /\.m?js(#.*)?$/.test(component)
           ? ccm.helper.convertComponentURL(component)
           : null;
 
@@ -835,7 +835,7 @@
      * @returns {Promise<ccm.types.instance>} A promise that resolves to the created and started instance.
      * @throws {Error} If the provided component is not valid.
      */
-    start: async (component, config, area) => {
+    start: async (component, config = {}, area) => {
       // Register the component.
       component = await ccm.component(component, { ccm: config?.ccm });
 
@@ -981,14 +981,14 @@
        * @returns {{name: string, index: string, version: string, filename: string, url: string, minified: boolean, sri: string}}
        * @throws {Error} if component filename is not valid
        * @example
-       * const data = ccm.helper.convertComponentURL( './ccm.quiz.js' );  // latest version
-       * console.log(data); // {"name":"quiz","index":"quiz","filename":"ccm.quiz.js","url":"./ccm.quiz.js"}
+       * const data = ccm.helper.convertComponentURL( './ccm.quiz.mjs' );  // latest version
+       * console.log(data); // {"name":"quiz","index":"quiz","filename":"ccm.quiz.mjs","url":"./ccm.quiz.mjs"}
        * @example
-       * const data = ccm.helper.convertComponentURL( './ccm.quiz-4.0.2.js' ); // specific version
-       * console.log(data); // {"name":"quiz","version":"4.0.2","index":"quiz-4-0-2","filename":"ccm.quiz-4.0.2.js","url":"./ccm.quiz-4.0.2.js"}
+       * const data = ccm.helper.convertComponentURL( './ccm.quiz-4.0.2.mjs' ); // specific version
+       * console.log(data); // {"name":"quiz","version":"4.0.2","index":"quiz-4-0-2","filename":"ccm.quiz-4.0.2.mjs","url":"./ccm.quiz-4.0.2.mjs"}
        * @example
-       * const data = ccm.helper.convertComponentURL( './ccm.quiz.min.js' );  // minified
-       * console.log(data); // {"name":"quiz","index":"quiz","filename":"ccm.quiz.min.js","url":"./ccm.quiz.min.js","minified":true}
+       * const data = ccm.helper.convertComponentURL( './ccm.quiz.min.mjs' );  // minified
+       * console.log(data); // {"name":"quiz","index":"quiz","filename":"ccm.quiz.min.mjs","url":"./ccm.quiz.min.mjs","minified":true}
        */
       convertComponentURL: (url) => {
         /**
@@ -1005,7 +1005,7 @@
 
         // extract data
         const data = { url, filename, sri };
-        let tmp = filename.substring(4, filename.length - 3); // remove prefix 'ccm.' and postfix '.js'
+        let tmp = filename.match(/^ccm\.(.+)\./)[1]; // remove prefix 'ccm.' and file extension
         if (tmp.endsWith(".min")) {
           data.minified = true;
           tmp = tmp.substring(0, tmp.length - 4); // removes optional infix '.min'
@@ -1052,7 +1052,7 @@
       /**
        * @summary Embeds a ccmjs component in a given HTML tag.
        * @description
-       * This function is automatically called for each <ccm> tag when it is connected with the DOM.
+       * This function is automatically called for each <ccm-app> tag when it is connected with the DOM.
        * It reads the tag's component and config attribute and launches the
        * requested component with the specified configuration in the scope of the tag.
        *
@@ -1063,20 +1063,20 @@
        * @param {Element} element - The HTML tag where the component will be embedded.
        * @returns {ccm.types.config}
        * @example
-       * <ccm component="..." config='["ccm.load",...]'></ccm>
+       * <ccm-app component="..." config='["ccm.load",...]'></ccm-app>
        * @example
-       * <ccm component="..." config='["ccm.get",...]'></ccm>
+       * <ccm-app component="..." config='["ccm.get",...]'></ccm-app>
        * @example
-       * <ccm component="..." config='{...}'></ccm>
+       * <ccm-app component="..." config='{...}'></ccm-app>
        */
-      embed: (element) => {
+      embed: async (element) => {
         let config = {};
         try {
-          config = ccm.helper.solveDependency(
-            JSON.parse(element.getAttribute("config")),
+          config = await ccm.helper.solveDependency(
+            JSON.parse(element.getAttribute("config") || "{}"),
           );
         } catch (e) {}
-        return ccm.start(element.getAttribute("component"), config, this);
+        return ccm.start(element.getAttribute("component"), config, element);
       },
 
       findInAncestors: (instance, prop) => {
@@ -1253,8 +1253,8 @@
           }
         }
 
-        // evaluate <ccm> tags
-        if (element.tagName === "CCM" && !settings.ignore_apps)
+        // evaluate <ccm-app> tags
+        if (element.tagName === "CCM-APP" && !settings.ignore_apps)
           ccm.helper.embed(element);
 
         return element;
@@ -1732,7 +1732,7 @@
       /**
        * @summary Provides a ccmjs-relevant regular expression.
        * @description
-       * Possible index values, it's meanings and it's associated regular expressions:
+       * Possible index values, it's meanings, and it's associated regular expressions:
        * <table>
        *   <tr>
        *     <th>index</th>
@@ -1742,7 +1742,7 @@
        *   <tr>
        *     <td><code>'filename'</code></td>
        *     <td>filename for a ccmjs instance</td>
-       *     <td>/^(ccm.)?([^.-]+)(-(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))?(\.min)?(\.js)$/</td>
+       *     <td>/^(ccm.)?([^.-]+)(-(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))?(\.min)?(\.mjs)$/</td>
        *   </tr>
        *   <tr>
        *     <td><code>'key'</code></td>
@@ -1754,7 +1754,7 @@
        * @returns {RegExp} RegExp Object
        * @example
        * // test if a given string is a valid filename for an ccm component
-       * var string = 'ccm.dummy-3.2.1.min.js';
+       * var string = 'ccm.dummy-3.2.1.min.mjs';
        * var result = ccm.helper.regex( 'filename' ).test( string );
        * console.log( result );  // => true
        * @example
@@ -1766,7 +1766,7 @@
       regex: (index) => {
         switch (index) {
           case "filename":
-            return /^ccm\.([a-z][a-z_0-9]*)(-(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))?(\.min)?(\.js)$/;
+            return /^ccm\.([a-z][a-z_0-9]*)(-(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))?(\.min)?(\.m?js)$/;
           case "key":
             return /^[a-z_][a-z0-9_]{0,31}$/;
           default:
@@ -1914,29 +1914,29 @@
     // Initialize the global `ccm` namespace.
     window.ccm = ccm;
 
-    // Define the `<ccm>` custom element if not already defined.
-    if ("customElements" in window && !customElements.get("ccm")) {
+    // Define the `<ccm-app>` custom element if not already defined.
+    if ("customElements" in window && !customElements.get("ccm-app")) {
       window.customElements.define(
-        "ccm",
+        "ccm-app",
         class extends HTMLElement {
           /**
-           * @summary Handles the connection of the `<ccm>` element to the DOM.
+           * @summary Handles the connection of the `<ccm-app>` element to the DOM.
            * @description
-           * This method is called when the `<ccm>` element is added to the DOM.
+           * This method is called when the `<ccm-app>` element is added to the DOM.
            * It ensures that the element is not nested within another
-           * `<ccm>` tag and embeds the associated component.
+           * `<ccm-app>` tag and embeds the associated component.
            */
           async connectedCallback() {
             // Abort if the element is not connected to the <body> (and not inside a Shadow DOM).
             if (!document.body.contains(this)) return;
 
-            // Abort if the element is nested within another `<ccm>` tag.
+            // Abort if the element is nested within another `<ccm-app>` tag.
             let node = this;
             while ((node = node.parentNode))
-              if (node.tagName && node.tagName.startsWith("CCM")) return;
+              if (node.tagName && node.tagName.startsWith("CCM-")) return;
 
             // embed component
-            ccm.helper.embed(this);
+            await ccm.helper.embed(this);
           }
         },
       );
