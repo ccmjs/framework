@@ -41,7 +41,7 @@
      *
      * @returns {ccm.types.version_nr} version number of ccmjs
      */
-    version: () => "28.0.0",
+    version: "28.0.0",
 
     /**
      * @summary Asynchronous Loading of Resources
@@ -470,15 +470,12 @@
       if (config.ccm) component.ccm = config.ccm;
       delete config.ccm;
 
-      // Determine the ccmjs version the component must use.
+      // Determine the ccmjs version the component must use (considering backwards compatibility).
       let version;
-      if (ccm.helper.isCore(component.ccm)) version = component.ccm.version();
-      else {
-        // Extract the version from the ccmjs URL.
-        const [url] = component.ccm.split("#");
-        if (url.includes("-"))
-          version = url.split("-").at(-1).split(".").slice(0, 3).join(".");
-      }
+      if (ccm.helper.isCore(component.ccm)) {
+        const v = component.ccm.version;
+        version = typeof v === "function" ? v() : v;
+      } else version = component.ccm.match(/-(\d+\.\d+\.\d+)/)?.at(1);
 
       // Load the required ccmjs version if not already present in the web page.
       if (!window.ccm[version]) {
@@ -492,7 +489,7 @@
       }
 
       // If the component uses a different ccmjs version, handle backwards compatibility.
-      if (version && version !== ccm.version())
+      if (version && version !== ccm.version)
         return backwardsCompatibility(version, "component", component, config);
 
       // Set the component index based on its name and version.
@@ -627,8 +624,11 @@
       if (!ccm.helper.isComponent(component)) return component;
 
       // Handle backwards compatibility if the component uses another ccmjs version.
-      const version = component.ccm.version();
-      if (version && version !== ccm.version())
+      const version =
+        typeof component.ccm.version === "function"
+          ? component.ccm.version()
+          : component.ccm.version;
+      if (version && version !== ccm.version)
         return backwardsCompatibility(
           version,
           "instance",
@@ -843,8 +843,11 @@
       if (!ccm.helper.isComponent(component)) return component;
 
       // Handle backwards compatibility if the component uses another ccmjs version.
-      const version = component.ccm.version();
-      if (version && version !== ccm.version())
+      const version =
+        typeof component.ccm.version === "function"
+          ? component.ccm.version()
+          : component.ccm.version;
+      if (version && version !== ccm.version)
         return backwardsCompatibility(
           version,
           "start",
@@ -1944,8 +1947,8 @@
   }
 
   // Initialize the namespace for the current ccmjs version.
-  if (!window.ccm[ccm.version()]) {
-    window.ccm[ccm.version()] = ccm; // Set version-specific namespace.
+  if (!window.ccm[ccm.version]) {
+    window.ccm[ccm.version] = ccm; // Set version-specific namespace.
     ccm.components = {}; // Initialize the global namespace for loaded components.
   }
 
