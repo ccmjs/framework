@@ -4,8 +4,7 @@
  * @overview
  * Defines the global namespace [window.ccm]{@link ccm} for accessing ccmjs services.
  *
- * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki}
- * to learn everything about ccmjs.
+ * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki} to learn more about ccmjs.
  *
  * @author André Kless <andre.kless@web.de> (https://github.com/akless) 2014-2024
  * @license The MIT License (MIT)
@@ -27,7 +26,7 @@
    * Encapsulates everything related to ccmjs.
    *
    * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki}
-   * to learn everything about ccmjs.
+   * to learn more about ccmjs.
    *
    * @global
    * @namespace
@@ -50,7 +49,7 @@
      * Supports sequential and parallel loading of resources.
      *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Loading-Resources}
-     * to learn everything about loading resources in ccmjs.
+     * to learn more about loading resources in ccmjs.
      *
      * @param {...(string|ccm.types.resource_obj)} resources - Resources to load. Either the URL or a [resource object]{@link ccm.types.resource_obj} can be passed for a resource.
      * @returns {Promise<*>} A promise that resolves with the loaded resources or rejects if loading of at least one resource fails.
@@ -451,7 +450,7 @@
      * The method also prepares the default instance configuration and adds methods for creating and starting ccmjs instances.
      *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
-     * to learn everything about embedding components with ccmjs.
+     * to learn more about embedding components with ccmjs.
      *
      * @param {ccm.types.component_obj|string} component - The component object, index, or URL of the component to register.
      * @param {ccm.types.config} [config={}] - Priority data for the component's default instance configuration.
@@ -604,7 +603,7 @@
      * If the component uses a different ccmjs version, it handles backwards compatibility.
      *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
-     * to learn everything about embedding components in ccmjs.
+     * to learn more about embedding components in ccmjs.
      *
      * @param {ccm.types.component_obj|string} component - The component object, index, or URL of the component to register.
      * @param {ccm.types.config} [config={}] - Priority data for the instance configuration.
@@ -827,7 +826,7 @@
      * It ensures compatibility with different ccmjs versions and initializes the instance if required.
      *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
-     * to learn everything about embedding components in ccmjs.
+     * to learn more about embedding components in ccmjs.
      *
      * @param {ccm.types.component_obj|string} component - The component object, index, or URL of the component to register.
      * @param {ccm.types.config} [config={}] - Priority data for the instance configuration.
@@ -870,39 +869,80 @@
     },
 
     /**
-     * @summary Provides access to a datastore.
+     * @summary Creates and initializes a datastore accessor.
+     *
      * @description
-     * Initializes and returns a datastore accessor based on the provided configuration.
-     * The specific datastore type is selected automatically:
-     * 1. **InMemoryStore** – Volatile, stored only in a JavaScript object.
+     * Factory method that provides a unified abstraction for data persistence.
+     * Based on the provided configuration, the appropriate datastore implementation is selected automatically:
+     *
+     * 1. **InMemoryStore** – Volatile, stored in a JavaScript object.
      * 2. **OfflineStore** – Persistent in browser storage (IndexedDB).
-     * 3. **RemoteStore** – Persistent on a remote server via HTTP(S)/WebSocket API.
+     * 3. **RemoteStore** – Persistent on a remote server via HTTP(S) or WebSocket API.
+     *
+     * The selection logic is purely configuration-driven:
+     * - No `config.name` → InMemoryStore
+     * - `config.name` only → OfflineStore
+     * - `config.name` + `config.url` → RemoteStore
+     *
+     * The configuration is fully resolved before initialization
+     * (including declarative CCM dependencies).
+     *
+     * Each invocation creates and initializes a fresh datastore instance.
+     * No internal caching or global registry of datastore accessors exists.
+     *
+     * The returned object implements the common {@link Datastore} API,
+     * independent of the underlying storage mechanism.
+     *
+     * Use {@link ccm.get} for one-time reads without needing direct
+     * access to the datastore instance.
      *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Data-Management}
-     * to learn everything about data management in ccmjs.
+     * to learn more about data management in ccmjs.
      *
-     * @param {Object} [config={}] - Datastore configuration.
+     * @param {Object} [config={}]
+     * Datastore configuration.
      *
-     * @param {string} [config.name] - Name of the store/collection (mandatory for Offline/Remote).
-     * @param {string} [config.url] - Server endpoint for remote access (triggers `RemoteStore`).
-     * @param {string} [config.db] - (RemoteStore) Database identifier. Only needed if the server supports multiple databases.
+     * @param {string} [config.name]
+     * Logical name of the datastore (required for OfflineStore and RemoteStore).
      *
-     * @param {Object.<string,ccm.types.dataset>|ccm.types.dataset[]} [config.datasets] - (InMemoryStore) Initial datasets, either as associative object `{ key: dataset }` or array `[ { key, ...}, ... ]`.
+     * @param {string} [config.url]
+     * Remote endpoint URL. If provided together with `name`, a RemoteStore is created.
      *
-     * @param {Object} [config.observe] - (RemoteStore) Query defining which datasets to observe.
-     * @param {function(Object):void} [config.onchange] - (RemoteStore) Callback triggered when an observed dataset changes.
-     * @param {Object} [config.user] - (RemoteStore) Component instance for user authentication.
+     * @param {string} [config.db]
+     * (RemoteStore only) Optional database identifier if the server supports multiple databases.
      *
-     * @returns {Promise<Datastore>} Resolves to the initialized datastore accessor.
+     * @param {Object.<string,ccm.types.dataset>|ccm.types.dataset[]} [config.datasets]
+     * (InMemoryStore only) Initial datasets, either as associative object
+     * `{ key: dataset }` or array `[ { key, ... }, ... ]`.
+     *
+     * @param {Object} [config.observe]
+     * (RemoteStore only) Query defining which datasets should be observed via WebSocket.
+     *
+     * @param {function(Object):void} [config.onchange]
+     * (RemoteStore only) Callback invoked when an observed dataset changes.
+     *
+     * @param {Object} [config.user]
+     * (RemoteStore only) Component instance used for authentication.
+     *
+     * @returns {Promise<Datastore>}
+     * Resolves to an initialized datastore accessor implementing
+     * the common datastore API.
      */
     store: async (config = {}) => {
+      // Resolve the configuration if it is a dependency.
+      config = await ccm.helper.solveDependency(config);
+
+      // Resolve any nested dependencies in the configuration.
+      await ccm.helper.solveDependencies(config);
+
+      // If a RemoteStore is specified, ensure the store name is provided.
+      if (config.url && !config.name)
+        throw new Error(`RemoteStore "${config.url}" requires a store name (config.name).`);
+
       // Determine the type of datastore to use based on the configuration.
       const store = new (
         config.name ? (config.url ? RemoteStore : OfflineStore) : InMemoryStore
       )();
-
-      // Resolve any dependencies in the configuration.
-      config = await ccm.helper.solveDependency(config);
 
       // Assign the resolved configuration properties to the datastore instance.
       Object.assign(store, config);
@@ -915,28 +955,47 @@
     },
 
     /**
-     * @summary Reads one or more datasets from a datastore.
+     * @summary Loads dataset(s) from a datastore in a single step.
+     *
      * @description
-     * This method retrieves [datasets]{@link ccm.types.dataset} from a datastore based on the provided configuration and query.
-     * It supports reading a single dataset or multiple datasets using a query.
-     * Optionally, specific fields can be projected, and additional query options can be applied.
+     * Convenience method that internally creates a datastore via {@link ccm.store}
+     * and immediately performs a `get()` operation on it.
      *
-     * This method works exactly like {@link ccm.store}, with the difference that one or more [datasets]{@link ccm.types.dataset} are loaded directly from the datastore.
-     * Use this method if you only need to read data once and do not require further access to the datastore.
+     * This method is primarily intended for declarative data dependencies in
+     * instance configurations. It allows datasets to be loaded without exposing
+     * the underlying datastore instance.
      *
-     * This method can be used to define dependencies to other datasets in [instance configurations]{@link ccm.types.instance_config}.
+     * Unlike {@link ccm.store}, this method does not return the datastore accessor.
+     * Use {@link ccm.store} if further interaction (e.g. `set()`, `del()`, `count()`)
+     * with the datastore is required.
+     *
+     * Store instances are not cached. Each call creates and initializes a fresh
+     * datastore accessor based on the provided configuration.
      *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Data-Management}
-     * to learn everything about data management in ccmjs.
+     * to learn more about data management in ccmjs.
      *
-     * @param {Object} [config={}] - Configuration for the datastore accessor.
-     * @param {ccm.types.key|Object} [key_or_query={}] - Either a dataset key or a query to read multiple datasets. Default: Read all datasets.
-     * @param {Object} [projection] - Specifies the fields to include in the result. Default: includes all fields.
-     * @param {Object} [options] - Additional options to modify query behavior and result processing.
-     * @returns {Promise<ccm.types.dataset|ccm.types.dataset[]>} A promise that resolves to the read dataset or multiple datasets.
+     * @param {Object} [config={}]
+     * Datastore configuration (same as {@link ccm.store}).
+     *
+     * @param {ccm.types.key|Object} [key_or_query={}]
+     * Either a dataset key or a query object.
+     * If omitted or an empty object is provided, all datasets are returned.
+     *
+     * @param {Object} [projection]
+     * Optional field projection that limits which dataset properties are returned.
+     * Support for this parameter depends on the datastore implementation.
+     * Currently intended for use with {@link RemoteStore}.
+     *
+     * @param {Object} [options]
+     * Optional datastore-specific query options (e.g. sorting, pagination, server-side modifiers).
+     * Interpretation depends on the datastore implementation and may be ignored by some store types.
+     *
+     * @returns {Promise<ccm.types.dataset|ccm.types.dataset[]>}
+     * Resolves to the requested dataset or an array of datasets.
      */
     get: (config = {}, key_or_query = {}, projection, options) =>
-      ccm.store(config).then((store) => store.get(key_or_query)),
+      ccm.store(config).then((store) => store.get(key_or_query, projection, options)),
 
     /**
      * @summary Contains ccmjs-relevant helper functions.
@@ -2060,7 +2119,7 @@
      */
     _checkKey(key) {
       if (!ccm.helper.isKey(key))
-        throw new Error(`Invalid dataset key: ${JSON.stringify(key_or_query)}`);
+        throw new Error(`Invalid dataset key: ${JSON.stringify(key)}`);
     }
   }
 
