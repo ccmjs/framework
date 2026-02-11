@@ -879,15 +879,15 @@
      * 3. **RemoteStore** – Persistent on a remote server via HTTP(S)/WebSocket API.
      *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Data-Management}
-     * to learn more about data management in ccmjs.
+     * to learn everything about data management in ccmjs.
      *
      * @param {Object} [config={}] - Datastore configuration.
      *
      * @param {string} [config.name] - Name of the store/collection (mandatory for Offline/Remote).
      * @param {string} [config.url] - Server endpoint for remote access (triggers `RemoteStore`).
-     * @param {string} [config.db] - Database identifier (Offline/Remote). Only needed if the server supports multiple databases.
+     * @param {string} [config.db] - (RemoteStore) Database identifier. Only needed if the server supports multiple databases.
      *
-     * @param {Object.<string,ccm.types.dataset>|Array<ccm.types.dataset>} [config.datasets] - (InMemoryStore) Initial datasets, either as associative object `{ key: dataset }` or array `[ { key, ...}, ... ]`.
+     * @param {Object.<string,ccm.types.dataset>|ccm.types.dataset[]} [config.datasets] - (InMemoryStore) Initial datasets, either as associative object `{ key: dataset }` or array `[ { key, ...}, ... ]`.
      *
      * @param {Object} [config.observe] - (RemoteStore) Query defining which datasets to observe.
      * @param {function(Object):void} [config.onchange] - (RemoteStore) Callback triggered when an observed dataset changes.
@@ -2019,7 +2019,7 @@
      * Marks this datastore as initialized.
      * Called once at setup time.
      */
-    init() {
+    async init() {
       this.init = undefined;
     }
 
