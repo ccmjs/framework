@@ -25,26 +25,25 @@
   /**
    * Encapsulates everything related to ccmjs.
    *
-   * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki}
-   * to learn more about ccmjs.
+   * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki} to learn more about ccmjs.
    *
    * @global
    * @namespace
    */
   const ccm = {
     /**
-     * @summary Retrieves the current version of the ccmjs.
-     * @description
+     * Retrieves the current version of ccmjs.
+     *
      * Returns the version number of ccmjs as a string following Semantic Versioning 2.0.0.
      * Use this as a synchronous, stable accessor for the ccmjs version.
      *
-     * @returns {ccm.types.version_nr} version number of ccmjs
+     * @returns {ccm.types.version_nr} Version number of ccmjs.
      */
     version: "28.0.0",
 
     /**
-     * @summary Asynchronous Loading of Resources
-     * @description
+     * Asynchronous Loading of Resources
+     *
      * Loads resources such as HTML, CSS, images, JavaScript, modules, JSON, or XML asynchronously.
      * Supports sequential and parallel loading of resources.
      *
@@ -84,8 +83,8 @@
           getOperation()();
 
           /**
-           * @summary Recursively loads a resource one after the other.
-           * @description
+           * Recursively loads a resource one after the other.
+           *
            * This function ensures that resources are loaded sequentially, maintaining the order of execution.
            * If a resource fails to load, it marks the operation as failed but continues loading the remaining resources.
            * Nested arrays allow precise control over whether resources are loaded in parallel or sequentially.
@@ -169,8 +168,8 @@
           }
 
           /**
-           * @summary Loads HTML via Fetch API as an HTML string.
-           * @description
+           * Loads HTML via Fetch API as an HTML string.
+           *
            * Sets the resource type to `html` and delegates the loading process to the `loadJSON` function.
            * The loaded HTML content will be treated as a JSON string and processed accordingly.
            */
@@ -180,8 +179,8 @@
           }
 
           /**
-           * @summary Loads a CSS file via a `<link>` tag.
-           * @description
+           * Loads a CSS file via a `<link>` tag.
+           *
            * Creates a `<link>` element to load the CSS file. Additional attributes can be set via the `resource.attr` property.
            * The CSS file is loaded in the specified context, and success or error callbacks are triggered accordingly.
            */
@@ -204,8 +203,8 @@
           }
 
           /**
-           * @summary Preloads an image.
-           * @description
+           * Preloads an image.
+           *
            * Creates an `Image` object to preload the image. The `src` attribute of the image is set to the URL provided in the `resource` object.
            * When the image is successfully loaded, the `success` callback is triggered with the image URL.
            * If an error occurs during loading, the `error` callback is triggered.
@@ -218,8 +217,8 @@
           }
 
           /**
-           * @summary Loads JavaScript via a <script> tag.
-           * @description
+           * Loads JavaScript via a <script> tag.
+           *
            * Creates a <script> element to load the JavaScript file. The filename is extracted and used to handle result data.
            * The script is loaded asynchronously, and success or error callbacks are triggered accordingly.
            */
@@ -243,8 +242,8 @@
           }
 
           /**
-           * @summary Loads a JavaScript module via dynamic import.
-           * @description
+           * Loads a JavaScript module via dynamic import.
+           *
            * This function dynamically imports an ES module from a given URL. It supports Subresource Integrity (SRI) checks
            * to ensure the module's integrity. If specific properties of the module are requested (indicated by hash signs in the URL),
            * only those properties are included in the result. The function also clones the imported module to avoid caching issues.
@@ -303,8 +302,8 @@
           }
 
           /**
-           * @summary Loads JSON data via Fetch API.
-           * @description
+           * Loads JSON data via Fetch API.
+           *
            * Sends an HTTP request to fetch the JSON data and handles the response.
            * Supports both `GET` and `POST` methods, with optional parameters. Default is `GET`.
            */
@@ -323,27 +322,27 @@
           }
 
           /**
-           * @summary Builds a URL with query parameters.
-           * @description
+           * Builds a URL with query parameters.
+           *
            * Appends the provided query parameters to the base URL.
            * Supports nested objects and arrays for complex query structures.
            *
-           * @param {string} url - The base URL.
-           * @param {Object} data - The query parameters to append.
-           * @returns {string} - The URL with appended query parameters.
+           * @param {string} url - Base URL
+           * @param {Object} data - Query parameters to append
+           * @returns {string} - URL with appended query parameters.
            */
           function buildURL(url, data) {
             // Append query parameters to the URL.
             return data ? url + "?" + params(data).slice(0, -1) : url;
 
             /**
-             * @summary Converts an object to query string parameters.
-             * @description
+             * Converts an object to query string parameters.
+             *
              * Recursively processes nested objects and arrays to generate query strings.
              *
-             * @param {Object} obj - The object to convert.
-             * @param {string} [prefix] - The prefix for nested keys.
-             * @returns {string} - The generated query string.
+             * @param {Object} obj - Object to convert
+             * @param {string} [prefix] - Prefix for nested keys
+             * @returns {string} - Generated query string
              */
             function params(obj, prefix) {
               let result = "";
@@ -359,8 +358,8 @@
           }
 
           /**
-           * @summary Loads XML via Fetch API as an XML document.
-           * @description
+           * Loads XML via Fetch API as an XML document.
+           *
            * Sets the resource type to `xml` and delegates the loading process to the `loadJSON` function.
            * The loaded XML content is parsed into an XML document.
            */
@@ -370,10 +369,11 @@
           }
 
           /**
-           * @summary Callback when loading of a resource was successful.
-           * @description
+           * Callback when loading of a resource was successful
+           *
            * Processes the loaded data based on its type (e.g., HTML, XML) and updates the results array.
            * Triggers the next step in the loading process.
+           *
            * @param {*} data - Loaded resource data.
            */
           function success(data) {
@@ -407,8 +407,8 @@
           }
 
           /**
-           * @summary Callback when loading of a resource failed.
-           * @description
+           * Callback when loading of a resource failed
+           *
            * Marks the loading process as failed and updates the results array with an error object.
            * Triggers the next step in the loading process.
            */
@@ -428,8 +428,8 @@
         check();
 
         /**
-         * @summary Callback function to handle the completion of resource loading.
-         * @description
+         * Callback function to handle the completion of resource loading.
+         *
          * This function is called whenever a resource is finished loading and checks whether all resources have been loaded. If not, it waits for the remaining resources.
          * Once all resources are loaded, it resolves or rejects the promise based on the loading status.
          */
@@ -442,8 +442,8 @@
     },
 
     /**
-     * @summary Registers a ccmjs component.
-     * @description
+     * Registers a ccmjs component.
+     *
      * This method registers a component, ensuring compatibility with different ccmjs versions.
      * It retrieves the component object, validates it, adjusts the ccmjs version, and registers the component.
      * If the component uses a different ccmjs version, it handles backwards compatibility.
@@ -452,9 +452,9 @@
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
      * to learn more about embedding components with ccmjs.
      *
-     * @param {ccm.types.component_obj|string} component - The component object, index, or URL of the component to register.
+     * @param {ccm.types.component_obj|string} component - Component object, index, or URL of the component to register.
      * @param {ccm.types.config} [config={}] - Priority data for the component's default instance configuration.
-     * @returns {Promise<ccm.types.component_obj>} A clone of the registered component object.
+     * @returns {Promise<ccm.types.component_obj>} Clone of the registered component object.
      * @throws {Error} If the provided component is not valid.
      */
     component: async (component, config = {}) => {
@@ -534,15 +534,15 @@
       return component;
 
       /**
-       * @summary Retrieves the component object via index, URL or directly as JavaScript object.
-       * @returns {Promise<ccm.types.component_obj>} The component object.
+       * Retrieves the component object via index, URL or directly as JavaScript object.
+       * @returns {Promise<ccm.types.component_obj>} Component object
        */
       async function getComponentObject() {
         // Return the component directly if it is not a string.
         if (typeof component !== "string") return component;
 
         /**
-         * @summary Extracts metadata from the component URL.
+         * Extracts metadata from the component URL.
          * @type {{name: string, index: string, version: string, filename: string, url: string, minified: boolean, sri: string}}
          */
         const url_data = /\.m?js(#.*)?$/.test(component)
@@ -550,7 +550,7 @@
           : null;
 
         /**
-         * @summary The index of the component.
+         * Index of the component
          * @type {ccm.types.component_index}
          */
         const index = url_data?.index || component;
@@ -596,8 +596,8 @@
     },
 
     /**
-     * @summary Creates and initializes a ccmjs instance from a given component.
-     * @description
+     * Creates and initializes a ccmjs instance from a given component.
+     *
      * This method registers a ccmjs component, prepares its configuration, and creates an instance.
      * It resolves dependencies, sets up the instance's DOM structure, and initializes the instance.
      * If the component uses a different ccmjs version, it handles backwards compatibility.
@@ -605,9 +605,9 @@
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
      * to learn more about embedding components in ccmjs.
      *
-     * @param {ccm.types.component_obj|string} component - The component object, index, or URL of the component to register.
-     * @param {ccm.types.config} [config={}] - Priority data for the instance configuration.
-     * @param {Element} [area=document.createElement("div")] - The web page area where the component instance will be embedded (default: on-the-fly `<div>`).
+     * @param {ccm.types.component_obj|string} component - Component object, index, or URL of the component to register
+     * @param {ccm.types.config} [config={}] - Priority data for instance configuration
+     * @param {Element} [area=document.createElement("div")] - Web page area where the component instance will be embedded (default: on-the-fly `<div>`)
      * @returns {Promise<ccm.types.instance>} A promise that resolves to the created instance.
      * @throws {Error} If the provided component is not valid.
      */
@@ -820,17 +820,17 @@
     },
 
     /**
-     * @summary Registers a ccmjs component, creates an instance out of it, and starts the instance.
-     * @description
+     * Registers a ccmjs component, creates an instance out of it, and starts the instance.
+     *
      * This function handles the registration of a ccmjs component, creates an instance from it, and starts the instance.
      * It ensures compatibility with different ccmjs versions and initializes the instance if required.
      *
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
      * to learn more about embedding components in ccmjs.
      *
-     * @param {ccm.types.component_obj|string} component - The component object, index, or URL of the component to register.
-     * @param {ccm.types.config} [config={}] - Priority data for the instance configuration.
-     * @param {Element} [area=document.createElement("div")] - The web page area where the component instance will be embedded (default: on-the-fly `<div>`).
+     * @param {ccm.types.component_obj|string} component - Component object, index, or URL of the component to register
+     * @param {ccm.types.config} [config={}] - Priority data for instance configuration
+     * @param {Element} [area=document.createElement("div")] - Web page area where the component instance will be embedded (default: on-the-fly `<div>`)
      * @returns {Promise<ccm.types.instance>} A promise that resolves to the created and started instance.
      * @throws {Error} If the provided component is not valid.
      */
@@ -869,9 +869,8 @@
     },
 
     /**
-     * @summary Creates and initializes a datastore accessor.
+     * Creates and initializes a datastore accessor.
      *
-     * @description
      * Factory method that provides a unified abstraction for data persistence.
      * Based on the provided configuration, the appropriate datastore implementation is selected automatically:
      *
@@ -899,34 +898,15 @@
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Data-Management}
      * to learn more about data management in ccmjs.
      *
-     * @param {Object} [config={}]
-     * Datastore configuration.
-     *
-     * @param {string} [config.name]
-     * Logical name of the datastore (required for OfflineStore and RemoteStore).
-     *
-     * @param {string} [config.url]
-     * Remote endpoint URL. If provided together with `name`, a RemoteStore is created.
-     *
-     * @param {string} [config.db]
-     * (RemoteStore only) Optional database identifier if the server supports multiple databases.
-     *
-     * @param {Object.<string,ccm.types.dataset>|ccm.types.dataset[]} [config.datasets]
-     * (InMemoryStore only) Initial datasets, either as associative object
-     * `{ key: dataset }` or array `[ { key, ... }, ... ]`.
-     *
-     * @param {Object} [config.observe]
-     * (RemoteStore only) Query defining which datasets should be observed via WebSocket.
-     *
-     * @param {function(Object):void} [config.onchange]
-     * (RemoteStore only) Callback invoked when an observed dataset changes.
-     *
-     * @param {Object} [config.user]
-     * (RemoteStore only) Component instance used for authentication.
-     *
-     * @returns {Promise<Datastore>}
-     * Resolves to an initialized datastore accessor implementing
-     * the common datastore API.
+     * @param {Object} [config={}] - Datastore configuration
+     * @param {string} [config.name] - Logical name of the datastore (required for OfflineStore and RemoteStore)
+     * @param {string} [config.url] - Remote endpoint URL. Used together with `name` to create a RemoteStore.
+     * @param {string} [config.db] - (RemoteStore only) Optional database identifier if the server supports multiple databases.
+     * @param {Object.<string,ccm.types.dataset>|ccm.types.dataset[]} [config.datasets] - (InMemoryStore only) Initial datasets, either as associative object `{ key: dataset }` or array `[ { key, ... }, ... ]`.
+     * @param {Object} [config.observe] - (RemoteStore only) Query defining which datasets should be observed via WebSocket.
+     * @param {function(Object):void} [config.onchange] - (RemoteStore only) Callback invoked when an observed dataset changes.
+     * @param {Object} [config.user] - (RemoteStore only) Component instance used for authentication.
+     * @returns {Promise<Datastore>} Resolves to an initialized datastore accessor implementing the common datastore API.
      */
     store: async (config = {}) => {
       // Resolve the configuration if it is a dependency.
@@ -955,11 +935,9 @@
     },
 
     /**
-     * @summary Loads dataset(s) from a datastore in a single step.
+     * Loads dataset(s) from a datastore in a single step.
      *
-     * @description
-     * Convenience method that internally creates a datastore via {@link ccm.store}
-     * and immediately performs a `get()` operation on it.
+     * Convenience method that creates a transient datastore accessor via {@link ccm.store} and immediately executes a `get()` operation.
      *
      * This method is primarily intended for declarative data dependencies in
      * instance configurations. It allows datasets to be loaded without exposing
@@ -975,31 +953,27 @@
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Data-Management}
      * to learn more about data management in ccmjs.
      *
-     * @param {Object} [config={}]
-     * Datastore configuration (same as {@link ccm.store}).
-     *
+     * @param {Object} [config={}]- Datastore configuration (same as {@link ccm.store})
      * @param {ccm.types.key|Object} [key_or_query={}]
      * Either a dataset key or a query object.
      * If omitted or an empty object is provided, all datasets are returned.
-     *
      * @param {Object} [projection]
      * Optional field projection that limits which dataset properties are returned.
      * Support for this parameter depends on the datastore implementation.
      * Currently intended for use with {@link RemoteStore}.
-     *
      * @param {Object} [options]
      * Optional datastore-specific query options (e.g. sorting, pagination, server-side modifiers).
      * Interpretation depends on the datastore implementation and may be ignored by some store types.
-     *
-     * @returns {Promise<ccm.types.dataset|ccm.types.dataset[]>}
-     * Resolves to the requested dataset or an array of datasets.
+     * @returns {Promise<ccm.types.dataset|ccm.types.dataset[]>} Resolves to the requested dataset or an array of datasets.
      */
     get: (config = {}, key_or_query = {}, projection, options) =>
       ccm.store(config).then((store) => store.get(key_or_query, projection, options)),
 
     /**
-     * @summary Contains ccmjs-relevant helper functions.
-     * @description These are also useful for component developers.
+     * Contains ccmjs-relevant helper functions.
+     *
+     * These are also useful for component developers.
+     *
      * @namespace
      */
     helper: {
@@ -2026,12 +2000,12 @@
    * When a requested component uses another ccmjs version.
    * This function performs the method call in the other ccmjs version.
    *
-   * @param {number} version - major number of the necessary ccmjs version
-   * @param {string} method - name of the method to be called ('component', 'instance' or 'start')
-   * @param {ccm.types.component_obj|string} component - object, index or URL of component
-   * @param {ccm.types.config} config - priority data for instance configuration
-   * @param {Element} [element] - web page area where the component will be embedded (default: on-the-fly <div>)
-   * @returns {Promise<ccm.types.component|ccm.types.instance>}
+   * @param {number} version - Major number of the necessary ccmjs version
+   * @param {string} method - Name of the method to be called ('component', 'instance' or 'start')
+   * @param {ccm.types.component_obj|string} component - Object, index or URL of the component
+   * @param {ccm.types.config} config - Priority data for instance configuration
+   * @param {Element} [element] - Web page area where the component will be embedded (default: on-the-fly <div>).
+   * @returns {Promise<ccm.types.component|ccm.types.instance>} Promise that resolves to the created component or instance.
    */
   async function backwardsCompatibility(
     version,
@@ -2053,30 +2027,47 @@
   }
 
   /**
-   * @class Datastore
-   * @summary Base class for all datastore types in ccm.
-   * @description
-   * Provides a common API for data access.
-   * Concrete subclasses handle the actual storage: {@link InMemoryStore}, {@link OfflineStore}, {@link RemoteStore}
+   * Abstract base class for datastore accessors in ccmjs
    *
-   * Main conventions:
-   * - All methods are asynchronous (return Promises).
-   * - `get()` fetches datasets by key or query.
-   * - `set()` creates or updates a dataset and returns it.
-   * - `del()` deletes a dataset and returns the deleted one or `null`.
-   * - `clear()` removes all datasets from the store.
-   * - `count()` returns number of datasets matching a query.
-   * - Subclasses define additional methods:
-   *   - `names()` in {@link OfflineStore} and {@link RemoteStore}
-   *   - `dbs()` in {@link RemoteStore}
-   *   - `onchange()` in {@link RemoteStore}
-   *   - `connect()` in {@link RemoteStore}
-   *   - `close()` in {@link RemoteStore}
+   * Defines the asynchronous data access API used by all datastore implementations.
+   *
+   * Concrete subclasses implement the actual persistence strategy:
+   * - {@link InMemoryStore} – volatile in-memory storage
+   * - {@link OfflineStore}  – browser-based persistence (IndexedDB)
+   * - {@link RemoteStore}   – remote server persistence via HTTP/WebSocket
+   *
+   * Design contract:
+   * - All methods are asynchronous and return Promises.
+   * - Each dataset must contain a unique `key`.
+   * - `get(key)` resolves to a dataset or `null`.
+   * - `get(query)` resolves to an array (possibly empty).
+   * - `set()` creates or updates a dataset.
+   * - `del()` resolves to the deleted dataset or `null`.
+   *
+   * Subclasses may provide additional capabilities such as:
+   * - `names()`            – list available stores
+   * - `dbs()`              – list available databases
+   * - `connect()`          – establish a live connection (RemoteStore)
+   * - `close()`            – close active connections
+   *
+   * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Data-Management}
+   * to learn more about data management in ccmjs.
+   *
+   * @class Datastore
+   * @abstract
    */
   class Datastore {
     /**
-     * Marks this datastore as initialized.
-     * Called once at setup time.
+     * Initializes the datastore accessor.
+     *
+     * @description
+     * Called once during setup by {@link ccm.store}.
+     * Subclasses may override this method to perform initialization logic
+     * such as opening database connections or preparing internal state.
+     *
+     * After initialization, this method removes itself to prevent accidental re-initialization.
+     *
+     * @returns {Promise<void>}
      */
     async init() {
       this.init = undefined;
@@ -2084,14 +2075,21 @@
 
     /**
      * Removes all datasets from this datastore.
-     * Errors are logged but do not stop the process.
+     *
+     * The default implementation retrieves all datasets via `get()`
+     * and deletes them individually via `del()`.
+     *
+     * Subclasses may override this method for more efficient
+     * storage-specific implementations.
+     *
+     * Errors during deletion are logged but do not interrupt the process.
      *
      * @returns {Promise<void>}
      */
     async clear() {
       const datasets = await this.get();
       const results = await Promise.allSettled(
-        datasets.map((dataset) => this.del(dataset)),
+        datasets.map((dataset) => this.del(dataset.key)),
       );
       results.forEach((res, i) => {
         if (res.status === "rejected") {
@@ -2101,20 +2099,24 @@
     }
 
     /**
-     * Returns metadata that identifies this datastore.
+     * Returns metadata describing the datastore source.
      *
-     * @returns {{name: string, url: string, db: string}}
+     * Provides identifying information about the underlying storage.
+     * Mainly useful for debugging, logging, or remote synchronization.
+     *
+     * @returns {{name?: string, url?: string, db?: string}}
      */
     source() {
       return { name: this.name, url: this.url, db: this.db };
     }
 
     /**
-     * Checks if a given value is a valid dataset key.
-     * Throws an error if the value is not valid.
+     * Validates that a given value is a valid dataset key.
      *
-     * @param {*} key - The value to check.
-     * @throws {Error} If the value is not a valid key.
+     * Throws an error if the value does not satisfy the key constraints defined by {@link ccm.helper.isKey}.
+     *
+     * @param {*} key - Value to validate as dataset key.
+     * @throws {Error} If the key is invalid.
      * @protected
      */
     _checkKey(key) {
@@ -2124,23 +2126,69 @@
   }
 
   /**
+   * Volatile in-memory datastore implementation
+   *
+   * Stores all datasets in a plain JavaScript object within the current runtime environment.
+   * Data exists only for the lifetime of the page and is lost on reload.
+   * Each instance operates independently and does not share state with other InMemoryStore instances.
+   *
+   * Characteristics:
+   * - Fully compliant with the Datastore contract.
+   * - No persistence beyond the current runtime.
+   * - No external dependencies.
+   * - Internal state is protected by returning cloned datasets.
+   *
+   * Typical use cases:
+   * - Temporary application state
+   * - Testing and development
+   * - Declarative default datasets
+   *
    * @class InMemoryStore
    * @extends Datastore
-   * @summary Simple datastore that keeps all datasets in memory.
-   * @description
-   * Stores datasets in a plain JavaScript object.
-   * Data is lost when the page is reloaded.
+   * @example
+   * const store = await ccm.store({
+   *   datasets: [
+   *     { key: "a", value: 1 },
+   *     { key: "b", value: 2 }
+   *   ]
+   * });
+   *
+   * const data = await store.get("a"); // { key: "a", value: 1 }
    */
   class InMemoryStore extends Datastore {
+
+    /**
+     * Initializes the in-memory store.
+     *
+     * Resolves potential dataset dependencies, normalizes the internal
+     * dataset structure, and prepares the internal key–dataset map.
+     *
+     * If no datasets are provided, an empty store is created.
+     *
+     * @returns {Promise<void>}
+     */
     async init() {
-      super.init();
+      await super.init();
       if (!this.datasets) this.datasets = {};
       this.datasets = await ccm.helper.solveDependency(this.datasets);
       this.datasets = ccm.helper.arrToStore(this.datasets);
     }
 
-    async get(key_or_query) {
+    /**
+     * Retrieves one or multiple datasets from memory.
+     *
+     * - If a key is provided, resolves to the matching dataset or `null`.
+     * - If a query object is provided, resolves to an array of matching datasets.
+     *
+     * Returned datasets are cloned to prevent external mutation of
+     * the internal store state.
+     *
+     * @param {ccm.types.key|Object} key_or_query - A dataset key or a query object.
+     * @returns {Promise<ccm.types.dataset|null|ccm.types.dataset[]>} A promise that resolves to the requested dataset(s).
+     */
+    async get(key_or_query = {}) {
       let result;
+
       if (ccm.helper.isObject(key_or_query))
         result = ccm.helper.runQuery(key_or_query, this.datasets);
       else {
@@ -2151,11 +2199,24 @@
       return ccm.helper.clone(result);
     }
 
+    /**
+     * Creates or updates a dataset in memory.
+     *
+     * - Generates a key if none is provided.
+     * - Updates existing datasets by integrating new properties.
+     * - Creates a new dataset if the key does not exist.
+     *
+     * The returned dataset is a cloned copy of the stored data.
+     *
+     * @param {ccm.types.dataset} priodata - Dataset to create or update.
+     * @returns {Promise<ccm.types.dataset>} A promise that resolves to the created or updated dataset.
+     */
     async set(priodata) {
       if (!priodata.key) priodata.key = ccm.helper.generateKey();
 
       this._checkKey(priodata.key);
 
+      // Integrate with existing dataset if it exists, otherwise create new entry
       if (this.datasets[priodata.key])
         this.datasets[priodata.key] = await ccm.helper.integrate(
           priodata,
@@ -2166,6 +2227,15 @@
       return ccm.helper.clone(this.datasets[priodata.key]);
     }
 
+    /**
+     * Deletes a dataset from memory.
+     *
+     * Resolves to the deleted dataset or `null` if no dataset with the given key existed.
+     * The returned dataset is a cloned copy.
+     *
+     * @param {ccm.types.key} key - Dataset key
+     * @returns {Promise<ccm.types.dataset|null>} A promise that resolves to the deleted dataset or `null` if it did not exist.
+     */
     async del(key) {
       this._checkKey(key);
       const dataset = this.datasets[key];
@@ -2173,38 +2243,102 @@
       return ccm.helper.clone(dataset) || null;
     }
 
+    /**
+     * Removes all datasets from the in-memory store.
+     *
+     * Resets the internal dataset map to an empty object.
+     *
+     * @returns {Promise<void>}
+     */
     async clear() {
       this.datasets = {};
     }
 
-    async count(query) {
+    /**
+     * Counts datasets matching a query.
+     *
+     * Resolves to the number of datasets matching the query.
+     *
+     * @param {Object} query - Query object
+     * @returns {Promise<number>}
+     */
+    async count(query = {}) {
       return ccm.helper.runQuery(query, this.datasets).length;
     }
   }
 
+  /**
+   * Browser-based persistent datastore using IndexedDB.
+   *
+   * Persists datasets locally in the browser via IndexedDB.
+   * Each store corresponds to an IndexedDB object store
+   * within a shared database namespace.
+   *
+   * Characteristics:
+   * - Fully compliant with the Datastore contract.
+   * - Persistent across page reloads.
+   * - Operates entirely client-side.
+   * - Uses the dataset `key` as IndexedDB keyPath.
+   *
+   * Each instance connects to a named object store within the internal IndexedDB database.
+   *
+   * @class OfflineStore
+   * @extends Datastore
+   */
   class OfflineStore extends Datastore {
+    /**
+     * Name of the internal IndexedDB database used for storage.
+     * @type {string}
+     */
     dbName = "ccm";
+
+    /**
+     * Reference to the opened IndexedDB database connection.
+     * @type {IDBDatabase}
+     */
     database;
 
+    /**
+     * Initializes the IndexedDB connection and object store.
+     *
+     * Opens (or upgrades) the internal IndexedDB database.
+     * If the configured object store does not exist, it is created via a version upgrade.
+     *
+     * @returns {Promise<void>}
+     */
     async init() {
-      super.init();
+      await super.init();
 
+      // Open the database to check for existing object store
       const existingDB = await this.#pReq(indexedDB.open(this.dbName));
+      // Object store exists? => Use it
       if (existingDB.objectStoreNames.contains(this.name)) {
         this.#setupDatabase(existingDB);
         return;
       }
 
+      // Object store does not exist? => Create it via version upgrade
       const newVersion = existingDB.version + 1;
       existingDB.close();
 
+      // Open the database with the new version to trigger onupgradeneeded
       const request = indexedDB.open(this.dbName, newVersion);
       request.onupgradeneeded = (event) =>
         event.target.result.createObjectStore(this.name, { keyPath: "key" });
 
+      // Wait for the database to be ready and set up the connection
       this.#setupDatabase(await this.#pReq(request));
     }
 
+    /**
+     * Retrieves one or multiple datasets from IndexedDB.
+     *
+     * - If a key is provided, resolves to the matching dataset or `null`.
+     * - If a query object is provided, retrieves all datasets and filters them in memory.
+     *
+     * @param {ccm.types.key|Object} key_or_query - Dataset key or query object.
+     * @returns {Promise<ccm.types.dataset|null|ccm.types.dataset[]>}
+     */
     async get(key_or_query) {
       if (ccm.helper.isObject(key_or_query))
         return ccm.helper.runQuery(
@@ -2216,6 +2350,16 @@
       return this.#pReq(this.#getStore().get(key_or_query));
     }
 
+    /**
+     * Creates or updates a dataset in IndexedDB.
+     *
+     * - Generates a key if none is provided.
+     * - Integrates updates into existing datasets.
+     * - Persists the result via a readwrite transaction.
+     *
+     * @param {ccm.types.dataset} priodata - Dataset to create or update
+     * @returns {Promise<ccm.types.dataset>} A promise that resolves to the created or updated dataset.
+     */
     async set(priodata) {
       if (!priodata.key) priodata.key = ccm.helper.generateKey();
 
@@ -2229,6 +2373,14 @@
       return dataset;
     }
 
+    /**
+     * Deletes a dataset from IndexedDB.
+     *
+     * Removes the dataset and resolves to the deleted dataset or `null` if none existed.
+     *
+     * @param {ccm.types.key} key - Dataset key
+     * @returns {Promise<ccm.types.dataset|null>} A promise that resolves to the deleted dataset or `null` if it did not exist.
+     */
     async del(key) {
       this._checkKey(key);
 
@@ -2237,8 +2389,16 @@
       return dataset || null;
     }
 
+    /**
+     * Removes all datasets from this object store.
+     *
+     * Deletes all datasets using the default Datastore logic.
+     * If the store becomes empty, the underlying IndexedDB object store is removed via a version upgrade.
+     *
+     * @returns {Promise<void>}
+     */
     async clear() {
-      await super.clear();
+      this.#getStore("readwrite").clear()
 
       if (!(await this.count())) {
         const newVersion = this.database.version + 1;
@@ -2252,6 +2412,15 @@
       }
     }
 
+    /**
+     * Counts datasets matching a query.
+     *
+     * Retrieves all datasets and applies the query
+     * filter in memory.
+     *
+     * @param {Object} query - Query object.
+     * @returns {Promise<number>}
+     */
     async count(query) {
       return ccm.helper.runQuery(
         query,
@@ -2259,15 +2428,34 @@
       ).length;
     }
 
+    /**
+     * Lists available object store names within the database.
+     *
+     * @returns {Promise<string[]>}
+     */
     async names() {
       return Array.from(this.database.objectStoreNames);
     }
 
+    /**
+     * Returns an IndexedDB object store transaction.
+     *
+     * @param {"readonly"|"readwrite"} [mode="readonly"] - Transaction mode
+     * @returns {IDBObjectStore}
+     * @private
+     */
     #getStore(mode = "readonly") {
       const tx = this.database.transaction(this.name, mode);
       return tx.objectStore(this.name);
     }
 
+    /**
+     * Wraps an IndexedDB request in a Promise.
+     *
+     * @param {IDBRequest} request - IndexedDB request
+     * @returns {Promise<any>}
+     * @private
+     */
     #pReq(request) {
       return new Promise((resolve, reject) => {
         request.onsuccess = (e) => resolve(e.target.result);
@@ -2280,6 +2468,12 @@
       });
     }
 
+    /**
+     * Configures database lifecycle handlers.
+     *
+     * @param {IDBDatabase} db - Opened IndexedDB database instance
+     * @private
+     */
     #setupDatabase(db) {
       db.onversionchange = () => {
         console.warn(
