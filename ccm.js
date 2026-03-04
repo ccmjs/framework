@@ -2485,61 +2485,160 @@
     }
   }
 
+  /**
+   * Remote datastore implementation that communicates with a server.
+   *
+   * Provides persistent data access via HTTP(S) requests and optional
+   * realtime updates via WebSocket connections.
+   *
+   * The server endpoint must implement the ccmjs datastore API and
+   * accept JSON-based requests for operations such as `get`, `set`,
+   * `del`, and `count`.
+   *
+   * Characteristics:
+   * - Fully compliant with the Datastore contract.
+   * - Persistence is handled by a remote server.
+   * - Supports authentication via a CCM user instance or explicit token.
+   * - Optional realtime updates using WebSockets (`observe` + `onchange`).
+   *
+   * @class RemoteStore
+   * @extends Datastore
+   */
   class RemoteStore extends Datastore {
+
+    /**
+     * Initializes the remote datastore connection.
+     *
+     * - Resolves the user instance from the component hierarchy.
+     * - Establishes a WebSocket connection if realtime observation is enabled.
+     *
+     * @returns {Promise<void>}
+     */
     async init() {
       super.init();
 
+      // Look for a user instance in parent components for authentication
       this.user = ccm.helper.findInAncestors(this, "user");
 
+      // Enable realtime updates if observe query is provided and WebSockets are supported
       if (this.observe && window.WebSocket) {
         if (!this.onchange && this.parent) this.onchange = this.parent.start;
         this.connect();
       }
     }
 
+    /**
+     * Retrieves one or multiple datasets from the remote datastore.
+     *
+     * - If a key is provided, resolves to the matching dataset or `null`.
+     * - If a query object is provided, resolves to an array of matching datasets.
+     *
+     * Optional `projection` and `options` parameters correspond to MongoDB-style
+     * query extensions and are forwarded directly to the server.
+     *
+     * @param {ccm.types.key|Object} [key_or_query={}] - Dataset key or query object
+     * @param {Object} [projection] - Fields to include or exclude
+     * @param {Object} [options] - Additional query options (e.g. sort, limit)
+     * @returns {Promise<ccm.types.dataset|ccm.types.dataset[]>}
+     */
     async get(key_or_query = {}, projection, options) {
       if (!ccm.helper.isObject(key_or_query)) this._checkKey(key_or_query);
 
       const params = { get: key_or_query };
+
+      // Forward optional query modifiers to the server
       if (projection) params.projection = projection;
       if (options) params.options = options;
+
       return this.#send(params);
     }
 
+    /**
+     * Creates or updates a dataset on the remote server.
+     *
+     * Generates a key if none is provided and forwards the dataset to the server.
+     *
+     * @param {ccm.types.dataset} priodata - Dataset to create or update
+     * @returns {Promise<ccm.types.dataset>}
+     */
     async set(priodata) {
       if (!priodata.key) priodata.key = ccm.helper.generateKey();
       this._checkKey(priodata.key);
+
       return this.#send({ set: priodata });
     }
 
+    /**
+     * Deletes a dataset from the remote datastore.
+     *
+     * @param {ccm.types.key} key - Dataset key
+     * @returns {Promise<ccm.types.dataset|null>}
+     */
     async del(key) {
       this._checkKey(key);
       return this.#send({ del: key });
     }
 
+    /**
+     * Counts datasets matching a query.
+     *
+     * @param {Object} [query={}] - Query object
+     * @returns {Promise<number>}
+     */
     async count(query = {}) {
       return this.#send({ count: query });
     }
 
+    /**
+     * Lists available datastore names in the current database.
+     *
+     * @returns {Promise<string[]>}
+     */
     async names() {
       return this.#send({ names: this.db });
     }
 
+    /**
+     * Lists available databases on the server.
+     *
+     * @returns {Promise<string[]>}
+     */
     async dbs() {
       return this.#send({ names: "dbs" });
     }
 
+    /**
+     * Sends a request to the remote datastore server.
+     *
+     * Automatically attaches:
+     * - framework version (`ccm`)
+     * - database identifier (`db`)
+     * - store name (`store`)
+     * - authentication token (if available)
+     *
+     * Handles authentication errors by attempting automatic re-login.
+     *
+     * @param {Object} [params={}] - Request parameters
+     * @returns {Promise<any>}
+     * @private
+     */
     async #send(params = {}) {
+
+      // Attach framework version for compatibility checks
       params.ccm = this.ccm || ccm.version;
+
+      // Attach database and store identifiers
       params.db = this.db || "";
       params.store = this.name;
 
+      // Attach authentication token if available
       if (this.user?.isLoggedIn()) params.token = this.user.getState().token;
       if (this.token) params.token = this.token;
 
       try {
         return await ccm.load({ url: this.url, params });
       } catch (e) {
+        // Handle authentication errors by retrying login
         if (this.user && (e.status === 401 || e.status === 403)) {
           try {
             await this.user.logout();
@@ -2547,6 +2646,7 @@
             params.token = this.user.getState().token;
             return await ccm.load({ url: this.url, params });
           } catch (e) {
+            // If login fails, restart the root component
             if (this.parent) await ccm.helper.findRoot(this).start();
             else throw e;
           }
@@ -2554,17 +2654,28 @@
       }
     }
 
+    /**
+     * Establishes a WebSocket connection for realtime datastore updates.
+     *
+     * The server will push notifications when datasets matching the configured `observe` query change.
+     */
     connect() {
+
+      // Convert HTTP endpoint to WebSocket endpoint
       this.socket = new WebSocket(this.url.replace(/^http/, "ws"));
+
+      // Subscribe to datastore observation when connection opens
       this.socket.onopen = () => {
         this.socket.send(
-          JSON.stringify({
-            db: this.db,
-            store: this.name,
-            observe: this.observe,
-          }),
+            JSON.stringify({
+              db: this.db,
+              store: this.name,
+              observe: this.observe,
+            }),
         );
       };
+
+      // Handle incoming update notifications
       this.socket.onmessage = (message) => {
         try {
           this.onchange && this.onchange(JSON.parse(message.data));
@@ -2572,9 +2683,13 @@
           console.error("Failed to parse WebSocket message:", message.data, e);
         }
       };
+
+      // Log WebSocket errors
       this.socket.onerror = (err) => {
         console.error("WebSocket error:", err);
       };
+
+      // Attempt a single automatic reconnect if the connection drops
       this.socket.onclose = (event) => {
         console.warn(
             `WebSocket closed, code=${event.code}, reason=${event.reason}`,
@@ -2586,6 +2701,9 @@
       };
     }
 
+    /**
+     * Closes the active WebSocket connection.
+     */
     close() {
       if (this.socket) {
         this._manualClose = true;
