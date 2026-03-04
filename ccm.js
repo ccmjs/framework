@@ -2027,7 +2027,7 @@
   }
 
   /**
-   * Abstract base class for datastore accessors in ccmjs
+   * Abstract base class for datastore accessors in ccmjs.
    *
    * Defines the asynchronous data access API used by all datastore implementations.
    *
@@ -2126,7 +2126,7 @@
   }
 
   /**
-   * Volatile in-memory datastore implementation
+   * Volatile in-memory datastore implementation.
    *
    * Stores all datasets in a plain JavaScript object within the current runtime environment.
    * Data exists only for the lifetime of the page and is lost on reload.
@@ -2168,7 +2168,7 @@
      * @returns {Promise<void>}
      */
     async init() {
-      await super.init();
+      super.init();
       if (!this.datasets) this.datasets = {};
       this.datasets = await ccm.helper.solveDependency(this.datasets);
       this.datasets = ccm.helper.arrToStore(this.datasets);
@@ -2183,8 +2183,8 @@
      * Returned datasets are cloned to prevent external mutation of
      * the internal store state.
      *
-     * @param {ccm.types.key|Object} key_or_query - A dataset key or a query object.
-     * @returns {Promise<ccm.types.dataset|null|ccm.types.dataset[]>} A promise that resolves to the requested dataset(s).
+     * @param {ccm.types.key|Object} [key_or_query={}] - Dataset key or query object. Defaults to `{}` which returns all datasets.
+     * @returns {Promise<ccm.types.dataset|null|ccm.types.dataset[]>} Promise that resolves to the requested dataset(s).
      */
     async get(key_or_query = {}) {
       let result;
@@ -2217,12 +2217,10 @@
       this._checkKey(priodata.key);
 
       // Integrate with existing dataset if it exists, otherwise create new entry
-      if (this.datasets[priodata.key])
-        this.datasets[priodata.key] = await ccm.helper.integrate(
-          priodata,
-          this.datasets[priodata.key],
-        );
-      else this.datasets[priodata.key] = priodata;
+      const existing = this.datasets[priodata.key];
+      this.datasets[priodata.key] = existing
+          ? await ccm.helper.integrate(priodata, existing)
+          : priodata;
 
       return ccm.helper.clone(this.datasets[priodata.key]);
     }
@@ -2257,10 +2255,8 @@
     /**
      * Counts datasets matching a query.
      *
-     * Resolves to the number of datasets matching the query.
-     *
-     * @param {Object} query - Query object
-     * @returns {Promise<number>}
+     * @param {Object} [query={}] - Query object. Defaults to `{}` which counts all datasets.
+     * @returns {Promise<number>} Resolves to the number of datasets matching the query.
      */
     async count(query = {}) {
       return ccm.helper.runQuery(query, this.datasets).length;
@@ -2271,8 +2267,7 @@
    * Browser-based persistent datastore using IndexedDB.
    *
    * Persists datasets locally in the browser via IndexedDB.
-   * Each store corresponds to an IndexedDB object store
-   * within a shared database namespace.
+   * Each store corresponds to an IndexedDB object store within a shared database namespace.
    *
    * Characteristics:
    * - Fully compliant with the Datastore contract.
@@ -2307,7 +2302,7 @@
      * @returns {Promise<void>}
      */
     async init() {
-      await super.init();
+      super.init();
 
       // Open the database to check for existing object store
       const existingDB = await this.#pReq(indexedDB.open(this.dbName));
@@ -2336,10 +2331,10 @@
      * - If a key is provided, resolves to the matching dataset or `null`.
      * - If a query object is provided, retrieves all datasets and filters them in memory.
      *
-     * @param {ccm.types.key|Object} key_or_query - Dataset key or query object.
+     * @param {ccm.types.key|Object} [key_or_query={}] - Dataset key or query object. Defaults to `{}` which returns all datasets.
      * @returns {Promise<ccm.types.dataset|null|ccm.types.dataset[]>}
      */
-    async get(key_or_query) {
+    async get(key_or_query = {}) {
       if (ccm.helper.isObject(key_or_query))
         return ccm.helper.runQuery(
           key_or_query,
@@ -2398,7 +2393,7 @@
      * @returns {Promise<void>}
      */
     async clear() {
-      this.#getStore("readwrite").clear()
+      await this.#getStore("readwrite").clear();
 
       if (!(await this.count())) {
         const newVersion = this.database.version + 1;
@@ -2415,13 +2410,10 @@
     /**
      * Counts datasets matching a query.
      *
-     * Retrieves all datasets and applies the query
-     * filter in memory.
-     *
-     * @param {Object} query - Query object.
-     * @returns {Promise<number>}
+     * @param {Object} [query={}] - Query object. Defaults to `{}` which counts all datasets.
+     * @returns {Promise<number>} Resolves to the number of datasets matching the query.
      */
-    async count(query) {
+    async count(query = {}) {
       return ccm.helper.runQuery(
         query,
         await this.#pReq(this.#getStore().getAll()),
@@ -2434,7 +2426,7 @@
      * @returns {Promise<string[]>}
      */
     async names() {
-      return Array.from(this.database.objectStoreNames);
+      return Array.from(this.database?.objectStoreNames || []);
     }
 
     /**
@@ -2499,15 +2491,19 @@
 
       this.user = ccm.helper.findInAncestors(this, "user");
 
-      if (this.observe) {
+      if (this.observe && window.WebSocket) {
         if (!this.onchange && this.parent) this.onchange = this.parent.start;
         this.connect();
       }
     }
 
-    async get(key_or_query) {
+    async get(key_or_query = {}, projection, options) {
       if (!ccm.helper.isObject(key_or_query)) this._checkKey(key_or_query);
-      return this.#send({ get: key_or_query });
+
+      const params = { get: key_or_query };
+      if (projection) params.projection = projection;
+      if (options) params.options = options;
+      return this.#send(params);
     }
 
     async set(priodata) {
@@ -2521,7 +2517,7 @@
       return this.#send({ del: key });
     }
 
-    async count(query) {
+    async count(query = {}) {
       return this.#send({ count: query });
     }
 
@@ -2534,6 +2530,7 @@
     }
 
     async #send(params = {}) {
+      params.ccm = this.ccm || ccm.version;
       params.db = this.db || "";
       params.store = this.name;
 
@@ -2558,7 +2555,7 @@
     }
 
     connect() {
-      this.socket = new WebSocket(this.url.replace("http", "ws"));
+      this.socket = new WebSocket(this.url.replace(/^http/, "ws"));
       this.socket.onopen = () => {
         this.socket.send(
           JSON.stringify({
@@ -2578,15 +2575,13 @@
       this.socket.onerror = (err) => {
         console.error("WebSocket error:", err);
       };
-
       this.socket.onclose = (event) => {
         console.warn(
-          `WebSocket closed, code=${event.code}, reason=${event.reason}`,
+            `WebSocket closed, code=${event.code}, reason=${event.reason}`,
         );
-        if (!this._manualClose && !this._reconnect) {
-          this._reconnect = true;
+        if (!this._manualClose && !this._reconnectAttempted) {
+          this._reconnectAttempted = true;
           this.connect();
-          delete this._reconnect;
         }
       };
     }
