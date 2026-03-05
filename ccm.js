@@ -249,60 +249,71 @@
            * only those properties are included in the result. The function also clones the imported module to avoid caching issues.
            */
           async function loadModule() {
-            // Use hash signs at the end of URL if only specific properties should be included in the result data.
+
+            // Extract optional property keys from URL hash
             let [url, ...keys] = resource.url.split("#");
 
-            /* Resolve relative URLs to absolute URLs.
-             * When this code runs inside an ES module, dynamic imports resolve paths
-             * relative to the current module (import.meta.url). This ensures that modules
-             * which load other modules via ccm.load() resolve their paths correctly.
-             * If no module context exists, fall back to the current page URL.
-             */
+            // Resolve relative URLs to absolute URLs.
+            // Use import.meta.url so modules can load other modules relative to themselves.
             const base =
                 typeof import.meta !== "undefined" && import.meta.url
                     ? import.meta.url
                     : location.href;
             url = new URL(url, base).href;
 
-            // If SRI is given, fetch the module, verify integrity and create a blob URL for dynamic import.
             let result;
+
+            // Handle SRI verification
             if (resource.attr?.integrity) {
-              // Fetch the module.
-              const text = await (await fetch(url)).text();
 
-              // Calculate SRI hash.
-              const prefix = resource.attr.integrity.slice(
-                0,
-                resource.attr.integrity.indexOf("-"),
-              );
-              let algorithm = prefix.replace("sha", "SHA-");
-              const data = new TextEncoder().encode(text);
-              const hash = await crypto.subtle.digest(algorithm, data);
-              const base64 = btoa(String.fromCharCode(...new Uint8Array(hash)));
-              const sri = `${prefix}-${base64}`;
+              // Cache for verified module blob URLs (kept local to this loader)
+              const cache = loadModule.cache ||= new Map();
 
-              // Verify integrity.
-              if (sri !== resource.attr.integrity) return error();
+              // Create blob URL only once per module URL
+              if (!cache.has(url)) {
 
-              // .Create a blob for dynamic import.
-              const blob = new Blob([text], { type: "text/javascript" });
-              const blobUrl = URL.createObjectURL(blob);
+                // Fetch module source
+                const text = await (await fetch(url)).text();
 
-              result = await import(blobUrl);
-            } else result = await import(url);
+                // Compute SRI hash
+                const prefix = resource.attr.integrity.slice(
+                    0,
+                    resource.attr.integrity.indexOf("-")
+                );
 
-            // If only one specific deeper value has to be the result.
+                const algorithm = prefix.replace("sha", "SHA-");
+                const data = new TextEncoder().encode(text);
+                const hash = await crypto.subtle.digest(algorithm, data);
+                const base64 = btoa(String.fromCharCode(...new Uint8Array(hash)));
+                const sri = `${prefix}-${base64}`;
+
+                // Verify integrity
+                if (sri !== resource.attr.integrity) return error();
+
+                // Create blob URL for dynamic import
+                const blob = new Blob([text], { type: "text/javascript" });
+                const blobUrl = URL.createObjectURL(blob);
+
+                cache.set(url, blobUrl);
+              }
+
+              result = await import(cache.get(url));
+            } else {
+              result = await import(url);
+            }
+
+            // If only one specific deeper value has to be the result
             if (keys.length === 1)
               result = ccm.helper.deepValue(result, keys[0]);
 
-            // If more than one specific property has to be included.
+            // If multiple properties should be returned
             if (keys.length > 1) {
               const obj = {};
-              keys.forEach((key) => (obj[key] = result[key]));
+              keys.forEach(key => obj[key] = result[key]);
               result = obj;
             }
 
-            // A dynamic import caches the module by reference, so we have to clone the result.
+            // Dynamic import returns cached module references → clone to avoid mutation
             success(ccm.helper.clone(result));
           }
 
