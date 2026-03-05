@@ -252,12 +252,17 @@
             // Use hash signs at the end of URL if only specific properties should be included in the result data.
             let [url, ...keys] = resource.url.split("#");
 
-            // Convert relative URL to absolute URL (dynamic imports don't work with relative URL's).
-            if (url.startsWith("./"))
-              url = url.replace(
-                "./",
-                location.href.substring(0, location.href.lastIndexOf("/") + 1),
-              );
+            /* Resolve relative URLs to absolute URLs.
+             * When this code runs inside an ES module, dynamic imports resolve paths
+             * relative to the current module (import.meta.url). This ensures that modules
+             * which load other modules via ccm.load() resolve their paths correctly.
+             * If no module context exists, fall back to the current page URL.
+             */
+            const base =
+                typeof import.meta !== "undefined" && import.meta.url
+                    ? import.meta.url
+                    : location.href;
+            url = new URL(url, base).href;
 
             // If SRI is given, fetch the module, verify integrity and create a blob URL for dynamic import.
             let result;
