@@ -253,54 +253,36 @@
             // Extract optional property keys from URL hash
             let [url, ...keys] = resource.url.split("#");
 
-            // Resolve relative URLs to absolute URLs.
-            // Use import.meta.url so modules can load other modules relative to themselves.
-            const base =
-                typeof import.meta !== "undefined" && import.meta.url
-                    ? import.meta.url
-                    : location.href;
-            url = new URL(url, base).href;
+            // Resolve relative URLs to absolute URLs
+            url = new URL(url, location.href).href;
 
             let result;
 
             // Handle SRI verification
             if (resource.attr?.integrity) {
 
-              // Cache for verified module blob URLs (kept local to this loader)
-              const cache = loadModule.cache ||= new Map();
+              // Fetch the module
+              const text = await (await fetch(url)).text();
 
-              // Create blob URL only once per module URL
-              if (!cache.has(url)) {
+              // Compute SRI hash
+              const prefix = resource.attr.integrity.slice(
+                  0,
+                  resource.attr.integrity.indexOf("-")
+              );
+              const algorithm = prefix.replace("sha", "SHA-");
+              const data = new TextEncoder().encode(text);
+              const hash = await crypto.subtle.digest(algorithm, data);
+              const base64 = btoa(String.fromCharCode(...new Uint8Array(hash)));
+              const sri = `${prefix}-${base64}`;
 
-                // Fetch module source
-                const text = await (await fetch(url)).text();
+              // Verify integrity
+              if (sri !== resource.attr.integrity) return error();
 
-                // Compute SRI hash
-                const prefix = resource.attr.integrity.slice(
-                    0,
-                    resource.attr.integrity.indexOf("-")
-                );
-
-                const algorithm = prefix.replace("sha", "SHA-");
-                const data = new TextEncoder().encode(text);
-                const hash = await crypto.subtle.digest(algorithm, data);
-                const base64 = btoa(String.fromCharCode(...new Uint8Array(hash)));
-                const sri = `${prefix}-${base64}`;
-
-                // Verify integrity
-                if (sri !== resource.attr.integrity) return error();
-
-                // Create blob URL for dynamic import
-                const blob = new Blob([text], { type: "text/javascript" });
-                const blobUrl = URL.createObjectURL(blob);
-
-                cache.set(url, blobUrl);
-              }
-
-              result = await import(cache.get(url));
-            } else {
-              result = await import(url);
+              // Create blob URL for dynamic import
+              url = URL.createObjectURL(new Blob([text], { type: "text/javascript" }));
             }
+
+            result = await import(url);
 
             // If only one specific deeper value has to be the result
             if (keys.length === 1)
