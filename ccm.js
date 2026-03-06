@@ -261,7 +261,7 @@
             // Handle SRI verification
             if (resource.attr?.integrity) {
 
-              // Fetch the module
+              // Fetch module source
               const text = await (await fetch(url)).text();
 
               // Compute SRI hash
@@ -269,7 +269,8 @@
                   0,
                   resource.attr.integrity.indexOf("-")
               );
-              const algorithm = prefix.replace("sha", "SHA-");
+
+              const algorithm = prefix.toUpperCase().replace("SHA", "SHA-");
               const data = new TextEncoder().encode(text);
               const hash = await crypto.subtle.digest(algorithm, data);
               const base64 = btoa(String.fromCharCode(...new Uint8Array(hash)));
@@ -279,10 +280,12 @@
               if (sri !== resource.attr.integrity) return error();
 
               // Create blob URL for dynamic import
-              url = URL.createObjectURL(new Blob([text], { type: "text/javascript" }));
+              const blobUrl = URL.createObjectURL(new Blob([text], { type: "text/javascript" }));
+              result = await import(blobUrl);
+              URL.revokeObjectURL(blobUrl);
+            } else {
+              result = await import(url);
             }
-
-            result = await import(url);
 
             // If only one specific deeper value has to be the result
             if (keys.length === 1)
