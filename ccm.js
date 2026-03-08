@@ -1470,6 +1470,13 @@
       isCore: (value) => value?.components && value.version && true,
 
       /**
+       * @summary Checks if a value is a ccm dataset.
+       * @param {*} value - value to check
+       * @returns {boolean}
+       */
+      isDataset: value => ccm.helper.isObject( value ) && ccm.helper.isKey( value.key ),
+
+      /**
        * @summary Checks whether a value is a [datastore object]{@link ccm.types.store}.
        * @param {any} value
        * @returns {boolean}
