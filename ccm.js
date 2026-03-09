@@ -2228,7 +2228,7 @@
       const existing = this.datasets[priodata.key];
       this.datasets[priodata.key] = existing
           ? await ccm.helper.integrate(priodata, existing)
-          : priodata;
+          : ccm.helper.clone(priodata);
 
       return ccm.helper.clone(this.datasets[priodata.key]);
     }
@@ -2289,6 +2289,7 @@
    * @extends Datastore
    */
   class OfflineStore extends Datastore {
+
     /**
      * Name of the internal IndexedDB database used for storage.
      * @type {string}
@@ -2310,27 +2311,39 @@
      * @returns {Promise<void>}
      */
     async init() {
+
       super.init();
 
-      // Open the database to check for existing object store
-      const existingDB = await this.#pReq(indexedDB.open(this.dbName));
-      // Object store exists? => Use it
-      if (existingDB.objectStoreNames.contains(this.name)) {
-        this.#setupDatabase(existingDB);
+      // Open database to inspect existing object stores
+      const db = await this.#pReq(indexedDB.open(this.dbName));
+
+      // If store already exists, use the connection directly
+      if (db.objectStoreNames.contains(this.name)) {
+        this.#setupDatabase(db);
         return;
       }
 
-      // Object store does not exist? => Create it via version upgrade
-      const newVersion = existingDB.version + 1;
-      existingDB.close();
+      // Otherwise upgrade database version to create the object store
+      const newVersion = db.version + 1;
+      db.close();
 
-      // Open the database with the new version to trigger onupgradeneeded
       const request = indexedDB.open(this.dbName, newVersion);
-      request.onupgradeneeded = (event) =>
-        event.target.result.createObjectStore(this.name, { keyPath: "key" });
+      let upgradeComplete;
 
-      // Wait for the database to be ready and set up the connection
-      this.#setupDatabase(await this.#pReq(request));
+      request.onupgradeneeded = event => {
+        const upgradeDB = event.target.result;
+        const tx = event.target.transaction;
+
+        if (!upgradeDB.objectStoreNames.contains(this.name))
+          upgradeDB.createObjectStore(this.name, { keyPath: "key" });
+
+        // Ensure upgrade transaction finishes before continuing
+        upgradeComplete = new Promise(resolve => tx.oncomplete = resolve);
+      };
+
+      const upgradedDB = await this.#pReq(request);
+      if (upgradeComplete) await upgradeComplete;
+      this.#setupDatabase(upgradedDB);
     }
 
     /**
@@ -2344,11 +2357,7 @@
      */
     async get(key_or_query = {}) {
       if (ccm.helper.isObject(key_or_query))
-        return ccm.helper.runQuery(
-          key_or_query,
-          await this.#pReq(this.#getStore().getAll()),
-        );
-
+        return ccm.helper.runQuery(key_or_query, await this.#pReq(this.#getStore().getAll()));
       this._checkKey(key_or_query);
       return this.#pReq(this.#getStore().get(key_or_query));
     }
@@ -2361,17 +2370,13 @@
      * - Persists the result via a readwrite transaction.
      *
      * @param {ccm.types.dataset} priodata - Dataset to create or update
-     * @returns {Promise<ccm.types.dataset>} A promise that resolves to the created or updated dataset.
+     * @returns {Promise<ccm.types.dataset>} Resolves to the created or updated dataset.
      */
     async set(priodata) {
       if (!priodata.key) priodata.key = ccm.helper.generateKey();
-
       this._checkKey(priodata.key);
-
       let dataset = await this.get(priodata.key);
-      if (dataset) dataset = await ccm.helper.integrate(priodata, dataset);
-      else dataset = priodata;
-
+      dataset = dataset ? await ccm.helper.integrate(priodata, dataset) : priodata;
       await this.#pReq(this.#getStore("readwrite").put(dataset));
       return dataset;
     }
@@ -2382,11 +2387,10 @@
      * Removes the dataset and resolves to the deleted dataset or `null` if none existed.
      *
      * @param {ccm.types.key} key - Dataset key
-     * @returns {Promise<ccm.types.dataset|null>} A promise that resolves to the deleted dataset or `null` if it did not exist.
+     * @returns {Promise<ccm.types.dataset|null>}
      */
     async del(key) {
       this._checkKey(key);
-
       const dataset = await this.get(key);
       await this.#pReq(this.#getStore("readwrite").delete(key));
       return dataset || null;
@@ -2395,37 +2399,22 @@
     /**
      * Removes all datasets from this object store.
      *
-     * Deletes all datasets using the default Datastore logic.
-     * If the store becomes empty, the underlying IndexedDB object store is removed via a version upgrade.
+     * Deletes all datasets in the store.
      *
      * @returns {Promise<void>}
      */
     async clear() {
-      await this.#getStore("readwrite").clear();
-
-      if (!(await this.count())) {
-        const newVersion = this.database.version + 1;
-        this.database.close();
-
-        const request = indexedDB.open(this.dbName, newVersion);
-        request.onupgradeneeded = (event) =>
-          event.target.result.deleteObjectStore(this.name);
-
-        this.#setupDatabase(await this.#pReq(request));
-      }
+      await this.#pReq(this.#getStore("readwrite").clear());
     }
 
     /**
      * Counts datasets matching a query.
      *
      * @param {Object} [query={}] - Query object. Defaults to `{}` which counts all datasets.
-     * @returns {Promise<number>} Resolves to the number of datasets matching the query.
+     * @returns {Promise<number>}
      */
     async count(query = {}) {
-      return ccm.helper.runQuery(
-        query,
-        await this.#pReq(this.#getStore().getAll()),
-      ).length;
+      return ccm.helper.runQuery(query, await this.#pReq(this.#getStore().getAll())).length;
     }
 
     /**
@@ -2445,6 +2434,8 @@
      * @private
      */
     #getStore(mode = "readonly") {
+      if (!this.database)
+        throw new Error("OfflineStore not initialized.");
       const tx = this.database.transaction(this.name, mode);
       return tx.objectStore(this.name);
     }
@@ -2452,17 +2443,17 @@
     /**
      * Wraps an IndexedDB request in a Promise.
      *
-     * @param {IDBRequest} request - IndexedDB request
+     * @param {IDBRequest} request
      * @returns {Promise<any>}
      * @private
      */
     #pReq(request) {
       return new Promise((resolve, reject) => {
-        request.onsuccess = (e) => resolve(e.target.result);
-        request.onerror = (e) => reject(e.target.error);
+        request.onsuccess = e => resolve(e.target.result);
+        request.onerror = e => reject(e.target.error);
         request.onblocked = () => {
-          console.error(
-            `[IndexedDB] Open request blocked for '${this.dbName}'. Please close all other tabs that use this database.`,
+          console.warn(
+              `[IndexedDB] Open request blocked for '${this.dbName}'. Close other tabs using this database.`
           );
         };
       });
@@ -2471,24 +2462,17 @@
     /**
      * Configures database lifecycle handlers.
      *
-     * @param {IDBDatabase} db - Opened IndexedDB database instance
+     * @param {IDBDatabase} db
      * @private
      */
     #setupDatabase(db) {
       db.onversionchange = () => {
-        console.warn(
-          `[IndexedDB] Database '${this.dbName}' version change detected. Closing connection.`,
-        );
-        console.log(
-          "The local database was updated by another app. Please reload!",
-        );
+        console.warn(`[IndexedDB] Database '${this.dbName}' version change detected. Closing connection.`);
         db.close();
       };
-
       db.onclose = () => {
         console.log(`[IndexedDB] Database '${this.dbName}' connection closed.`);
       };
-
       this.database = db;
     }
   }
