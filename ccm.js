@@ -2359,7 +2359,7 @@
       if (ccm.helper.isObject(key_or_query))
         return ccm.helper.runQuery(key_or_query, await this.#pReq(this.#getStore().getAll()));
       this._checkKey(key_or_query);
-      return this.#pReq(this.#getStore().get(key_or_query));
+      return (await this.#pReq(this.#getStore().get(key_or_query))) || null;
     }
 
     /**
