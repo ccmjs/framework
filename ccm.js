@@ -547,7 +547,7 @@
          * @type {{name: string, index: string, version: string, filename: string, url: string, minified: boolean, sri: string}}
          */
         const url_data = /\.m?js(#.*)?$/.test(component)
-          ? ccm.helper.convertComponentURL(component)
+          ? ccm.helper.parseComponentURL(component)
           : null;
 
         /**
@@ -1020,51 +1020,6 @@
       },
 
       /**
-       * @summary Extract data from a component URL. (TODO: SRI in doc)
-       * @param {string} url
-       * @returns {{name: string, index: string, version: string, filename: string, url: string, minified: boolean, sri: string}}
-       * @throws {Error} if component filename is not valid
-       * @example
-       * const data = ccm.helper.convertComponentURL( './ccm.quiz.mjs' );  // latest version
-       * console.log(data); // {"name":"quiz","index":"quiz","filename":"ccm.quiz.mjs","url":"./ccm.quiz.mjs"}
-       * @example
-       * const data = ccm.helper.convertComponentURL( './ccm.quiz-4.0.2.mjs' ); // specific version
-       * console.log(data); // {"name":"quiz","version":"4.0.2","index":"quiz-4-0-2","filename":"ccm.quiz-4.0.2.mjs","url":"./ccm.quiz-4.0.2.mjs"}
-       * @example
-       * const data = ccm.helper.convertComponentURL( './ccm.quiz.min.mjs' );  // minified
-       * console.log(data); // {"name":"quiz","index":"quiz","filename":"ccm.quiz.min.mjs","url":"./ccm.quiz.min.mjs","minified":true}
-       */
-      convertComponentURL: (url) => {
-        /**
-         * from given url extracted filename of the ccm component
-         * @type {string}
-         */
-        let sri;
-        [url, sri] = url.split("#");
-        const filename = url.split("/").at(-1);
-
-        // abort if extracted filename is not a valid filename for a ccm component
-        if (!ccm.helper.regex("filename").test(filename))
-          throw new Error("invalid component filename: " + filename);
-
-        // extract data
-        const data = { url, filename, sri };
-        let tmp = filename.match(/^ccm\.(.+)\./)[1]; // remove prefix 'ccm.' and file extension
-        if (tmp.endsWith(".min")) {
-          data.minified = true;
-          tmp = tmp.substring(0, tmp.length - 4); // removes optional infix '.min'
-        }
-        tmp = tmp.split("-");
-        data.name = tmp.at(0); // name
-        if (tmp.length > 1) data.version = tmp[1]; // version
-        data.index =
-          data.name +
-          (data.version ? "-" + data.version.replace(/\./g, "-") : ""); // index
-
-        return data;
-      },
-
-      /**
        * Converts an array of datasets into a datastore-compatible object.
        *
        * The returned object uses the dataset keys as property names:
@@ -1120,6 +1075,79 @@
 
         return obj;
       },
+
+      /**
+       * Parses a ccmjs component URL and extracts component metadata.
+       *
+       * Supported filename patterns:
+       *
+       * - ccm.<name>.mjs
+       * - ccm.<name>.min.mjs
+       * - ccm.<name>-<version>.mjs
+       * - ccm.<name>-<version>.min.mjs
+       *
+       * Example:
+       *
+       * https://example.com/lib/ccm.quiz-4.0.0.min.mjs#sha256-ABC
+       *
+       * Result:
+       * ```
+       * {
+       *   url: "https://example.com/lib/ccm.quiz-4.0.0.min.mjs",
+       *   filename: "ccm.quiz-4.0.0.min.mjs",
+       *   sri: "sha256-ABC",
+       *   name: "quiz",
+       *   version: "4.0.0",
+       *   minified: true,
+       *   index: "quiz-4-0-0"
+       * }
+       * ```
+       *
+       * @param {string} url - URL of the ccmjs component
+       * @returns {Object} Parsed component metadata.
+       */
+      parseComponentURL: (url) => {
+
+        // Extract optional Subresource Integrity hash
+        const [baseURL, sri] = url.split("#");
+
+        // Extract filename
+        const filename = baseURL.split("/").at(-1);
+
+        // Validate filename
+        if (!ccm.helper.regex("filename").test(filename))
+          throw new Error("invalid component filename: " + filename);
+
+        const result = {
+          url: baseURL,
+          filename
+        };
+
+        if (sri) result.sri = sri;
+
+        // Remove prefix "ccm." and suffix ".mjs". Example: ccm.quiz-4.0.0.min.mjs → quiz-4.0.0.min
+        let namePart = filename
+            .replace(/^ccm\./, "")
+            .replace(/\.(m?js)$/, "")
+
+        // Detect minified builds
+        if (namePart.endsWith(".min")) {
+          result.minified = true;
+          namePart = namePart.slice(0, -4);
+        }
+
+        // Extract name and optional version. Example: quiz-4.0.0 → name="quiz", version="4.0.0"
+        const [name, version] = namePart.split("-");
+        result.name = name;
+        if (version) result.version = version;
+
+        // Generate component index. Example: quiz-4.0.0 → quiz-4-0-0
+        result.index = name + (version ? "-" + version.replace(/\./g, "-") : "");
+
+        return result;
+      },
+
+
 
       /**
        * @summary Returns or modifies a value contained in a nested data structure.
@@ -1876,6 +1904,7 @@
         switch (index) {
           case "filename":
             return /^ccm\.([a-z][a-z_0-9]*)(-(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))?(\.min)?(\.m?js)$/;
+            // oder das hier? -> ^ccm\.[a-z][a-z0-9_-]*(?:-\d+\.\d+\.\d+)?(?:\.min)?\.mjs$
           case "key":
             return /^[a-z_][a-z0-9_]{0,31}$/;
           default:
