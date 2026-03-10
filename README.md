@@ -1,4 +1,4 @@
-# ccmjs – Client-side Component Model
+# ccmjs Framework
 
 ![version](https://img.shields.io/badge/version-28.0.0-blue)
 ![License](https://img.shields.io/github/license/ccmjs/framework)
