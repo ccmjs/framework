@@ -978,17 +978,59 @@
      * @namespace
      */
     helper: {
+
       /**
-       * @summary converts an array of datasets to a collection of ccmjs datasets
-       * @param {ccm.types.dataset[]} arr - array of datasets
-       * @returns {ccm.types.datasets} collection of ccmjs datasets
+       * Converts an array of datasets into a datastore-compatible object.
+       *
+       * The returned object uses the dataset keys as property names:
+       *
+       * Dataset array:
+       * [
+       *   { key: "a", value: 1 },
+       *   { key: "b", value: 2 }
+       * ]
+       *
+       * Resulting object:
+       * {
+       *   a: { key: "a", value: 1 },
+       *   b: { key: "b", value: 2 }
+       * }
+       *
+       * Only valid datasets (objects containing a valid `key` property)
+       * are included in the result. Other values in the array are ignored.
+       *
+       * If the provided value is not an array, it is returned unchanged.
+       * This allows flexible usage when configuration values may already
+       * be in datastore format.
+       *
+       * @param {ccm.types.dataset[]} arr - Array of datasets
+       * @returns {Object<string,ccm.types.dataset>|*} Datastore-compatible object or original value
+       * @example
+       * ccm.helper.datasetsToStore([
+       *   { key: "a", value: 1 },
+       *   { key: "b", value: 2 }
+       * ]);
+       *
+       * // returns:
+       * {
+       *   a: { key: "a", value: 1 },
+       *   b: { key: "b", value: 2 }
+       * }
        */
-      arrToStore: (arr) => {
+      datasetsToStore: (arr) => {
+
+        // If the input is not an array, return it unchanged.
         if (!Array.isArray(arr)) return arr;
 
         const obj = {};
-        arr.forEach((value) => {
-          if (ccm.helper.isDataset(value)) obj[value.key] = value;
+
+        // Convert dataset array into key-based object.
+        arr.forEach(dataset => {
+
+          // Only include valid datasets.
+          if (ccm.helper.isDataset(dataset))
+            obj[dataset.key] = dataset;
+
         });
 
         return obj;
@@ -2179,7 +2221,7 @@
       super.init();
       if (!this.datasets) this.datasets = {};
       this.datasets = await ccm.helper.solveDependency(this.datasets);
-      this.datasets = ccm.helper.arrToStore(this.datasets);
+      this.datasets = ccm.helper.datasetsToStore(this.datasets);
     }
 
     /**
