@@ -743,7 +743,7 @@
                 // Add relevant inner arrays/objects for further searching.
                 else if (Array.isArray(value) || ccm.helper.isObject(value)) {
                   // relevant object type? => add to relevant inner arrays/objects
-                  if (!ccm.helper.isSpecialObject(value)) relevant.push(value);
+                  if (!ccm.helper.isNonCloneable(value)) relevant.push(value);
                 }
               }
 
@@ -980,6 +980,91 @@
     helper: {
 
       /**
+       * Creates a deep copy of a value.
+       *
+       * Arrays and plain objects are recursively cloned.
+       * Primitive values are returned unchanged.
+       *
+       * Special objects such as DOM nodes, CCM instances, datastores,
+       * the CCM core, or the global window object are not cloned and
+       * are returned as references.
+       *
+       * Cyclic references are detected using an internal hash set and
+       * are not traversed again to avoid infinite recursion.
+       *
+       * @param {*} value - Value to clone
+       * @param {Set<Object>} [hash] - Internal set used for cycle detection
+       * @returns {*} Deep copy of the provided value
+       */
+      clone: (value, hash = new Set()) => {
+
+        if (Array.isArray(value) || ccm.helper.isObject(value)) {
+
+          // Do not clone special objects or already processed references
+          if (ccm.helper.isNonCloneable(value) || hash.has(value))
+            return value;
+
+          hash.add(value);
+
+          const copy = Array.isArray(value) ? [] : {};
+
+          Object.keys(value).forEach(key => {
+            copy[key] = ccm.helper.clone(value[key], hash);
+          });
+
+          return copy;
+        }
+
+        // Primitive values are returned unchanged
+        return value;
+      },
+
+      /**
+       * @summary Extract data from a component URL. (TODO: SRI in doc)
+       * @param {string} url
+       * @returns {{name: string, index: string, version: string, filename: string, url: string, minified: boolean, sri: string}}
+       * @throws {Error} if component filename is not valid
+       * @example
+       * const data = ccm.helper.convertComponentURL( './ccm.quiz.mjs' );  // latest version
+       * console.log(data); // {"name":"quiz","index":"quiz","filename":"ccm.quiz.mjs","url":"./ccm.quiz.mjs"}
+       * @example
+       * const data = ccm.helper.convertComponentURL( './ccm.quiz-4.0.2.mjs' ); // specific version
+       * console.log(data); // {"name":"quiz","version":"4.0.2","index":"quiz-4-0-2","filename":"ccm.quiz-4.0.2.mjs","url":"./ccm.quiz-4.0.2.mjs"}
+       * @example
+       * const data = ccm.helper.convertComponentURL( './ccm.quiz.min.mjs' );  // minified
+       * console.log(data); // {"name":"quiz","index":"quiz","filename":"ccm.quiz.min.mjs","url":"./ccm.quiz.min.mjs","minified":true}
+       */
+      convertComponentURL: (url) => {
+        /**
+         * from given url extracted filename of the ccm component
+         * @type {string}
+         */
+        let sri;
+        [url, sri] = url.split("#");
+        const filename = url.split("/").at(-1);
+
+        // abort if extracted filename is not a valid filename for a ccm component
+        if (!ccm.helper.regex("filename").test(filename))
+          throw new Error("invalid component filename: " + filename);
+
+        // extract data
+        const data = { url, filename, sri };
+        let tmp = filename.match(/^ccm\.(.+)\./)[1]; // remove prefix 'ccm.' and file extension
+        if (tmp.endsWith(".min")) {
+          data.minified = true;
+          tmp = tmp.substring(0, tmp.length - 4); // removes optional infix '.min'
+        }
+        tmp = tmp.split("-");
+        data.name = tmp.at(0); // name
+        if (tmp.length > 1) data.version = tmp[1]; // version
+        data.index =
+          data.name +
+          (data.version ? "-" + data.version.replace(/\./g, "-") : ""); // index
+
+        return data;
+      },
+
+      /**
        * Converts an array of datasets into a datastore-compatible object.
        *
        * The returned object uses the dataset keys as property names:
@@ -1034,69 +1119,6 @@
         });
 
         return obj;
-      },
-
-      /**
-       * @summary Creates a deep copy of a value.
-       * @param {any} value
-       * @param [hash] - internal usage
-       * @returns {any}
-       */
-      clone: (value, hash = new Set()) => {
-        if (Array.isArray(value) || ccm.helper.isObject(value)) {
-          if (ccm.helper.isSpecialObject(value) || hash.has(value))
-            return value;
-          hash.add(value);
-          const copy = Array.isArray(value) ? [] : {};
-          for (const i in value) copy[i] = ccm.helper.clone(value[i], hash);
-          return copy;
-        }
-        return value;
-      },
-
-      /**
-       * @summary Extract data from a component URL. (TODO: SRI in doc)
-       * @param {string} url
-       * @returns {{name: string, index: string, version: string, filename: string, url: string, minified: boolean, sri: string}}
-       * @throws {Error} if component filename is not valid
-       * @example
-       * const data = ccm.helper.convertComponentURL( './ccm.quiz.mjs' );  // latest version
-       * console.log(data); // {"name":"quiz","index":"quiz","filename":"ccm.quiz.mjs","url":"./ccm.quiz.mjs"}
-       * @example
-       * const data = ccm.helper.convertComponentURL( './ccm.quiz-4.0.2.mjs' ); // specific version
-       * console.log(data); // {"name":"quiz","version":"4.0.2","index":"quiz-4-0-2","filename":"ccm.quiz-4.0.2.mjs","url":"./ccm.quiz-4.0.2.mjs"}
-       * @example
-       * const data = ccm.helper.convertComponentURL( './ccm.quiz.min.mjs' );  // minified
-       * console.log(data); // {"name":"quiz","index":"quiz","filename":"ccm.quiz.min.mjs","url":"./ccm.quiz.min.mjs","minified":true}
-       */
-      convertComponentURL: (url) => {
-        /**
-         * from given url extracted filename of the ccm component
-         * @type {string}
-         */
-        let sri;
-        [url, sri] = url.split("#");
-        const filename = url.split("/").at(-1);
-
-        // abort if extracted filename is not a valid filename for a ccm component
-        if (!ccm.helper.regex("filename").test(filename))
-          throw new Error("invalid component filename: " + filename);
-
-        // extract data
-        const data = { url, filename, sri };
-        let tmp = filename.match(/^ccm\.(.+)\./)[1]; // remove prefix 'ccm.' and file extension
-        if (tmp.endsWith(".min")) {
-          data.minified = true;
-          tmp = tmp.substring(0, tmp.length - 4); // removes optional infix '.min'
-        }
-        tmp = tmp.split("-");
-        data.name = tmp.at(0); // name
-        if (tmp.length > 1) data.version = tmp[1]; // version
-        data.index =
-          data.name +
-          (data.version ? "-" + data.version.replace(/\./g, "-") : ""); // index
-
-        return data;
       },
 
       /**
@@ -1681,9 +1703,10 @@
        * @param {*} value
        * @returns {boolean}
        */
-      isSpecialObject: (value) => {
+      isNonCloneable: (value) => {
         return !!(
           value === window ||
+          value === document ||
           ccm.helper.isNode(value) ||
           ccm.helper.isCore(value) ||
           ccm.helper.isInstance(value) ||
@@ -1891,7 +1914,7 @@
           check();
 
           function search(obj) {
-            if (ccm.helper.isSpecialObject(obj)) return;
+            if (ccm.helper.isNonCloneable(obj)) return;
             for (const key in obj)
               if (Object.hasOwn(obj, key))
                 if (key !== "ignore") {
@@ -1985,7 +2008,7 @@
           (key, value) => {
             if (
               typeof value === "function" ||
-              ccm.helper.isSpecialObject(value)
+              ccm.helper.isNonCloneable(value)
             )
               value = null;
             return replacer ? replacer(key, value) : value;
