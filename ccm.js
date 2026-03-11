@@ -692,6 +692,12 @@
       area.appendChild(instance.host); // Move the host element back to the target web page area.
       instance.element.appendChild(loading); // Move the loading icon to the content element.
 
+      // If a mapper is defined in the configuration, map the configuration properties to the instance properties and remove the mapper from the configuration.
+      if (config.mapper) {
+        config = ccm.helper.mapObject(config, config.mapper);
+        delete config.mapper;
+      }
+
       // Integrate the configuration into the created instance.
       Object.assign(instance, config);
 
@@ -1077,6 +1083,118 @@
       },
 
       /**
+       * Gets or sets a deeply nested property value in an object.
+       *
+       * The property path is specified using dot notation.
+       *
+       * Examples:
+       *
+       * Get value:
+       * deepValue(obj, "user.profile.name")
+       *
+       * Set value:
+       * deepValue(obj, "user.profile.name", "John")
+       *
+       * If intermediate objects or arrays do not exist while setting a value,
+       * they are created automatically.
+       *
+       * Array indices are detected automatically:
+       *
+       * deepValue(obj, "items.0.name", "Apple")
+       *
+       * @param {Object} obj - The object to read from or modify.
+       * @param {string} path - Dot-separated property path.
+       * @param {*} [value] - Optional value to set.
+       * @returns {*} The retrieved or assigned value.
+       */
+      deepValue: (obj, path, value) => {
+
+        if (!obj || typeof path !== "string") return;
+
+        const keys = path.split(".");
+        let current = obj;
+
+        for (let i = 0; i < keys.length; i++) {
+          const key = keys[i];
+          const last = i === keys.length - 1;
+
+          // Getter
+          if (last && value === undefined)
+            return current?.[key];
+
+          // Setter
+          if (last) {
+            current[key] = value;
+            return value;
+          }
+
+          // Create missing structure when setting values
+          if (current[key] === undefined && value !== undefined) {
+            const nextKey = keys[i + 1];
+
+            // Determine whether to create array or object
+            current[key] = Number.isInteger(+nextKey) ? [] : {};
+          }
+
+          current = current[key];
+          if (!current) return;
+        }
+      },
+
+      /**
+       * Maps values from one object structure to another.
+       *
+       * The mapper can either be:
+       *
+       * 1) A mapping object that defines how values should be copied
+       *    between object paths.
+       *
+       *    Example:
+       *
+       *    mapObject(source, {
+       *      "user.name": "player.username",
+       *      "user.score": "player.points"
+       *    })
+       *
+       * 2) A mapping function that receives the source object and
+       *    returns a transformed object.
+       *
+       *    Example:
+       *
+       *    mapObject(source, config => ({
+       *      username: config.user.name,
+       *      points: config.user.score
+       *    }))
+       *
+       * The original object is not modified. A new object is returned.
+       *
+       * @param {Object} source - Source object
+       * @param {Object|Function} mapper - Mapping object or mapping function
+       * @returns {Object} New mapped object
+       */
+      mapObject: (source, mapper) => {
+
+        // If mapper is a function, delegate transformation to it
+        if (typeof mapper === "function")
+          return mapper(source);
+
+        // If mapper is not an object, return source unchanged
+        if (!ccm.helper.isObject(mapper))
+          return source;
+
+        const result = {};
+
+        // Apply path-based mapping
+        for (const from in mapper) {
+          const value = ccm.helper.deepValue(source, from);
+          if (value !== undefined)
+            ccm.helper.deepValue(result, mapper[from], value);
+        }
+
+        return result;
+      },
+
+      /**
        * Parses a ccmjs component URL and extracts component metadata.
        *
        * Supported filename patterns:
@@ -1148,35 +1266,6 @@
       },
 
 
-
-      /**
-       * @summary Returns or modifies a value contained in a nested data structure.
-       * @param {Object} obj - nested data structure
-       * @param {string} path - path to the property whose value has to be returned or changed
-       * @param {any} [value] - new value to be set (if not specified, the value of the property is returned)
-       * @returns {any} - existing or updated value of the property
-       * @example // Get value
-       * const obj = { foo: { bar: [{ abc: "xyz" }] } };
-       * const result = ccm.helper.deepValue(obj, "foo.bar.0.abc");
-       * console.log(result); // => 'xyz'
-       * @example // Set value
-       * var obj = {};
-       * var result = ccm.helper.deepValue(obj, "foo.bar", "abc");
-       * console.log(obj);    // => { foo: { bar: "abc" } }
-       * console.log(result); // => "abc"
-       */
-      deepValue: function (obj, path, value) {
-        return recursive(obj, path.split("."), value);
-        function recursive(obj, key, value) {
-          if (!obj) return;
-          const next = key.shift();
-          if (key.length === 0)
-            return value !== undefined ? (obj[next] = value) : obj[next];
-          if (!obj[next] && value !== undefined)
-            obj[next] = isNaN(key[0]) ? {} : [];
-          return recursive(obj[next], key, value);
-        }
-      },
 
       /**
        * @summary Embeds a ccmjs component in a given HTML tag.
