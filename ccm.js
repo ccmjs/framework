@@ -692,11 +692,11 @@
       area.appendChild(instance.host); // Move the host element back to the target web page area.
       instance.element.appendChild(loading); // Move the loading icon to the content element.
 
-      // If a mapper is defined in the configuration, map the configuration properties to the instance properties and remove the mapper from the configuration.
-      if (config.mapper) {
+      // Apply configuration mapper if defined
+      const mapper = config.mapper;
+      delete config.mapper;
+      if (mapper)
         config = ccm.helper.mapObject(config, config.mapper);
-        delete config.mapper;
-      }
 
       // Integrate the configuration into the created instance.
       Object.assign(instance, config);
