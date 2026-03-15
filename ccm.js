@@ -662,12 +662,6 @@
       delete config.parent; // Prevent cyclic recursion when resolving dependencies.
       instance.config = ccm.helper.stringify(config); // Store the original configuration.
 
-      // Convert the Light DOM to an Element Node.
-      if (config.inner)
-        config.inner = ccm.helper.html(config.inner, undefined, {
-          ignore_apps: true,
-        });
-
       // Add the instance as a child to its parent instance.
       if (instance.parent) instance.parent.children[instance.index] = instance;
 
@@ -696,9 +690,22 @@
       const mapper = config.mapper;
       delete config.mapper;
       if (mapper)
-        config = ccm.helper.mapObject(config, config.mapper);
+        config = ccm.helper.mapObject(config, mapper);
 
-      // Integrate the configuration into the created instance.
+      // Remove reserved properties from the configuration to prevent conflicts with instance properties.
+      const reserved = new Set([
+        "children", "component", "element",
+        "host", "init", "instance", "meta",
+        "parent", "ready", "root", "start"
+      ]);
+      for (const key of reserved) {
+        if (key in config) {
+          console.warn(`ccmjs: config property '${key}' is reserved and was ignored.`);
+          delete config[key];
+        }
+      }
+
+      // Integrate configuration into instance
       Object.assign(instance, config);
 
       // Initialize the created and dependent instances if necessary.
@@ -1288,13 +1295,27 @@
        * <ccm-app component="..." config='{...}'></ccm-app>
        */
       embed: async (element) => {
+
         let config = {};
+
         try {
-          config = await ccm.helper.solveDependency(
-            JSON.parse(element.getAttribute("config") || "{}"),
-          );
+          config = JSON.parse(element.getAttribute("config") || "{}");
         } catch (e) {}
-        return ccm.start(element.getAttribute("component"), config, element);
+
+        const script = element.querySelector(':scope > script[type="application/json"]');
+        if (script) {
+          try {
+            Object.assign(config, JSON.parse(script.textContent || "{}"));
+          } catch (e) {}
+        }
+
+        config = await ccm.helper.solveDependency(config);
+
+        return ccm.start(
+            element.getAttribute("component"),
+            config,
+            element
+        );
       },
 
       findInAncestors: (instance, prop) => {
@@ -2154,13 +2175,10 @@
            * `<ccm-app>` tag and embeds the associated component.
            */
           async connectedCallback() {
-            // Abort if the element is not connected to the <body> (and not inside a Shadow DOM).
-            if (!document.body.contains(this)) return;
-
-            // Abort if the element is nested within another `<ccm-app>` tag.
+            // Abort if the element is nested within another `<ccm-*>` tag.
             let node = this;
             while ((node = node.parentNode))
-              if (node.tagName && node.tagName.startsWith("CCM-")) return;
+              if (node.tagName?.startsWith("CCM-")) return;
 
             // embed component
             await ccm.helper.embed(this);
