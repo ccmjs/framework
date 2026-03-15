@@ -2199,17 +2199,17 @@
         "ccm-app",
         class extends HTMLElement {
           /**
-           * @summary Handles the connection of the `<ccm-app>` element to the DOM.
-           * @description
-           * This method is called when the `<ccm-app>` element is added to the DOM.
-           * It ensures that the element is not nested within another
-           * `<ccm-app>` tag and embeds the associated component.
+           * Handles the connection of the `<ccm-app>` element to the DOM.
+           *
+           * This lifecycle method is called when the `<ccm-app>` element
+           * is inserted into the document. It starts the referenced ccmjs
+           * component inside the element and ensures that it is only
+           * embedded once.
            */
           async connectedCallback() {
-            // Abort if the element is nested within another `<ccm-*>` tag.
-            let node = this;
-            while ((node = node.parentNode))
-              if (node.tagName?.startsWith("CCM-")) return;
+
+            // prevent multiple starts
+            if (this.firstChild) return;
 
             // embed component
             await ccm.helper.embed(this);
