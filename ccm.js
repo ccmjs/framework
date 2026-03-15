@@ -1149,6 +1149,81 @@
       },
 
       /**
+       * Embeds a ccmjs component into an HTML element.
+       *
+       * This helper is automatically used when a `<ccm-app>` custom element
+       * is connected to the DOM. It reads the component and configuration
+       * information from the element and starts the requested component
+       * instance inside the element.
+       *
+       * Configuration can be provided in two ways:
+       *
+       * 1. Via the `config` attribute containing JSON.
+       * 2. Via a `<script type="application/json">` child element.
+       *
+       * If both are present, the script configuration has higher priority
+       * and overrides values from the attribute configuration.
+       *
+       * After parsing the configuration, possible ccmjs dependencies
+       * inside the configuration are resolved before the component
+       * instance is started.
+       *
+       * @param {HTMLElement} element - The `<ccm-app>` element that hosts the component.
+       * @returns {Promise<ccm.types.instance>} Promise resolving to the started component instance.
+       *
+       * @example
+       * <ccm-app
+       *   component="./ccm.quiz.mjs"
+       *   config='{"feedback":true}'>
+       * </ccm-app>
+       *
+       * @example
+       * <ccm-app component="./ccm.quiz.mjs">
+       *   <script type="application/json">
+       *   {
+       *     "feedback": true
+       *   }
+       *   </script>
+       * </ccm-app>
+       */
+      embed: async (element) => {
+
+        /**
+         * Read the component URL from the attribute.
+         * Abort if the attribute is missing.
+         */
+        const component = element.getAttribute("component");
+        if (!component)
+          throw new Error("<ccm-app> missing 'component' attribute");
+
+        // Configuration object that will be constructed from attribute configuration and inline JSON configuration.
+        let config = {};
+
+        // Parse configuration from the `config` attribute. If the attribute is missing, an empty object is used.
+        try {
+          config = JSON.parse(element.getAttribute("config") || "{}");
+        } catch (e) {
+          console.warn("Invalid JSON in <ccm-app> config attribute:", e);
+        }
+
+        // Look for an inline JSON configuration script. Only direct child scripts are considered. If found, its JSON content overrides attribute values.
+        const script = element.querySelector(':scope > script[type="application/json"]');
+        if (script) {
+          try {
+            Object.assign(config, JSON.parse(script.textContent.trim() || "{}"));
+          } catch (e) {
+            console.warn("Invalid JSON in <ccm-app> application/json script:", e);
+          }
+        }
+
+        // Resolve possible ccmjs dependencies in the configuration.
+        config = await ccm.helper.solveDependency(config);
+
+        // Start the component instance inside the <ccm-app> element.
+        return ccm.start(component, config, element);
+      },
+
+      /**
        * Maps values from one object structure to another.
        *
        * The mapper can either be:
@@ -1273,50 +1348,6 @@
       },
 
 
-
-      /**
-       * @summary Embeds a ccmjs component in a given HTML tag.
-       * @description
-       * This function is automatically called for each <ccm-app> tag when it is connected with the DOM.
-       * It reads the tag's component and config attribute and launches the
-       * requested component with the specified configuration in the scope of the tag.
-       *
-       * The value of the config attribute is parsed as JSON.
-       * If the config attribute is a ccmjs dependency (e.g. ['ccm.load', ...] or ['ccm.get', ...]),
-       * it will be automatically resolved before starting the component.
-       *
-       * @param {Element} element - The HTML tag where the component will be embedded.
-       * @returns {ccm.types.config}
-       * @example
-       * <ccm-app component="..." config='["ccm.load",...]'></ccm-app>
-       * @example
-       * <ccm-app component="..." config='["ccm.get",...]'></ccm-app>
-       * @example
-       * <ccm-app component="..." config='{...}'></ccm-app>
-       */
-      embed: async (element) => {
-
-        let config = {};
-
-        try {
-          config = JSON.parse(element.getAttribute("config") || "{}");
-        } catch (e) {}
-
-        const script = element.querySelector(':scope > script[type="application/json"]');
-        if (script) {
-          try {
-            Object.assign(config, JSON.parse(script.textContent || "{}"));
-          } catch (e) {}
-        }
-
-        config = await ccm.helper.solveDependency(config);
-
-        return ccm.start(
-            element.getAttribute("component"),
-            config,
-            element
-        );
-      },
 
       findInAncestors: (instance, prop) => {
         let current = instance;
