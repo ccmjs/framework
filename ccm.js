@@ -1064,62 +1064,68 @@
       },
 
       /**
-       * Gets or sets a deeply nested property value in an object.
+       * Gets or sets a deeply nested value using dot notation.
        *
-       * The property path is specified using dot notation.
+       * If only `obj` and `path` are provided, the value is retrieved.
+       * If a third argument is provided:
+       *   - any value → sets the property
+       *   - `undefined` → deletes the property
        *
-       * Examples:
+       * Missing intermediate objects are created automatically when setting a value.
        *
-       * Get value:
-       * deepValue(obj, "user.profile.name")
-       *
-       * Set value:
-       * deepValue(obj, "user.profile.name", "John")
-       *
-       * If intermediate objects or arrays do not exist while setting a value,
-       * they are created automatically.
-       *
-       * Array indices are detected automatically:
-       *
-       * deepValue(obj, "items.0.name", "Apple")
-       *
-       * @param {Object} obj - The object to read from or modify.
-       * @param {string} path - Dot-separated property path.
-       * @param {*} [value] - Optional value to set.
-       * @returns {*} The retrieved or assigned value.
+       * @param {Object} obj - Target object
+       * @param {string} path - Dot notation path
+       * @param {*} [value] - Value to set (or `undefined` to delete)
+       * @returns {*} Retrieved or set value.
        */
-      deepValue: (obj, path, value) => {
+      deepValue: function (obj, path, value) {
 
         if (!obj || typeof path !== "string") return;
 
         const keys = path.split(".");
+        const last = keys.pop();
         let current = obj;
 
         for (let i = 0; i < keys.length; i++) {
+
           const key = keys[i];
-          const last = i === keys.length - 1;
+          const nextIsIndex = !isNaN(keys[i + 1]);
 
-          // Getter
-          if (last && value === undefined)
-            return current?.[key];
-
-          // Setter
-          if (last) {
-            current[key] = value;
-            return value;
+          // convert array index access
+          if (!isNaN(key) && Array.isArray(current)) {
+            if (!current[key]) {
+              if (arguments.length < 3) return;
+              current[key] = nextIsIndex ? [] : {};
+            }
+            current = current[key];
+            continue;
           }
 
-          // Create missing structure when setting values
-          if (current[key] === undefined && value !== undefined) {
-            const nextKey = keys[i + 1];
-
-            // Determine whether to create array or object
-            current[key] = Number.isInteger(+nextKey) ? [] : {};
+          // normal object access
+          if (current[key] === undefined) {
+            if (arguments.length < 3) return;
+            current[key] = nextIsIndex ? [] : {};
           }
 
           current = current[key];
-          if (!current) return;
+          if (typeof current !== "object") return;
         }
+
+        // GET
+        if (arguments.length < 3) {
+          return current ? current[last] : undefined;
+        }
+
+        // DELETE
+        if (value === undefined) {
+          if (current && typeof current === "object") {
+            delete current[last];
+          }
+          return;
+        }
+
+        // SET
+        return current[last] = value;
       },
 
       /**
@@ -1265,6 +1271,48 @@
       },
 
       /**
+       * Integrates priority data into a dataset.
+       *
+       * Properties in the priority data overwrite properties of the same name
+       * in the dataset. Dot notation is supported for nested paths.
+       *
+       * A value of `undefined` removes the corresponding property.
+       *
+       * Uses `ccm.helper.deepValue()` internally.
+       * Mutates the given dataset.
+       *
+       * If no valid priority data object is provided, the dataset is returned unchanged.
+       * If no valid dataset object is provided, the priority data is returned.
+       *
+       * @param {Object} [priodata] - Priority data
+       * @param {Object} [dataset] - Dataset
+       * @returns {Object} Dataset with integrated priority data.
+       *
+       * @example
+       * const result = ccm.helper.integrate(
+       *   { lastname: "Done", fullname: undefined },
+       *   { firstname: "John", lastname: "Doe", fullname: "John Doe" }
+       * );
+       * console.log(result);
+       * // => { firstname: "John", lastname: "Done" }
+       *
+       * @example
+       * const result = ccm.helper.integrate(
+       *   { "foo.c": "z" },
+       *   { foo: { a: "x", b: "y" } }
+       * );
+       * console.log(result);
+       * // => { foo: { a: "x", b: "y", c: "z" } }
+       */
+      integrate: (priodata, dataset) => {
+        if (!ccm.helper.isObject(priodata)) return dataset;
+        if (!ccm.helper.isObject(dataset)) return priodata;
+        for (const key in priodata)
+          ccm.helper.deepValue(dataset, key, priodata[key]);
+        return dataset;
+      },
+
+      /**
        * Maps values from one object structure to another.
        *
        * The mapper can either be:
@@ -1389,69 +1437,6 @@
       },
 
 
-
-      /**
-       * @summary integrates priority data into a given dataset
-       * @description
-       * Each value of each property in the given priority data will be set in the given dataset for the property of the same name.
-       * This method also supports dot notation in given priority data to set a single deeper property in the given dataset.
-       * With no given priority data, the result is a clone of the given dataset.
-       * With no given dataset, the result is a clone of the given priority data.
-       * Any data dependencies will be resolved before integration.
-       * @param {Object} [priodata] - priority data
-       * @param {Object} [dataset] - dataset
-       * @returns {Object} dataset with integrated priority data
-       * @example
-       * const dataset  = { firstname: 'John', lastname: 'Doe', fullname: 'John Doe' };
-       * const priodata = { lastname: 'Done', fullname: undefined };
-       * const result = await ccm.helper.integrate( priodata, dataset );
-       * console.log( result );  // { firstname: 'John', lastname: 'Done', fullname: undefined };
-       * @example
-       * const result = await ccm.helper.integrate( { 'foo.c': 'z' }, { foo: { a: 'x', b: 'y' } } );
-       * console.log( result );  // { foo: { a: 'x', b: 'y', c: 'z' } }
-       * @example
-       * const result = await ccm.helper.integrate( { value: 'foo' } );
-       * console.log( result );  // { value: 'foo' }
-       * @example
-       * const result = await ccm.helper.integrate( undefined, { value: 'foo' } );
-       * console.log( result );  // { value: 'foo' }
-       * @example
-       * const store = { data: { key: 'data', foo: 'bar' } };
-       * const result = await ccm.helper.integrate( { 'value.foo': 'baz' }, { value: [ 'ccm.get', { datasets: store }, 'data' ] } );
-       * console.log( result );  // { value: { foo: 'baz' } }
-       */
-      integrate: async (priodata, dataset) => {
-        dataset = ccm.helper.clone(dataset);
-
-        // no given priority data? => return given dataset
-        if (!ccm.helper.isObject(priodata)) return dataset;
-
-        // no given dataset? => return given priority data
-        if (!ccm.helper.isObject(dataset)) return ccm.helper.clone(priodata);
-
-        // iterate over priority data properties
-        for (let key in priodata) {
-          // search and solve data dependencies along key path before integration of priority data value
-          const split = key.split(".");
-          let obj = dataset;
-          for (let i = 0; i < split.length; i++) {
-            const prop = split[i];
-            if (
-              ccm.helper.isDependency(obj[prop]) &&
-              obj[prop][0] === "ccm.get"
-            )
-              obj[prop] = await ccm.helper.solveDependency(obj[prop]);
-            obj = obj[prop];
-            if (!obj) break;
-          }
-
-          // set value for the same property in the given dataset
-          ccm.helper.deepValue(dataset, key, priodata[key]);
-        }
-
-        // return dataset with integrated priority data
-        return dataset;
-      },
 
       /**
        * @summary Checks whether a value is a [component object]{@link ccm.types.component_obj}.
