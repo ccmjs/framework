@@ -446,7 +446,7 @@
 
       // Determine the ccmjs version the component must use (considering backwards compatibility).
       let version;
-      if (ccm.helper.isCore(component.ccm)) {
+      if (ccm.helper.isFramework(component.ccm)) {
         const v = component.ccm.version;
         version = typeof v === "function" ? v() : v;
       } else version = component.ccm.match(/-(\d+\.\d+\.\d+)/)?.at(1);
@@ -1256,7 +1256,7 @@
        * URL-safe identifier for contexts where dashes may be problematic.
        *
        * If the generated key starts with a digit, the first character is replaced
-       * with `_` to ensure compatibility with contexts that require non-numeric identifiers
+       * with `a` to ensure compatibility with contexts that require non-numeric identifiers
        * while preserving a fixed length.
        *
        * @returns {ccm.types.key} Unique identifier with fixed length and URL-safe format.
@@ -1266,7 +1266,7 @@
        */
       generateKey: () => {
         let key = crypto.randomUUID().replaceAll("-", "");
-        if (/^\d/.test(key)) key = "_" + key.slice(1); // ensure identifier does not start with a digit
+        if (/^\d/.test(key)) key = "a" + key.slice(1); // ensure identifier does not start with a digit
         return key;
       },
 
@@ -1310,6 +1310,133 @@
         for (const key in priodata)
           ccm.helper.deepValue(dataset, key, priodata[key]);
         return dataset;
+      },
+
+      /**
+       * Checks whether a value is a valid ccmjs component object.
+       *
+       * A component object is defined as an object that provides:
+       * - a non-empty string `name`
+       * - a `ccm` reference (framework URL or core object)
+       * - a default `config` object
+       * - an `Instance` constructor function
+       *
+       * This function performs a structural validation only.
+       * It does not guarantee that the component is fully functional.
+       *
+       * @param {*} value - Value to check
+       * @returns {boolean} True if value is a valid component object.
+       *
+       * @example
+       * ccm.helper.isComponent({
+       *   name: "quiz",
+       *   ccm: "https://ccmjs.github.io/framework/ccm.js",
+       *   config: {},
+       *   Instance: function () {}
+       * }); // => true
+       *
+       * @example
+       * ccm.helper.isComponent(null); // => false
+       */
+      isComponent: (value) => (
+          ccm.helper.isObject(value) &&
+          typeof value.name === "string" && value.name &&
+          (typeof value.ccm === "string" || ccm.helper.isFramework(value.ccm)) &&
+          ccm.helper.isObject(value.config) &&
+          typeof value.Instance === "function"
+      ),
+
+      /**
+       * Checks whether a value is a valid ccmjs dataset.
+       *
+       * A dataset is a JavaScript object that contains a valid `key` property.
+       * Additional properties are allowed.
+       *
+       * The `key` must be a valid ccmjs key as defined by `ccm.helper.isKey()`.
+       *
+       * @param {*} value - Value to check
+       * @returns {boolean} True if value is a valid dataset.
+       *
+       * @example
+       * ccm.helper.isDataset({ key: "task1" }); // => true
+       *
+       * @example
+       * ccm.helper.isDataset({ key: ["app", "user"] }); // => true
+       *
+       * @example
+       * ccm.helper.isDataset({ key: "_invalid" }); // => false
+       *
+       * @example
+       * ccm.helper.isDataset(null); // => false
+       */
+      isDataset: (value) => (
+          ccm.helper.isObject(value) &&
+          ccm.helper.isKey(value.key)
+      ),
+
+      /**
+       * Checks whether a value is a ccmjs framework instance.
+       *
+       * A framework instance provides the core API of ccmjs, including
+       * functions for component loading, instance creation and datastore access.
+       *
+       * This check is structural and verifies the presence of essential API methods.
+       * It does not guarantee that the framework is fully functional.
+       *
+       * @param {*} value - Value to check
+       * @returns {boolean} True if value is a ccmjs framework instance.
+       */
+      isFramework: (value) => (
+          ccm.helper.isObject(value) &&
+          typeof value.component === "function" &&
+          typeof value.instance === "function" &&
+          typeof value.start === "function" &&
+          typeof value.store === "function" &&
+          typeof value.get === "function" &&
+          ccm.helper.isObject(value.helper)
+      ),
+
+      /**
+       * Checks whether a value is a valid ccmjs key.
+       *
+       * A valid key is either:
+       * - a string that matches the ccmjs key pattern, or
+       * - a non-empty array of such strings (compound key)
+       *
+       * The key pattern is defined as:
+       * - starts with a lowercase letter
+       * - followed by lowercase letters, digits or underscores
+       * - maximum length of 32 characters
+       *
+       * @param {*} value - Value to check.
+       * @returns {boolean} True if value is a valid key.
+       *
+       * @example
+       * ccm.helper.isKey("task1"); // => true
+       *
+       * @example
+       * ccm.helper.isKey(["app1", "user1"]); // => true
+       *
+       * @example
+       * ccm.helper.isKey("_internal"); // => false
+       *
+       * @example
+       * ccm.helper.isKey("1abc"); // => false
+       */
+      isKey: (value) => {
+        const KEY_REGEX = /^[a-z][a-z0-9_]{0,31}$/;
+
+        // single key
+        if (typeof value === "string") {
+          return KEY_REGEX.test(value);
+        }
+
+        // compound key (array)
+        if (Array.isArray(value) && value.length) {
+          return value.every(k => typeof k === "string" && KEY_REGEX.test(k));
+        }
+
+        return false;
       },
 
       /**
@@ -1439,38 +1566,6 @@
 
 
       /**
-       * @summary Checks whether a value is a [component object]{@link ccm.types.component_obj}.
-       * @param {any} value
-       * @returns {boolean}
-       * @example
-       * const value = await ccm.component({
-       *   name: "component",
-       *   ccm: "./libs/ccm/ccm.js",
-       *   config: {},
-       *   Instance: function () {
-       *     this.start = async () => {};
-       *   },
-       * });
-       * ccm.helper.isComponent(value); // => true
-       */
-      isComponent: (value) =>
-        value?.name && value.ccm && value.config && value.Instance && true,
-
-      /**
-       * @summary Checks if a value is a ccmjs object.
-       * @param {*} value - value to check
-       * @returns {boolean}
-       */
-      isCore: (value) => value?.components && value.version && true,
-
-      /**
-       * @summary Checks if a value is a ccm dataset.
-       * @param {*} value - value to check
-       * @returns {boolean}
-       */
-      isDataset: value => ccm.helper.isObject( value ) && ccm.helper.isKey( value.key ),
-
-      /**
        * @summary Checks whether a value is a [datastore object]{@link ccm.types.store}.
        * @param {any} value
        * @returns {boolean}
@@ -1524,16 +1619,6 @@
         value instanceof Element || value instanceof DocumentFragment,
 
       /**
-       * @summary Checks whether a value is a [ccmjs object]{@link ccm.types.ccmjs}.
-       * @param {any} value
-       * @returns {boolean}
-       * @example
-       * const value = window.ccm;
-       * ccm.helper.isFramework(value); // => true
-       */
-      isFramework: (value) => value?.components && value.version && true,
-
-      /**
        * @summary Checks whether a value is a [ccmjs instance]{@link ccm.types.instance}.
        * @param {any} value
        * @returns {boolean}
@@ -1549,20 +1634,6 @@
        * ccm.helper.isInstance(value); // => true
        */
       isInstance: (value) => ccm.helper.isComponent(value?.component),
-
-      /**
-       * @summary Checks whether a value is a valid [unique identifier]{@link ccm.types.key}.
-       * @param {any} value
-       * @returns {boolean}
-       * @example
-       * const value = await ccm.generateKey();
-       * ccm.helper.isKey(value); // => true
-       */
-      isKey: (value) => {
-        const regex = ccm.helper.regex("key");
-        const check = (v) => typeof v === "string" && regex.test(v);
-        return Array.isArray(value) ? value.every(check) : check(value);
-      },
 
       /**
        * @summary Checks whether a value is a DOM Node.
@@ -1608,24 +1679,6 @@
         value && typeof value === "object" && !Array.isArray(value),
 
       /**
-       * @summary Checks whether a value is a plain object.
-       * @param {any} value
-       * @returns {boolean}
-       * @example
-       * const value = {};
-       * ccm.helper.isPlainObject(value); // => true
-       * @example
-       * class Test {}
-       * const value = new Test();
-       * ccm.helper.isPlainObject(value); // => false
-       * @example
-       * const value = function () {};
-       * ccm.helper.isPlainObject(value); // => false
-       */
-      isPlainObject: (value) =>
-        Object.getPrototypeOf(value) === Object.prototype,
-
-      /**
        * @summary checks if a value is a special object
        * @description
        * A special object is Window Object, Node, ccmjs Object, ccmjs Instance and ccmjs Datastore.
@@ -1638,7 +1691,7 @@
           value === window ||
           value === document ||
           ccm.helper.isNode(value) ||
-          ccm.helper.isCore(value) ||
+          ccm.helper.isFramework(value) ||
           ccm.helper.isInstance(value) ||
           ccm.helper.isDatastore(value)
         );
