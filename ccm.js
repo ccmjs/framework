@@ -1270,6 +1270,27 @@
       },
 
       /**
+       * Generates a unique key based on a UUID without dashes.
+       *
+       * Uses `crypto.randomUUID()` and removes dashes to produce a compact,
+       * URL-safe identifier for contexts where dashes may be problematic.
+       *
+       * If the generated key starts with a digit, the first character is replaced
+       * with `_` to ensure compatibility with contexts that require non-numeric identifiers
+       * while preserving a fixed length.
+       *
+       * @returns {ccm.types.key} Unique identifier with fixed length and URL-safe format.
+       *
+       * @example
+       * console.log(ccm.helper.generateKey()); // => a8acc6ad149047eaa2a89096ecc5a95b
+       */
+      generateKey: () => {
+        let key = crypto.randomUUID().replaceAll("-", "");
+        if (/^\d/.test(key)) key = "_" + key.slice(1); // ensure identifier does not start with a digit
+        return key;
+      },
+
+      /**
        * Maps values from one object structure to another.
        *
        * The mapper can either be:
@@ -1393,6 +1414,8 @@
         return result;
       },
 
+
+
       /**
        * @summary Replaces placeholders in data with values.
        * @param {string|Array|Object} data
@@ -1433,17 +1456,6 @@
         return JSON.parse(data, (key, val) =>
           Object.keys(functions).includes(val) ? functions[val] : val,
         );
-      },
-
-      /**
-       * @summary Generates a unique identifier.
-       * @returns {ccm.types.key} Universally Unique Identifier ([UUID](https://developer.mozilla.org/en-US/docs/Glossary/UUID)) without dashes
-       * @example console.log(ccm.helper.generateKey()); // => 8aacc6ad149047eaa2a89096ecc5a95b
-       */
-      generateKey: () => {
-        let key = crypto.randomUUID().replaceAll("-", ""); // 32 Characters, 0-9a-f
-        if (/^\d/.test(key)) key = "_" + key.slice(1);
-        return key;
       },
 
       /**
