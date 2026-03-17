@@ -1252,6 +1252,24 @@
       },
 
       /**
+       * Finds the root instance in the ancestor chain.
+       *
+       * Traverses the parent chain of the given instance until the top-level
+       * instance without a parent is reached.
+       *
+       * @param {ccm.types.instance} instance - Starting instance
+       * @returns {ccm.types.instance} Root instance of the component tree.
+       *
+       * @example
+       * const root = ccm.helper.findRoot(this);
+       */
+      findRoot: (instance) => {
+        while (instance && instance.parent)
+          instance = instance.parent;
+        return instance;
+      },
+
+      /**
        * Maps values from one object structure to another.
        *
        * The mapper can either be:
@@ -1373,13 +1391,6 @@
         result.index = name + (version ? "-" + version.replace(/\./g, "-") : "");
 
         return result;
-      },
-
-
-
-      findRoot: (instance) => {
-        while (instance.parent) instance = instance.parent;
-        return instance;
       },
 
       /**
