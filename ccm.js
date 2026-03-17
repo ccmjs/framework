@@ -1224,6 +1224,34 @@
       },
 
       /**
+       * Finds the first defined property value in the ancestor chain of an instance.
+       *
+       * Traverses the current instance and its parent chain to find the first occurrence
+       * of a given property that is defined (not `undefined`).
+       *
+       * This is commonly used to resolve contextual dependencies such as `user` or `lang`
+       * from parent components without explicitly passing them through configuration.
+       *
+       * @param {ccm.types.instance} instance - Starting instance
+       * @param {string} prop - Property name to look for
+       * @returns {*} First defined property value found in the ancestor chain or `null` if not found.
+       *
+       * @example
+       * // find nearest user instance in ancestor chain
+       * const user = ccm.helper.findInAncestors(this, "user");
+       */
+      findInAncestors: (instance, prop) => {
+        let current = instance;
+        while (current) {
+          // check if property exists and is explicitly defined
+          if (Object.prototype.hasOwnProperty.call(current, prop) && current[prop] !== undefined)
+            return current[prop];
+          current = current.parent;
+        }
+        return null;
+      },
+
+      /**
        * Maps values from one object structure to another.
        *
        * The mapper can either be:
@@ -1348,16 +1376,6 @@
       },
 
 
-
-      findInAncestors: (instance, prop) => {
-        let current = instance;
-        while (current) {
-          if (prop in current && current[prop] !== undefined)
-            return current[prop];
-          current = current.parent;
-        }
-        return null;
-      },
 
       findRoot: (instance) => {
         while (instance.parent) instance = instance.parent;
