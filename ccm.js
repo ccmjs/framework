@@ -6,19 +6,10 @@
  *
  * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki} to learn more about ccmjs.
  *
- * @author André Kless <andre.kless@web.de> (https://github.com/akless) 2014-2024
+ * @author André Kless <andre.kless@web.de> (https://github.com/akless)
+ * @copyright 2014–2026 André Kless
  * @license The MIT License (MIT)
  * @version 28.0.0
- * @changes
- * Version 28.0.0 (10.05.2024)
- * - refactor(ccm.load)!: resource data is no longer cloned
- * - refactor(ccm.load)!: removed timeout for loading resources
- * - refactor(ccm.load)!: JSON is loaded either via fetch API or JSONP and no longer via XMLHttpRequest
- * - refactor(ccm.load)!: used HTTP method must be in upper case
- * - refactor(ccm.load): simplified error messages
- * - refactor(ccm.load): no more counting of same JS files that are loaded in parallel
- * - refactor(ccm.helper.html)!: dynamic parameters must be passed via object.
- * - fix(ccm.helper.generateKey): generates a UUID without dashes (avoids bugs when using a UUID in a URL).
  */
 
 {
@@ -120,8 +111,6 @@
            */
           function getOperation() {
             switch (resource.type) {
-              case "html":
-                return loadHTML;
               case "css":
                 return loadCSS;
               case "image":
@@ -145,8 +134,6 @@
 
             // Match the file extension to the corresponding loading operation.
             switch (file_extension) {
-              case "html":
-                return loadHTML;
               case "css":
                 return loadCSS;
               case "jpg":
@@ -168,37 +155,28 @@
           }
 
           /**
-           * Loads HTML via Fetch API as an HTML string.
-           *
-           * Sets the resource type to `html` and delegates the loading process to the `loadJSON` function.
-           * The loaded HTML content will be treated as a JSON string and processed accordingly.
-           */
-          function loadHTML() {
-            resource.type = "html";
-            loadJSON(); // Delegate the loading process to the loadJSON function.
-          }
-
-          /**
            * Loads a CSS file via a `<link>` tag.
            *
            * Creates a `<link>` element to load the CSS file. Additional attributes can be set via the `resource.attr` property.
            * The CSS file is loaded in the specified context, and success or error callbacks are triggered accordingly.
            */
           function loadCSS() {
-            /** @type {ccm.types.html|Element} */
-            let element = {
-              tag: "link",
-              rel: "stylesheet",
-              type: "text/css",
-              href: resource.url,
-            };
 
-            // Set up individual HTML attributes for <link> tag.
-            if (resource.attr) element = Object.assign(element, resource.attr);
+            const element = document.createElement("link");
+            element.rel = "stylesheet";
+            element.type = "text/css";
+            element.href = resource.url;
 
-            element = ccm.helper.html(element); // Convert to DOM element.
+            // additional attributes
+            if (resource.attr) {
+              for (const key in resource.attr) {
+                element.setAttribute(key, resource.attr[key]);
+              }
+            }
+
             element.onload = () => success(resource.url);
             element.onerror = error;
+
             resource.context.appendChild(element);
           }
 
@@ -223,21 +201,27 @@
            * The script is loaded asynchronously, and success or error callbacks are triggered accordingly.
            */
           function loadJS() {
-            /** @type {ccm.types.html|Element} */
-            let element = { tag: "script", src: resource.url, async: true };
 
-            // Set up individual HTML attributes for <script> tag.
-            if (resource.attr) element = Object.assign(element, resource.attr);
+            const element = document.createElement("script");
+            element.src = resource.url;
+            element.async = true;
 
-            element = ccm.helper.html(element); // Convert to DOM element.
+            // additional attributes
+            if (resource.attr) {
+              for (const key in resource.attr) {
+                element.setAttribute(key, resource.attr[key]);
+              }
+            }
+
             element.onload = () => {
-              element.parentNode.removeChild(element); // Remove no more necessary script element from the DOM.
+              element.remove();
               success(resource.url);
             };
             element.onerror = () => {
-              element.parentNode.removeChild(element);
+              element.remove();
               error();
             };
+
             resource.context.appendChild(element);
           }
 
@@ -372,7 +356,7 @@
           /**
            * Callback when loading of a resource was successful
            *
-           * Processes the loaded data based on its type (e.g., HTML, XML) and updates the results array.
+           * Processes the loaded data based on its type (e.g., XML) and updates the results array.
            * Triggers the next step in the loading process.
            *
            * @param {*} data - Loaded resource data.
@@ -385,16 +369,6 @@
             try {
               if (typeof data !== "object") data = JSON.parse(data);
             } catch (e) {}
-
-            // Process HTML resources by extracting templates defined with <ccm-template> tags.
-            if (resource.type === "html") {
-              const regex =
-                /<ccm-template key="(\w*?)">([^]*?)<\/ccm-template>/g; // Regex to match <ccm-template> tags.
-              const result = {}; // Object to store extracted templates.
-              let array;
-              while ((array = regex.exec(data))) result[array[1]] = array[2]; // Extract templates and store them in the result object.
-              if (Object.keys(result).length) data = result; // If templates were found, replace the data with the result object.
-            }
 
             // Process XML resources by parsing the data into an XML document.
             if (resource.type === "xml")
@@ -1415,245 +1389,6 @@
       },
 
 
-
-      /**
-       * @summary Replaces placeholders in data with values.
-       * @param {string|Array|Object} data
-       * @param {Object} values
-       * @returns {string|Array|Object} - deep copy of data with replaced placeholders
-       * @example // replace placeholders in a string
-       * const string = "Hello, %name%!";
-       * const values = { name: "World" };
-       * const result = ccm.helper.format(string, values);
-       * console.log(result); // => "Hello, World!"
-       * @example // replace placeholders in an array
-       * const array = ["Hello", "%name%"];
-       * const values = {name: "World"};
-       * const result = ccm.helper.format(string, values);
-       * console.log(result); // => ["Hello", "World"]
-       * @example // replace placeholders in an object
-       * const object = { hello: "Hello, %name%!", onclick: "%click%" };
-       * const values = { name: "World", click: () => console.log("click!") };
-       * const result = ccm.helper.format(object, values);
-       * console.log(result); // => { hello: "Hello, World!", onclick: () => console.log("click!")}
-       */
-      format: (data, values) => {
-        const functions = {};
-
-        // Convert data to string.
-        data = JSON.stringify(data);
-
-        // Replace placeholders with values (functions are rescued in a separate object).
-        for (const key in values)
-          if (typeof values[key] !== "function")
-            data = data.replace(
-              new RegExp(`%${key}%`, "g"),
-              values[key].replace(/"/g, '\\"'),
-            );
-          else functions[`%${key}%`] = values[key];
-
-        // Convert the data back to its original format and return it (replace placeholders for rescued functions).
-        return JSON.parse(data, (key, val) =>
-          Object.keys(functions).includes(val) ? functions[val] : val,
-        );
-      },
-
-      /**
-       * @summary Converts HTML given as a string or JSON into HTML elements.
-       * @description Placeholders marked with <code>%%</code> in the HTML are replaced with <code>values</code>.
-       * @param {string|ccm.types.html} html - HTML as string or JSON
-       * @param {Object} [values] - placeholders contained in the HTML are replaced by these values
-       * @param {Object} [settings]
-       * @param {boolean} [settings.ignore_apps] - no evaluation of \<ccm-app> tags
-       * @param {string} [settings.namespace_uri] - namespace URI for HTML elements
-       * @returns {Element|Text}
-       * @example // converting HTML from string
-       * const str = '<p>Hello, <b>%name%</b>! <button onclick="%click%"></button></p>';
-       * const values = {
-       *   name: "World",
-       *   click: () => console.log("click!"),
-       * };
-       * const elem = ccm.helper.html(str, values);
-       * document.body.appendChild(elem);
-       * @example // converting HTML from JSON
-       * const json = {
-       *   tag: "p",
-       *   inner: [
-       *     "Hello, ",
-       *     {
-       *       tag: "b",
-       *       inner: "%name%",
-       *     },
-       *     "! ",
-       *     {
-       *       tag: "button",
-       *       onclick: "%click%",
-       *     },
-       *   ],
-       * };
-       * const values = {
-       *   name: "World",
-       *   click: () => console.log("click!"),
-       * };
-       * const elem = window.ccm.helper.html(json, values);
-       * document.body.appendChild(elem);
-       */
-      html: (html, values, settings = {}) => {
-        // convert HTML to JSON
-        html = ccm.helper.html2json(html);
-
-        // HTML is only a string? => convert it to a text node
-        if (typeof html === "string") return document.createTextNode(html);
-
-        // replace placeholders with values
-        if (values) html = ccm.helper.format(html, values);
-
-        // is a svg element? => set namespace URI
-        if (html.tag === "svg")
-          settings.namespace_uri = "http://www.w3.org/2000/svg";
-
-        // create HTML element
-        const element = settings.namespace_uri
-          ? document.createElementNS(settings.namespace_uri, html.tag || "div")
-          : document.createElement(html.tag || "div");
-
-        // set attributes, inner HTML and event listeners
-        delete html.tag;
-        for (const key in html) {
-          const value = html[key];
-          switch (key) {
-            case "async":
-            case "autofocus":
-            case "defer":
-            case "disabled":
-            case "ismap":
-            case "multiple":
-            case "required":
-            case "selected":
-              if (value) element[key] = true;
-              break;
-            case "checked":
-              if (value) {
-                element[key] = true;
-                element.setAttribute(key, "");
-              }
-              break;
-            case "readonly":
-              if (value) element.readOnly = true;
-              break;
-            case "inner":
-              if (
-                typeof value === "string" ||
-                typeof value === "number" ||
-                typeof value === "boolean"
-              )
-                element.innerHTML = value;
-              else {
-                const children = Array.isArray(value) ? value : [value];
-                children.forEach((child) =>
-                  element.appendChild(
-                    ccm.helper.html(child, undefined, settings), // recursive call for each child
-                  ),
-                );
-              }
-              break;
-            default:
-              if (key.indexOf("on") === 0 && typeof value === "function")
-                element.addEventListener(key.substring(2), value);
-              else element.setAttribute(key, value);
-          }
-        }
-
-        // evaluate <ccm-app> tags
-        if (element.tagName === "CCM-APP" && !settings.ignore_apps)
-          ccm.helper.embed(element);
-
-        return element;
-      },
-
-      /**
-       * @summary Converts HTML to JSON.
-       * @description Contained HTML comments will be removed.
-       * @param {string|Element|DocumentFragment} html - HTML as string, Element or DocumentFragment
-       * @returns {ccm.types.html} JSON representation of the HTML
-       * @example // Converting an HTML string
-       * const html = '<p>Hello, <b>World</b>!';
-       * const json = ccm.helper.html2json(html);
-       * console.log(json);
-       * //{
-       * //  tag: "p",
-       * //  inner: [
-       * //    "Hello, ",
-       * //    {
-       * //      tag: "b",
-       * //      inner: "World",
-       * //    },
-       * //    "!",
-       * //  ],
-       * //};
-       */
-      html2json: (html) => {
-        const json = { inner: [] };
-
-        // HTML is a string? => convert it to a DocumentFragment
-        if (typeof html === "string") {
-          const template = document.createElement("template");
-          template.innerHTML = html;
-          html = template.content;
-        }
-
-        // Handle DocumentFragment.
-        if (html instanceof DocumentFragment) {
-          // DocumentFragment has no children? => Return text content.
-          if (!html.children.length) return html.textContent;
-
-          // Remove HTML comments.
-          [...html.childNodes].forEach((child) => {
-            if (child.nodeValue) {
-              if (!child.nodeValue || child.nodeType === Node.COMMENT_NODE)
-                child.parentNode.removeChild(child);
-            }
-          });
-
-          // DocumentFragment has only one child? => Return this child.
-          if (html.childNodes.length === 1) html = html.firstChild;
-        }
-
-        // HTML is not an Element? => Return whatever it is as result.
-        if (!ccm.helper.isElement(html)) return html;
-
-        // Convert the HTML element to JSON.
-        if (html.tagName) json.tag = html.tagName.toLowerCase(); // Handle HTML tag name.
-        if (json.tag === "div") delete json.tag; // Remove default tag name.
-        // Handle HTML attributes.
-        if (html.attributes)
-          [...html.attributes].forEach(
-            (attr) =>
-              (json[attr.name] =
-                attr.value === "" && attr.name !== "value" ? true : attr.value),
-          );
-        // Handle inner HTML.
-        [...html.childNodes].forEach((child) => {
-          // Remove HTML comments.
-          if (child.nodeType === Node.COMMENT_NODE)
-            return child.parentNode.removeChild(child);
-
-          // Remove unnecessary whitespace.
-          if (child.nodeValue && !child.parentElement?.closest("pre"))
-            child.nodeValue = child.nodeValue.replace(/\s+/g, " ");
-
-          // Convert child elements to JSON.
-          if (ccm.helper.isElement(child) || child.nodeValue)
-            json.inner.push(
-              ccm.helper.isElement(child)
-                ? ccm.helper.html2json(child) // Recursive call
-                : child.textContent,
-            );
-        });
-        if (!json.inner.length) delete json.inner;
-        else if (json.inner.length === 1) json.inner = json.inner[0];
-        return json;
-      },
 
       /**
        * @summary integrates priority data into a given dataset
@@ -3013,35 +2748,6 @@
  */
 
 /**
- * @typedef {Object|string} ccm.types.html
- * @summary JSON representation of HTML
- * @description
- * Other properties besides <code>tag</code> and <code>inner</code> are used to define HTML attributes.
- * The HTML data can also contain placeholders marked with <code>%%</code>, which can be dynamically replaced with values via {@link ccm.helper.html} or {@link ccm.helper.format}.
- * A string instead of an object represents pure text content without HTML tags.
- * @property {string} [tag="div"] - HTML tag name
- * @property {ccm.types.html} [inner] - inner HTML
- * @example
- * {
- *   tag: "p",
- *   inner: [
- *     "Hello, ",
- *     {
- *       tag: "b",
- *       inner: "%name%",
- *     },
- *     "! ",
- *     {
- *       tag: "button",
- *       onclick: "%click%",
- *     },
- *   ]
- * }
- * // represents the following HTML:
- * // <p>Hello, <b>%name%</b>! <button onclick="%click%"></button></p>
- */
-
-/**
  * @typedef {Object} ccm.types.instance
  */
 
@@ -3052,7 +2758,7 @@
  * In the case of HTML, JSON and XML, the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch) is used to load the ressource. All properties in the resource object are also spread into the <code>options</code> object (2nd parameter of [fetch()](https://developer.mozilla.org/en-US/docs/Web/API/fetch)). This means that, for example, HTTP headers can also be set here.
  * @property {string} url - URL from which the resource should be loaded.
  * @property {Element|ccm.types.instance} [context] - Context in which the resource is loaded (default is <code>\<head></code>). Only relevant when loading CSS or JavaScript. CSS is loaded via <code>\<link></code> and JavaScript is loaded via <code>\<script></code>. When a [ccmjs instance]{@link ccm.types.instance} is passed, the resource is loaded in the Shadow DOM of that instance.
- * @property {string} [type] - Resource is loaded as <code>'css'</code>, <code>'html'</code>, <code>'image'</code>, <code>'js'</code>, <code>'module'</code>, <code>'json'</code> or <code>'xml'</code>. If not specified, the type is automatically recognized by the file extension. If the file extension is unknown, <code>'json'</code> is used by default.
+ * @property {string} [type] - Resource is loaded as <code>'css'</code>, <code>'image'</code>, <code>'js'</code>, <code>'module'</code>, <code>'json'</code> or <code>'xml'</code>. If not specified, the type is automatically recognized by the file extension. If the file extension is unknown, <code>'json'</code> is used by default.
  * @property {string} [attr] - Additional HTML attributes to be set for the HTML tag that loads the resource. Only relevant when loading CSS or JavaScript. CSS is loaded via <code>\<link></code> and JavaScript is loaded via <code>\<script></code>. With the additional attributes <code>integrity</code> and <code>crossorigin</code> the resource can be loaded with Subresource Integrity (SRI).
  * @property {string} [method] - The request method, e.g., <code>"GET"</code>, <code>"POST"</code>. The default is <code>"GET"</code>. Only relevant when loading data. <code>"JSONP"</code> is also supported.
  * @property {Object} [params] - HTTP parameters to send. Only relevant when loading data.
