@@ -1772,13 +1772,17 @@
       parseComponentURL: (url) => {
 
         // Extract optional Subresource Integrity hash
-        const [baseURL, sri] = url.split("#");
+        const [baseURL, ...rest] = url.split("#");
+        const sri = rest.length ? rest.join("#") : undefined;
 
         // Extract filename
         const filename = baseURL.split("/").at(-1);
 
+        const REGEX = /^ccm\.([a-z][a-z0-9_]*)(?:-(\d+\.\d+\.\d+))?(?:\.min)?\.(?:mjs|js)$/;
+        const match = filename.match(REGEX);
+
         // Validate filename
-        if (!ccm.helper.regex("filename").test(filename))
+        if (!match)
           throw new Error("invalid component filename: " + filename);
 
         const result = {
@@ -1788,10 +1792,8 @@
 
         if (sri) result.sri = sri;
 
-        // Remove prefix "ccm." and suffix ".mjs". Example: ccm.quiz-4.0.0.min.mjs → quiz-4.0.0.min
-        let namePart = filename
-            .replace(/^ccm\./, "")
-            .replace(/\.(m?js)$/, "")
+        // Remove prefix "ccm." and suffix ".js/.mjs"
+        let namePart = filename.slice(4).replace(/\.(m?js)$/, "");
 
         // Detect minified builds
         if (namePart.endsWith(".min")) {
@@ -1799,12 +1801,15 @@
           namePart = namePart.slice(0, -4);
         }
 
-        // Extract name and optional version. Example: quiz-4.0.0 → name="quiz", version="4.0.0"
-        const [name, version] = namePart.split("-");
+        // Extract name and optional version
+        const dashIndex = namePart.indexOf("-");
+        const name = dashIndex === -1 ? namePart : namePart.slice(0, dashIndex);
+        const version = dashIndex === -1 ? undefined : namePart.slice(dashIndex + 1);
+
         result.name = name;
         if (version) result.version = version;
 
-        // Generate component index. Example: quiz-4.0.0 → quiz-4-0-0
+        // Generate component index
         result.index = name + (version ? "-" + version.replace(/\./g, "-") : "");
 
         return result;
@@ -1841,6 +1846,8 @@
         return results;
       },
 
+
+
       /**
        * @summary Prepares a configuration object by resolving dependencies and integrating defaults.
        * @description
@@ -1872,52 +1879,6 @@
         delete result.ccm;
 
         return result;
-      },
-
-      /**
-       * @summary Provides a ccmjs-relevant regular expression.
-       * @description
-       * Possible index values, it's meanings, and it's associated regular expressions:
-       * <table>
-       *   <tr>
-       *     <th>index</th>
-       *     <th>meaning</th>
-       *     <th>regular expression</th>
-       *   </tr>
-       *   <tr>
-       *     <td><code>'filename'</code></td>
-       *     <td>filename for a ccmjs instance</td>
-       *     <td>/^(ccm.)?([^.-]+)(-(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))?(\.min)?(\.mjs)$/</td>
-       *   </tr>
-       *   <tr>
-       *     <td><code>'key'</code></td>
-       *     <td>key for a ccmjs dataset</td>
-       *     <td>/^[a-z_0-9][a-zA-Z_0-9]*$/</td>
-       *   </tr>
-       * </table>
-       * @param {string} index - index of the regular expression
-       * @returns {RegExp} RegExp Object
-       * @example
-       * // test if a given string is a valid filename for an ccm component
-       * var string = 'ccm.dummy-3.2.1.min.mjs';
-       * var result = ccm.helper.regex( 'filename' ).test( string );
-       * console.log( result );  // => true
-       * @example
-       * // test if a given string is a valid key for a ccm dataset
-       * var string = 'dummy12_Foo3';
-       * var result = ccm.helper.regex( 'key' ).test( string );
-       * console.log( result );  // => true
-       */
-      regex: (index) => {
-        switch (index) {
-          case "filename":
-            return /^ccm\.([a-z][a-z_0-9]*)(-(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))?(\.min)?(\.m?js)$/;
-            // oder das hier? -> ^ccm\.[a-z][a-z0-9_-]*(?:-\d+\.\d+\.\d+)?(?:\.min)?\.mjs$
-          case "key":
-            return /^[a-z_][a-z0-9_]{0,31}$/;
-          default:
-            throw new Error(`Unknown regex index: ${index}`);
-        }
       },
 
       /**
