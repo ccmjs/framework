@@ -97,12 +97,12 @@
 
             // Load the next resource and recursively call `sequential` upon success or failure.
             ccm.load
-              .apply(null, next)
-              .then(sequential)
-              .catch((result) => {
-                failed = true; // Mark the operation as failed if an error occurs.
-                sequential(result); // Continue loading the remaining resources.
-              });
+                .apply(null, next)
+                .then(sequential)
+                .catch((result) => {
+                  failed = true; // Mark the operation as failed if an error occurs.
+                  sequential(result); // Continue loading the remaining resources.
+                });
           }
 
           /**
@@ -127,10 +127,10 @@
 
             // Infer the type from the file extension of the resource URL when no type is given.
             const file_extension = resource.url
-              .split(/[#?]/)[0] // Remove query parameters and hash from URL.
-              .split(".") // Split the URL by dots to get the file extension.
-              .at(-1) // Get the last part as the file extension.
-              .trim(); // Remove any surrounding whitespace.
+                .split(/[#?]/)[0] // Remove query parameters and hash from URL.
+                .split(".") // Split the URL by dots to get the file extension.
+                .at(-1) // Get the last part as the file extension.
+                .trim(); // Remove any surrounding whitespace.
 
             // Match the file extension to the corresponding loading operation.
             switch (file_extension) {
@@ -296,14 +296,14 @@
             // Prepare the URL or request body based on the HTTP method.
             if (resource.params)
               resource.method === "POST"
-                ? (resource.body = JSON.stringify(resource.params))
-                : (resource.url = buildURL(resource.url, resource.params));
+                  ? (resource.body = JSON.stringify(resource.params))
+                  : (resource.url = buildURL(resource.url, resource.params));
 
             // Perform the fetch request and handle the response.
             fetch(resource.url, resource)
-              .then((response) => response.text())
-              .then(success)
-              .catch(error);
+                .then((response) => response.text())
+                .then(success)
+                .catch(error);
           }
 
           /**
@@ -333,8 +333,8 @@
               let result = "";
               for (const i in obj) {
                 const key = prefix
-                  ? prefix + "[" + encodeURIComponent(i) + "]"
-                  : encodeURIComponent(i);
+                    ? prefix + "[" + encodeURIComponent(i) + "]"
+                    : encodeURIComponent(i);
                 if (typeof obj[i] === "object") result += params(obj[i], key);
                 else result += key + "=" + encodeURIComponent(obj[i]) + "&";
               }
@@ -456,9 +456,9 @@
         // The ccmjs version is loaded with SRI when the SRI hash is appended to the URL with “#”.
         const [url, sri] = component.ccm.split("#");
         await ccm.load(
-          sri
-            ? { url, attr: { integrity: sri, crossorigin: "anonymous" } }
-            : url,
+            sri
+                ? { url, attr: { integrity: sri, crossorigin: "anonymous" } }
+                : url,
         );
       }
 
@@ -468,8 +468,8 @@
 
       // Set the component index based on its name and version.
       component.index =
-        component.name +
-        (component.version ? "-" + component.version.join("-") : "");
+          component.name +
+          (component.version ? "-" + component.version.join("-") : "");
 
       // Register the component if it is not already registered.
       if (!_components[component.index]) {
@@ -488,23 +488,23 @@
 
       // Prepare the default instance configuration.
       component.config = await ccm.helper.prepareConfig(
-        config,
-        component.config,
+          config,
+          component.config,
       );
 
       // Add methods for creating and starting instances of the component.
       component.instance = async (config = {}, element) =>
-        ccm.instance(
-          component,
-          await ccm.helper.prepareConfig(config, component.config),
-          element,
-        );
+          ccm.instance(
+              component,
+              await ccm.helper.prepareConfig(config, component.config),
+              element,
+          );
       component.start = async (config = {}, element) =>
-        ccm.start(
-          component,
-          await ccm.helper.prepareConfig(config, component.config),
-          element,
-        );
+          ccm.start(
+              component,
+              await ccm.helper.prepareConfig(config, component.config),
+              element,
+          );
 
       return component;
 
@@ -521,8 +521,8 @@
          * @type {{name: string, index: string, version: string, filename: string, url: string, minified: boolean, sri: string}}
          */
         const url_data = /\.m?js(#.*)?$/.test(component)
-          ? ccm.helper.parseComponentURL(component)
-          : null;
+            ? ccm.helper.parseComponentURL(component)
+            : null;
 
         /**
          * Index of the component
@@ -587,9 +587,9 @@
      * @throws {Error} If the provided component is not valid.
      */
     instance: async (
-      component,
-      config = {},
-      area = document.createElement("div"),
+        component,
+        config = {},
+        area = document.createElement("div"),
     ) => {
       // Register the component.
       component = await ccm.component(component, { ccm: config?.ccm });
@@ -599,16 +599,16 @@
 
       // Handle backwards compatibility if the component uses another ccmjs version.
       const version =
-        typeof component.ccm.version === "function"
-          ? component.ccm.version()
-          : component.ccm.version;
+          typeof component.ccm.version === "function"
+              ? component.ccm.version()
+              : component.ccm.version;
       if (version && version !== ccm.version)
         return backwardsCompatibility(
-          version,
-          "instance",
-          component,
-          config,
-          area,
+            version,
+            "instance",
+            component,
+            config,
+            area,
         );
 
       // Render a loading icon in the web page area.
@@ -650,7 +650,7 @@
 
       // Create the content element, which lies directly within the shadow root of the host element.
       (instance.root || instance.host).appendChild(
-        (instance.element = document.createElement("div")),
+          (instance.element = document.createElement("div")),
       );
 
       // Temporarily move the host element to <head> for resolving dependencies.
@@ -756,11 +756,11 @@
 
             // Call and delete the init method, then continue with the next instance.
             next.init
-              ? next.init().then(() => {
+                ? next.init().then(() => {
                   delete next.init;
                   init();
                 })
-              : init();
+                : init();
           }
 
           /**
@@ -782,11 +782,11 @@
 
             // Call and delete the ready method, then proceed to the next instance.
             next.ready
-              ? next.ready().then(() => {
+                ? next.ready().then(() => {
                   delete next.ready;
                   proceed();
                 })
-              : proceed();
+                : proceed();
 
             /**
              * @summary Handles the next step after the instance is ready.
@@ -830,16 +830,16 @@
 
       // Handle backwards compatibility if the component uses another ccmjs version.
       const version =
-        typeof component.ccm.version === "function"
-          ? component.ccm.version()
-          : component.ccm.version;
+          typeof component.ccm.version === "function"
+              ? component.ccm.version()
+              : component.ccm.version;
       if (version && version !== ccm.version)
         return backwardsCompatibility(
-          version,
-          "start",
-          component,
-          config,
-          area,
+            version,
+            "start",
+            component,
+            config,
+            area,
         );
 
       // Create an instance out of the component.
@@ -908,7 +908,7 @@
 
       // Determine the type of datastore to use based on the configuration.
       const store = new (
-        config.name ? (config.url ? RemoteStore : OfflineStore) : InMemoryStore
+          config.name ? (config.url ? RemoteStore : OfflineStore) : InMemoryStore
       )();
 
       // Assign the resolved configuration properties to the datastore instance.
@@ -954,7 +954,7 @@
      * @returns {Promise<ccm.types.dataset|ccm.types.dataset[]>} Resolves to the requested dataset or an array of datasets.
      */
     get: (config = {}, key_or_query = {}, projection, options) =>
-      ccm.store(config).then((store) => store.get(key_or_query, projection, options)),
+        ccm.store(config).then((store) => store.get(key_or_query, projection, options)),
 
     /**
      * Contains ccmjs-relevant helper functions.
@@ -2039,18 +2039,18 @@
        * @returns {string} JSON string
        */
       stringify: (value, replacer, space) =>
-        JSON.stringify(
-          value,
-          (key, value) => {
-            if (
-              typeof value === "function" ||
-              ccm.helper.isNonCloneable(value)
-            )
-              value = null;
-            return replacer ? replacer(key, value) : value;
-          },
-          space,
-        ),
+          JSON.stringify(
+              value,
+              (key, value) => {
+                if (
+                    typeof value === "function" ||
+                    ccm.helper.isNonCloneable(value)
+                )
+                  value = null;
+                return replacer ? replacer(key, value) : value;
+              },
+              space,
+          ),
     },
   };
 
@@ -2062,25 +2062,25 @@
     // Define the `<ccm-app>` custom element if not already defined.
     if ("customElements" in window && !customElements.get("ccm-app")) {
       window.customElements.define(
-        "ccm-app",
-        class extends HTMLElement {
-          /**
-           * Handles the connection of the `<ccm-app>` element to the DOM.
-           *
-           * This lifecycle method is called when the `<ccm-app>` element
-           * is inserted into the document. It starts the referenced ccmjs
-           * component inside the element and ensures that it is only
-           * embedded once.
-           */
-          async connectedCallback() {
+          "ccm-app",
+          class extends HTMLElement {
+            /**
+             * Handles the connection of the `<ccm-app>` element to the DOM.
+             *
+             * This lifecycle method is called when the `<ccm-app>` element
+             * is inserted into the document. It starts the referenced ccmjs
+             * component inside the element and ensures that it is only
+             * embedded once.
+             */
+            async connectedCallback() {
 
-            // prevent multiple starts
-            if (this.firstChild) return;
+              // prevent multiple starts
+              if (this.firstChild) return;
 
-            // embed component
-            await ccm.helper.embed(this);
-          }
-        },
+              // embed component
+              await ccm.helper.embed(this);
+            }
+          },
       );
     }
   }
@@ -2114,21 +2114,21 @@
    * @returns {Promise<ccm.types.component|ccm.types.instance>} Promise that resolves to the created component or instance.
    */
   async function backwardsCompatibility(
-    version,
-    method,
-    component,
-    config,
-    element,
+      version,
+      method,
+      component,
+      config,
+      element,
   ) {
     return new Promise((resolve, reject) => {
       const major = parseInt(version.split(".")[0]);
       window.ccm[version][method](
-        component,
-        config,
-        major < 18 ? resolve : element,
+          component,
+          config,
+          major < 18 ? resolve : element,
       ) // before version 18, callbacks were used instead of promises (and there was no 3rd parameter for ccm.instance and ccm.start)
-        ?.then(resolve)
-        .catch(reject);
+          ?.then(resolve)
+          .catch(reject);
     });
   }
 
@@ -2195,7 +2195,7 @@
     async clear() {
       const datasets = await this.get();
       const results = await Promise.allSettled(
-        datasets.map((dataset) => this.del(dataset.key)),
+          datasets.map((dataset) => this.del(dataset.key)),
       );
       results.forEach((res, i) => {
         if (res.status === "rejected") {
