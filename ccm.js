@@ -283,7 +283,10 @@
             }
 
             // Dynamic import returns cached module references → clone to avoid mutation
-            success(ccm.helper.clone(result));
+            if (ccm.helper.isObject(result))
+              result = ccm.helper.clone(result);
+
+            success(result);
           }
 
           /**
@@ -1308,7 +1311,8 @@
         if (!ccm.helper.isObject(priodata)) return dataset;
         if (!ccm.helper.isObject(dataset)) return priodata;
         for (const key in priodata)
-          ccm.helper.deepValue(dataset, key, priodata[key]);
+          if (Object.hasOwn(priodata, key))
+            ccm.helper.deepValue(dataset, key, priodata[key]);
         return dataset;
       },
 
@@ -1604,7 +1608,7 @@
           }
 
           // RegExp string "/.../"
-          const match = typeof expected === "string" && expected.match(/^\/(.+)\/([gimsuy]*)$/);
+          const match = typeof expected === "string" && expected.match(/^\/(.+?)\/([gimsuy]*)$/);
           if (match) {
             const regex = new RegExp(match[1], match[2]);
             const value = actual && typeof actual === "object"
@@ -1729,9 +1733,11 @@
 
         // Apply path-based mapping
         for (const from in mapper) {
-          const value = ccm.helper.deepValue(source, from);
-          if (value !== undefined)
-            ccm.helper.deepValue(result, mapper[from], value);
+          if (Object.hasOwn(mapper, from)) {
+            const value = ccm.helper.deepValue(source, from);
+            if (value !== undefined)
+              ccm.helper.deepValue(result, mapper[from], value);
+          }
         }
 
         return result;
@@ -1848,7 +1854,8 @@
         delete local.config;
 
         // Merge configurations according to priority: defaults < base < local
-        let result = ccm.helper.integrate(base, defaults);
+        let result = ccm.helper.clone(defaults);
+        result = ccm.helper.integrate(base, result);
         result = ccm.helper.integrate(local, result);
 
         // Remove reserved framework property used only for component loading.
@@ -1880,7 +1887,7 @@
       runQuery: (query, objects) => {
         const results = [];
         if (!objects || typeof objects !== "object") return results;
-        for (const key in objects) {
+        for (const key of Object.keys(objects)) {
           const obj = objects[key];
           if (ccm.helper.isSubset(query, obj))
             results.push(obj);
@@ -2100,7 +2107,7 @@
               typeof val === "symbol"
           ) return undefined;
 
-          // --- Remove framework-specific non-cloneables ---
+          // --- Remove framework-specific non-cloneable ---
           if (ccm.helper.isNonCloneable?.(val)) return undefined;
 
           // --- Handle arrays ---
