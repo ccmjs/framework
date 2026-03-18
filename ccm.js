@@ -1890,52 +1890,93 @@
         return results;
       },
 
-
-
       /**
-       * @summary solves ccmjs dependencies contained in an array or object
-       * @param {Array|Object} obj - array or object
-       * @param {ccm.types.instance} [instance] - associated ccmjs instance
-       * @returns {Promise<void>}
+       * Resolves all dependencies in a given object or array.
+       *
+       * Recursively traverses the structure and replaces dependency entries
+       * with their resolved values. Errors during resolution are collected
+       * and inserted into the result object instead of aborting execution.
+       *
+       * If at least one dependency fails, the returned Promise is rejected
+       * with the partially resolved object.
+       *
+       * @param {Object|Array} obj - Object or array containing dependencies
+       * @param {Object} instance - Instance used for dependency resolution
+       * @returns {Promise<Object|Array>} Object with resolved dependencies.
        */
-      solveDependencies: (obj, instance) =>
-        new Promise((resolve, reject) => {
-          obj = ccm.helper.clone(obj);
-          if (!Array.isArray(obj) && !ccm.helper.isObject(obj))
-            return resolve(obj);
-          let failed = false;
-          let counter = 1;
-          search(obj);
-          check();
+      solveDependencies: async (obj, instance) => {
 
-          function search(obj) {
-            if (ccm.helper.isNonCloneable(obj)) return;
-            for (const key in obj)
-              if (Object.hasOwn(obj, key))
-                if (key !== "ignore") {
-                  const value = obj[key];
-                  if (ccm.helper.isDependency(value)) {
-                    counter++;
-                    ccm.helper
-                      .solveDependency(obj[key], instance)
-                      .then((result) => {
-                        obj[key] = result;
-                        check();
-                      })
-                      .catch((result) => {
+        // Clone input to avoid mutation of original configuration
+        obj = ccm.helper.clone(obj);
+
+        // Nothing to resolve → return as is
+        if (!Array.isArray(obj) && !ccm.helper.isObject(obj))
+          return obj;
+
+        let failed = false;
+
+        /**
+         * Recursively resolves dependencies within a structure.
+         *
+         * @param {Object|Array} current - Current object or array
+         * @param {string} path - Current property path for debugging
+         * @returns {Promise<Object|Array>}
+         */
+        async function resolveRecursive(current, path = "") {
+
+          // Skip non-cloneable objects (DOM, instances, etc.)
+          if (ccm.helper.isNonCloneable(current)) return current;
+
+          const tasks = [];
+
+          for (const key in current) {
+            if (!Object.hasOwn(current, key)) continue;
+
+            // Skip ignored section
+            if (key === "ignore") continue;
+
+            const value = current[key];
+            const currentPath = path ? `${path}.${key}` : key;
+
+            // Resolve dependency
+            if (ccm.helper.isDependency(value)) {
+              tasks.push(
+                  ccm.helper.solveDependency(value, instance)
+                      .then(result => current[key] = result)
+                      .catch(error => {
                         failed = true;
-                        obj[key] = result;
-                        check();
-                      });
-                  } else if (Array.isArray(value) || ccm.helper.isObject(value))
-                    search(value);
-                }
+
+                        // Emit warning with context
+                        console.warn(
+                            `ccmjs: failed to resolve dependency at '${currentPath}'`,
+                            { dependency: value, error }
+                        );
+
+                        // Store error in place of resolved value
+                        current[key] = error;
+                      })
+              );
+            }
+
+            // Recurse into nested structures
+            else if (Array.isArray(value) || ccm.helper.isObject(value)) {
+              tasks.push(resolveRecursive(value, currentPath));
+            }
           }
 
-          function check() {
-            !--counter && (failed ? reject : resolve)(obj);
-          }
-        }),
+          // Wait for all async tasks (resolved or failed)
+          await Promise.allSettled(tasks);
+
+          return current;
+        }
+
+        const result = await resolveRecursive(obj);
+
+        // Reject if any dependency failed, otherwise resolve normally
+        return failed ? Promise.reject(result) : result;
+      },
+
+
 
       /**
        * @summary solves a ccm dependency
