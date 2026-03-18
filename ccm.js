@@ -1685,6 +1685,37 @@
         return result;
       },
 
+      /**
+       * Filters a collection of objects using a query.
+       *
+       * Returns all objects that match the given query. Matching is performed
+       * using `ccm.helper.isSubset()`, meaning that all properties in the query
+       * must be contained in the object with equal values.
+       *
+       * @param {Object} query - Query object used for matching.
+       * @param {Object} objects - Object map containing datasets or values.
+       * @returns {Object[]} Array of matching objects.
+       *
+       * @example
+       * const data = {
+       *   a: { key: "a", done: true },
+       *   b: { key: "b", done: false }
+       * };
+       *
+       * const result = ccm.helper.runQuery({ done: true }, data);
+       * // => [{ key: "a", done: true }]
+       */
+      runQuery: (query, objects) => {
+        const results = [];
+        if (!objects) return results;
+        for (const key in objects) {
+          const obj = objects[key];
+          if (ccm.helper.isSubset(query, obj))
+            results.push(obj);
+        }
+        return results;
+      },
+
 
 
       /**
@@ -1855,20 +1886,6 @@
           default:
             throw new Error(`Unknown regex index: ${index}`);
         }
-      },
-
-      /**
-       * @summary Runs a query on objects and returns the results. If you want a deep copy, then call ccm.helper.clone for the results.
-       * @param {Object} query
-       * @param {Object[]|Object.<String,Object>} objects
-       * @returns {Object[]}
-       */
-      runQuery: (query, objects) => {
-        const results = [];
-        for (const key in objects)
-          ccm.helper.isSubset(query, objects[key]) &&
-            results.push(objects[key]);
-        return results;
       },
 
       /**
