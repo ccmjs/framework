@@ -1325,7 +1325,7 @@
        * It does not guarantee that the component is fully functional.
        *
        * @param {*} value - Value to check
-       * @returns {boolean} True if value is a valid component object.
+       * @returns {boolean}
        *
        * @example
        * ccm.helper.isComponent({
@@ -1355,7 +1355,7 @@
        * The `key` must be a valid ccmjs key as defined by `ccm.helper.isKey()`.
        *
        * @param {*} value - Value to check
-       * @returns {boolean} True if value is a valid dataset.
+       * @returns {boolean}
        *
        * @example
        * ccm.helper.isDataset({ key: "task1" }); // => true
@@ -1372,6 +1372,33 @@
       isDataset: (value) => (
           ccm.helper.isObject(value) &&
           ccm.helper.isKey(value.key)
+      ),
+
+      /**
+       * Checks whether a value is a ccmjs dependency.
+       *
+       * A dependency is defined as an array whose first element is a string
+       * starting with "ccm." and representing a framework method.
+       *
+       * This function performs a structural check only and does not validate
+       * the arguments or the existence of the referenced method.
+       *
+       * @param {*} value - Value to check
+       * @returns {boolean}
+       *
+       * @example
+       * ccm.helper.isDependency(["ccm.load", "./file.json"]); // => true
+       *
+       * @example
+       * ccm.helper.isDependency(["ccm.get", { name: "tasks" }, "task1"]); // => true
+       *
+       * @example
+       * ccm.helper.isDependency(null); // => false
+       */
+      isDependency: (value) => (
+          Array.isArray(value) &&
+          typeof value[0] === "string" &&
+          value[0].startsWith("ccm.")
       ),
 
       /**
@@ -1397,6 +1424,32 @@
       ),
 
       /**
+       * Checks whether a value is a ccmjs component instance.
+       *
+       * A component instance is an object created by the ccmjs framework
+       * that represents a running component with its own state and lifecycle.
+       *
+       * This check is structural and verifies the presence
+       * of essential instance properties and methods.
+       *
+       * @param {*} value - Value to check
+       * @returns {boolean}
+       *
+       * @example
+       * const instance = await ccm.start("./ccm.quiz.mjs");
+       * ccm.helper.isInstance(instance); // => true
+       *
+       * @example
+       * ccm.helper.isInstance(null); // => false
+       */
+      isInstance: (value) => (
+          ccm.helper.isObject(value) &&
+          typeof value.start === "function" &&
+          ccm.helper.isObject(value.component) &&
+          ccm.helper.isFramework(value.ccm)
+      ),
+
+      /**
        * Checks whether a value is a valid ccmjs key.
        *
        * A valid key is either:
@@ -1409,7 +1462,7 @@
        * - maximum length of 32 characters
        *
        * @param {*} value - Value to check.
-       * @returns {boolean} True if value is a valid key.
+       * @returns {boolean}
        *
        * @example
        * ccm.helper.isKey("task1"); // => true
@@ -1438,6 +1491,26 @@
 
         return false;
       },
+
+      /**
+       * Checks whether a value is a ccmjs datastore accessor (store).
+       *
+       * A store provides a unified API for accessing datasets
+       * and must implement the standard datastore methods.
+       *
+       * This check is structural and verifies the presence of required methods.
+       *
+       * @param {*} value - Value to check
+       * @returns {boolean}
+       */
+      isStore: (value) => (
+          ccm.helper.isObject(value) &&
+          typeof value.get === "function" &&
+          typeof value.set === "function" &&
+          typeof value.del === "function" &&
+          typeof value.count === "function" &&
+          typeof value.clear === "function"
+      ),
 
       /**
        * Maps values from one object structure to another.
@@ -1566,76 +1639,6 @@
 
 
       /**
-       * @summary Checks whether a value is a [datastore object]{@link ccm.types.store}.
-       * @param {any} value
-       * @returns {boolean}
-       * @example
-       * const value = await ccm.store();
-       * ccm.helper.isDatastore(value); // => true
-       */
-      isDatastore: (value) => value?.get && value.source && true,
-
-      /**
-       * check value if it is a ccmjs dependency
-       * @param {*} value
-       * @returns {boolean}
-       * @example ["ccm.load", ...]
-       * @example ["ccm.component", ...]
-       * @example ["ccm.instance", ...]
-       * @example ["ccm.start", ...]
-       * @example ["ccm.store", ...]
-       * @example ["ccm.get", ...]
-       */
-      isDependency: function (value) {
-        if (Array.isArray(value))
-          if (value.length > 0)
-            switch (value[0]) {
-              case "ccm.load":
-              case "ccm.component":
-              case "ccm.instance":
-              case "ccm.start":
-              case "ccm.store":
-              case "ccm.get":
-                return true;
-            }
-        return false;
-      },
-
-      /**
-       * @summary Checks whether a value is a DOM element (or a DocumentFragment).
-       * @param {any} value
-       * @returns {boolean}
-       * @example
-       * const value = document.body;
-       * ccm.helper.isElement(value); // => true
-       * @example
-       * const value = document.createElement("div");
-       * ccm.helper.isElement(value); // => true
-       * @example
-       * const value = document.createDocumentFragment();
-       * ccm.helper.isElement(value); // => true
-       */
-      isElement: (value) =>
-        value instanceof Element || value instanceof DocumentFragment,
-
-      /**
-       * @summary Checks whether a value is a [ccmjs instance]{@link ccm.types.instance}.
-       * @param {any} value
-       * @returns {boolean}
-       * @example
-       * const value = await ccm.instance({
-       *   name: "component",
-       *   ccm: "./libs/ccm/ccm.js",
-       *   config: {},
-       *   Instance: function () {
-       *     this.start = async () => {};
-       *   },
-       * });
-       * ccm.helper.isInstance(value); // => true
-       */
-      isInstance: (value) => ccm.helper.isComponent(value?.component),
-
-      /**
        * @summary Checks whether a value is a DOM Node.
        * @param {any} value
        * @returns {boolean}
@@ -1693,7 +1696,7 @@
           ccm.helper.isNode(value) ||
           ccm.helper.isFramework(value) ||
           ccm.helper.isInstance(value) ||
-          ccm.helper.isDatastore(value)
+          ccm.helper.isStore(value)
         );
       },
 
