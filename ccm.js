@@ -2041,28 +2041,105 @@
         }
       },
 
-
-
       /**
-       * @summary Converts a value to a JSON string and removes not JSON valid data.
-       * @param {*} value
-       * @param {Function} [replacer]
-       * @param {string|number} [space]
-       * @returns {string} JSON string
+       * Serializes a value to valid JSON.
+       *
+       * Ensures that the resulting string contains only JSON-compatible data.
+       * All non-serializable values (functions, symbols, DOM nodes, ccmjs instances,
+       * framework objects, circular references, etc.) are completely removed.
+       *
+       * Properties containing such values are omitted entirely (no `null` placeholders).
+       * Arrays are compacted (invalid entries are removed instead of replaced).
+       *
+       * @param {*} value - Value to serialize
+       * @param {Function} [replacer] - Optional JSON replacer function
+       * @param {number|string} [space] - Optional indentation
+       * @returns {string} Valid JSON string.
        */
-      stringify: (value, replacer, space) =>
-          JSON.stringify(
-              value,
-              (key, value) => {
-                if (
-                    typeof value === "function" ||
-                    ccm.helper.isNonCloneable(value)
-                )
-                  value = null;
-                return replacer ? replacer(key, value) : value;
-              },
-              space,
-          ),
+      stringify: (value, replacer, space) => {
+
+        /** Tracks visited objects to prevent circular reference crashes */
+        const seen = new WeakSet();
+
+        /**
+         * Checks if a value is a plain object (i.e. `{}`).
+         *
+         * @param {*} obj
+         * @returns {boolean}
+         */
+        const isPlainObject = obj =>
+            Object.getPrototypeOf(obj) === Object.prototype;
+
+        /**
+         * Recursively cleans a value so it becomes JSON-safe.
+         *
+         * @param {*} val
+         * @returns {*} cleaned value or `undefined` (to remove property)
+         */
+        const clean = val => {
+
+          // --- Allow valid primitive values ---
+          if (
+              val === null ||
+              typeof val === "string" ||
+              typeof val === "number" ||
+              typeof val === "boolean"
+          ) {
+            // Remove invalid numbers (NaN, Infinity)
+            if (typeof val === "number" && !isFinite(val)) return undefined;
+            return val;
+          }
+
+          // --- Remove unsupported primitive types ---
+          if (
+              val === undefined ||
+              typeof val === "function" ||
+              typeof val === "symbol"
+          ) return undefined;
+
+          // --- Remove framework-specific non-cloneables ---
+          if (ccm.helper.isNonCloneable?.(val)) return undefined;
+
+          // --- Handle arrays ---
+          if (Array.isArray(val)) {
+            const arr = [];
+            for (const item of val) {
+              const cleaned = clean(item);
+              if (cleaned !== undefined) arr.push(cleaned);
+            }
+            return arr;
+          }
+
+          // --- Handle objects ---
+          if (val && typeof val === "object") {
+
+            // Prevent circular references
+            if (seen.has(val)) return undefined;
+            seen.add(val);
+
+            // Only allow plain objects
+            if (!isPlainObject(val)) return undefined;
+
+            const obj = {};
+            for (const key in val) {
+              if (!Object.hasOwn(val, key)) continue;
+              const cleaned = clean(val[key]);
+
+              // Remove property entirely if not serializable
+              if (cleaned !== undefined)
+                obj[key] = cleaned;
+            }
+
+            return obj;
+          }
+
+          // Everything else is removed
+          return undefined;
+        };
+
+        const cleaned = clean(value);
+        return JSON.stringify(cleaned, replacer || null, space);
+      },
     },
   };
 
