@@ -612,9 +612,8 @@
         );
 
       // Render a loading icon in the web page area.
-      area.innerHTML = "";
-      const loading = ccm.helper.loading();
-      area.appendChild(loading);
+      const loading = config.loading?.() || ccm.helper.loading();
+      area.replaceChildren(loading);
 
       // Prepare the instance configuration.
       config = await ccm.helper.prepareConfig(config, component.config);
@@ -1634,6 +1633,60 @@
       },
 
       /**
+       * Creates a default loading indicator element.
+       *
+       * Returns a lightweight loading indicator that provides visual feedback
+       * while a component instance is being initialized.
+       *
+       * The element is fully self-contained and does not rely on external CSS.
+       *
+       * This helper is used internally by the framework but can be overridden
+       * via the `loading` property in a component configuration.
+       *
+       * @returns {HTMLElement} Loading indicator element.
+       *
+       * @example
+       * const el = ccm.helper.loading();
+       * document.body.appendChild(el);
+       *
+       * @example
+       * ccm.start(component, {
+       *   loading: () => document.createTextNode("Loading...")
+       * });
+       */
+      loading: () => {
+
+        // wrapper element
+        const wrapper = document.createElement("div");
+        wrapper.style.display = "grid";
+        wrapper.style.padding = "0.5em";
+
+        // spinner element
+        const spinner = document.createElement("div");
+        spinner.style.width = "2em";
+        spinner.style.height = "2em";
+        spinner.style.border = "0.3em solid #f3f3f3";
+        spinner.style.borderTopColor = "#009ee0";
+        spinner.style.borderLeftColor = "#009ee0";
+        spinner.style.borderRadius = "50%";
+
+        // animate spinner
+        spinner.animate(
+            [
+              { transform: "rotate(0deg)" },
+              { transform: "rotate(360deg)" }
+            ],
+            {
+              duration: 1000,
+              iterations: Infinity
+            }
+        );
+
+        wrapper.appendChild(spinner);
+        return wrapper;
+      },
+
+      /**
        * Maps values from one object structure to another.
        *
        * The mapper can either be:
@@ -1786,38 +1839,6 @@
             results.push(obj);
         }
         return results;
-      },
-
-
-
-      /**
-       * returns the ccmjs loading icon
-       * @param {ccm.types.instance} [instance] - then the keyframe animation of the icon is placed within the Shadow DOM of this instance (default: <code>document.head</code>)
-       * @returns {Element}
-       * @example document.body.appendChild(loading())
-       * @example instance.element.appendChild(loading(instance))
-       */
-      loading: (instance) => {
-        // create keyframe animation, if not already present
-        if (!document.head.querySelector(":scope > #ccm_keyframe")) {
-          const style = document.createElement("style");
-          style.id = "ccm_keyframe";
-          style.appendChild(
-            document.createTextNode(
-              "@keyframes ccm_loading {to {transform: rotate(360deg)}}",
-            ),
-          );
-          document.head.appendChild(style);
-        }
-
-        // create loading icon
-        const element = document.createElement("div");
-        element.classList.add("ccm_loading");
-        element.setAttribute("style", "display: grid; padding: 0.5em;");
-        element.innerHTML =
-          '<div style="align-self: center; justify-self: center; display: inline-block; width: 2em; height: 2em; border: 0.3em solid #f3f3f3; border-top-color: #009ee0; border-left-color: #009ee0; border-radius: 50%; animation: ccm_loading 1.5s linear infinite;"></div>';
-
-        return element;
       },
 
       /**
