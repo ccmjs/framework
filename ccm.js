@@ -493,17 +493,17 @@
       );
 
       // Add methods for creating and starting instances of the component.
-      component.instance = async (config = {}, element) =>
+      component.instance = async (config = {}, area) =>
           ccm.instance(
               component,
               await ccm.helper.prepareConfig(config, component.config),
-              element,
+              area,
           );
-      component.start = async (config = {}, element) =>
+      component.start = async (config = {}, area) =>
           ccm.start(
               component,
               await ccm.helper.prepareConfig(config, component.config),
-              element,
+              area,
           );
 
       return component;
@@ -1976,60 +1976,72 @@
         return failed ? Promise.reject(result) : result;
       },
 
-
-
       /**
-       * @summary solves a ccm dependency
-       * @param {Array} dependency - ccm dependency
-       * @param {ccm.types.instance} [instance] - associated ccmjs instance
-       * @returns {Promise<*>}
+       * Resolves a single ccmjs dependency.
+       *
+       * Executes the corresponding ccmjs operation (e.g. load, component, instance)
+       * and prepares parameters depending on the operation type.
+       *
+       * @param {Array} dependency - Dependency to resolve
+       * @param {Object} instance - Instance used as context for resolution
+       * @returns {Promise<*>} Resolved dependency result.
        */
       solveDependency: async (dependency, instance) => {
-        // the given value is no ccm dependency? => the result is the given value
+
+        // Not a dependency → return as is
         if (!ccm.helper.isDependency(dependency)) return dependency;
 
-        /**
-         * ccm operation to be performed
-         * @type {string}
-         */
-        const operation = dependency.shift().substring("ccm.".length);
+        // Extract operation and arguments (without mutating original array)
+        const [op, ...args] = dependency;
+        const operation = op.substring("ccm.".length);
 
-        // solve dependency
+        // Prepare arguments depending on operation
         switch (operation) {
           case "load":
-            instance && setContext(dependency);
+            if (instance) setContext(args);
             break;
           case "component":
           case "instance":
-          case "start":
-            dependency[1] = await ccm.helper.solveDependency(dependency[1]);
-            if (!dependency[1]) dependency[1] = {};
-            if (instance) dependency[1].parent = instance;
+          case "start": {
+            let config = await ccm.helper.solveDependency(args[1]);
+            if (!config) config = {};
+            if (instance) config.parent = instance;
+            args[1] = config;
             break;
+          }
           case "store":
-          case "get":
-            if (!dependency[0]) dependency[0] = {};
-            if (instance) dependency[0].parent = instance;
+          case "get": {
+            let settings = args[0] || {};
+            if (instance) settings.parent = instance;
+            args[0] = settings;
+            break;
+          }
         }
-        return ccm[operation].apply(null, dependency);
+
+        // Execute ccm operation
+        return ccm[operation](...args);
 
         /**
-         * The resources are automatically loaded in the shadow root of the associated ccm instance.
-         * @param {Array} resources
+         * Ensures that load resources use the correct DOM context.
+         *
+         * @param {Array} resources - Resources to process
          */
         function setContext(resources) {
           for (let i = 0; i < resources.length; i++) {
-            if (Array.isArray(resources[i])) {
-              setContext(resources[i]);
+            const res = resources[i];
+            if (Array.isArray(res)) {
+              setContext(res);
               continue;
             }
-            if (!ccm.helper.isObject(resources[i]))
-              resources[i] = { url: resources[i] };
+            if (!ccm.helper.isObject(res))
+              resources[i] = { url: res };
             if (!resources[i].context)
               resources[i].context = instance.element.parentNode;
           }
         }
       },
+
+
 
       /**
        * @summary Converts a value to a JSON string and removes not JSON valid data.
