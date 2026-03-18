@@ -1493,6 +1493,55 @@
       },
 
       /**
+       * Checks whether a value should not be cloned.
+       *
+       * Non-cloneable values include browser-specific objects and ccmjs runtime
+       * objects that must be passed by reference to preserve their identity
+       * and behavior.
+       *
+       * @param {*} value - Value to check.
+       * @returns {boolean} True if value should not be cloned.
+       *
+       * @example
+       * ccm.helper.isNonCloneable(window); // => true
+       *
+       * @example
+       * ccm.helper.isNonCloneable({}); // => false
+       */
+      isNonCloneable: (value) => (
+          value === window ||
+          value === document ||
+          (typeof Node !== "undefined" && value instanceof Node) ||
+          ccm.helper.isFramework(value) ||
+          ccm.helper.isInstance(value) ||
+          ccm.helper.isStore(value)
+      ),
+
+      /**
+       * Checks whether a value is an object (excluding arrays and `null`).
+       *
+       * This includes plain objects as well as objects created via constructors.
+       * Arrays and `null` are explicitly excluded.
+       *
+       * @param {*} value - Value to check
+       * @returns {boolean}
+       *
+       * @example
+       * ccm.helper.isObject({}); // => true
+       *
+       * @example
+       * ccm.helper.isObject([]); // => false
+       *
+       * @example
+       * ccm.helper.isObject(null); // => false
+       */
+      isObject: (value) => (
+          value !== null &&
+          typeof value === "object" &&
+          !Array.isArray(value)
+      ),
+
+      /**
        * Checks whether a value is a ccmjs datastore accessor (store).
        *
        * A store provides a unified API for accessing datasets
@@ -1637,68 +1686,6 @@
       },
 
 
-
-      /**
-       * @summary Checks whether a value is a DOM Node.
-       * @param {any} value
-       * @returns {boolean}
-       * @example
-       * const value = document.body;
-       * ccm.helper.isNode(value); // => true
-       * @example
-       * const value = document.createElement("div");
-       * ccm.helper.isNode(value); // => true
-       * @example
-       * const value = document.createDocumentFragment();
-       * ccm.helper.isNode(value); // => true
-       * @example
-       * const value = document.createTextNode("Hello, World!");
-       * ccm.helper.isNode(value); // => true
-       * @example
-       * const value = document.createAttribute("disabled");
-       * ccm.helper.isNode(value); // => true
-       * @example
-       * const value = document.createComment("Hello, World!");
-       * ccm.helper.isNode(value); // => true
-       */
-      isNode: (value) => value instanceof Node,
-
-      /**
-       * @summary Checks whether a value is an object.
-       * @description Also returns <code>false</code> for <code>null</code> and array.
-       * @param {any} value
-       * @returns {boolean}
-       * @example
-       * const value = null;
-       * ccm.helper.isObject(value); // => false
-       * @example
-       * const value = [];
-       * ccm.helper.isObject(value); // => false
-       * @example
-       * const value = {};
-       * ccm.helper.isObject(value); // => true
-       */
-      isObject: (value) =>
-        value && typeof value === "object" && !Array.isArray(value),
-
-      /**
-       * @summary checks if a value is a special object
-       * @description
-       * A special object is Window Object, Node, ccmjs Object, ccmjs Instance and ccmjs Datastore.
-       * These objects lead to endless loops if you recursively go through each property in depth.
-       * @param {*} value
-       * @returns {boolean}
-       */
-      isNonCloneable: (value) => {
-        return !!(
-          value === window ||
-          value === document ||
-          ccm.helper.isNode(value) ||
-          ccm.helper.isFramework(value) ||
-          ccm.helper.isInstance(value) ||
-          ccm.helper.isStore(value)
-        );
-      },
 
       /**
        * checks if an object is a subset of another object
