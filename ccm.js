@@ -1562,6 +1562,78 @@
       ),
 
       /**
+       * Checks whether an object is a subset of another object.
+       *
+       * All properties of the query object must match the corresponding values
+       * in the target object.
+       *
+       * Supported query features:
+       * - direct equality
+       * - dot notation (deep property access)
+       * - `null` → property must be undefined
+       * - `true` → property must be truthy
+       * - RegExp as string (`"/pattern/"`)
+       * - nested object comparison
+       *
+       * @param {Object} query - Query object (subset definition)
+       * @param {Object} target - Object to test against.
+       * @returns {boolean}
+       */
+      isSubset: (query, target) => {
+
+        if (!ccm.helper.isObject(query) || !target) return false;
+
+        for (const key in query) {
+          const expected = query[key];
+
+          // resolve actual value (support dot notation)
+          const actual = key.includes(".")
+              ? ccm.helper.deepValue(target, key)
+              : target[key];
+
+          // null → must be undefined
+          if (expected === null) {
+            if (actual !== undefined) return false;
+            continue;
+          }
+
+          // true → must be truthy
+          if (expected === true) {
+            if (!actual) return false;
+            continue;
+          }
+
+          // RegExp string "/.../"
+          if (
+              typeof expected === "string" &&
+              expected.startsWith("/") &&
+              expected.endsWith("/")
+          ) {
+            const regex = new RegExp(expected.slice(1, -1));
+            const value = actual && typeof actual === "object"
+                ? actual.toString()
+                : actual;
+            if (!regex.test(value)) return false;
+            continue;
+          }
+
+          // nested object → recursive subset check
+          if (
+              ccm.helper.isObject(expected) &&
+              ccm.helper.isObject(actual)
+          ) {
+            if (!ccm.helper.isSubset(expected, actual)) return false;
+            continue;
+          }
+
+          // default equality
+          if (expected !== actual) return false;
+        }
+
+        return true;
+      },
+
+      /**
        * Maps values from one object structure to another.
        *
        * The mapper can either be:
@@ -1717,67 +1789,6 @@
       },
 
 
-
-      /**
-       * checks if an object is a subset of another object
-       * @param {Object} obj - object
-       * @param {Object} other - another object
-       * @returns {boolean}
-       * @example
-       * const obj = {
-       *   name: 'John Doe',
-       *   counter: 3,
-       *   isValid: true,
-       *   x: { y: 'z' },                 // check of inner object
-       *   'values.1': 123,               // check of deeper array value
-       *   'settings.title': 'Welcome!',  // check of deeper object value
-       *   onLoad: true,                  // checks for truthy (is not falsy)
-       *   search: '/foo,bar,baz/',       // checks with regular expression
-       *   title: null                    // checks if property does not exist
-       * };
-       * const other = {
-       *   name: 'John Doe',
-       *   counter: 3,
-       *   isValid: true,
-       *   x: { y: 'z' },
-       *   values: [ 'abc', 123, false ],
-       *   settings: { title: 'Welcome!', year: 2017, greedy: true },
-       *   onLoad: function () { console.log( 'Loading..' ); },
-       *   search: 'foo,bar,baz'
-       * };
-       * const result = isSubset( obj, other );
-       * console.log( result );  // => true
-       */
-      isSubset(obj, other) {
-        for (const key in obj)
-          if (obj[key] === null) {
-            if (other[key] !== undefined) return false;
-          } else if (obj[key] === true) {
-            if (!other[key]) return false;
-          } else if (
-            typeof obj[key] === "string" &&
-            obj[key].startsWith("/") &&
-            obj[key].endsWith("/")
-          ) {
-            if (
-              !new RegExp(obj[key].slice(1, -1)).test(
-                other[key] && typeof other[key] === "object"
-                  ? other[key].toString()
-                  : other[key],
-              )
-            )
-              return false;
-          } else if (
-            typeof obj[key] === "object" &&
-            typeof other[key] === "object"
-          ) {
-            if (JSON.stringify(obj[key]) !== JSON.stringify(other[key]))
-              return false;
-          } else if (key.includes(".")) {
-            if (ccm.helper.deepValue(other, key) !== obj[key]) return false;
-          } else if (obj[key] !== other[key]) return false;
-        return true;
-      },
 
       /**
        * returns the ccmjs loading icon
@@ -2131,7 +2142,7 @@
      * @returns {Promise<void>}
      */
     async init() {
-      this.init = undefined;
+      delete this.init;
     }
 
     /**
