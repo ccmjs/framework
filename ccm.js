@@ -1816,6 +1816,50 @@
       },
 
       /**
+       * Prepares a configuration before dependency resolution.
+       *
+       * Resolves configuration dependencies if the config itself is a dependency,
+       * processes recursive base configurations via the `config` property,
+       * and applies configuration priority rules.
+       *
+       * Priority order:
+       * defaults < base configuration(s) < local configuration
+       *
+       * Note:
+       * This function does NOT resolve nested dependencies within the configuration.
+       * For that, use `ccm.helper.solveDependencies()` afterward.
+       *
+       * @param {Object} config - Configuration or dependency to prepare
+       * @param {Object} defaults - Default configuration
+       * @returns {Promise<Object>} Prepared configuration.
+       */
+      prepareConfig: async (config = {}, defaults = {}) => {
+
+        // Resolve config if it is given as a dependency.
+        config = await ccm.helper.solveDependency(config);
+
+        let base = {};
+
+        // Resolve base configuration recursively if present.
+        if (config && config.config) {
+          base = await ccm.helper.prepareConfig(config.config);
+        }
+
+        // Create a shallow copy of config without the `config` property (avoid mutation).
+        const local = { ...config };
+        delete local.config;
+
+        // Merge configurations according to priority: defaults < base < local
+        let result = ccm.helper.integrate(base, defaults);
+        result = ccm.helper.integrate(local, result);
+
+        // Remove reserved framework property used only for component loading.
+        delete result.ccm;
+
+        return result;
+      },
+
+      /**
        * Filters a collection of objects using a query.
        *
        * Returns all objects that match the given query. Matching is performed
@@ -1847,39 +1891,6 @@
       },
 
 
-
-      /**
-       * @summary Prepares a configuration object by resolving dependencies and integrating defaults.
-       * @description
-       * This function processes a given configuration object by:
-       * 1. Automatically resolving the configuration if it is given as a CCM dependency (e.g. ['ccm.load', ...] or ['ccm.get', ...]).
-       * 2. Recursively resolving and integrating nested configurations, if present.
-       * 3. Integrating the provided defaults into the final configuration.
-       * 4. Removing the reserved `ccm` property from the resulting configuration.
-       *
-       * @param {Object} [config={}] - The initial configuration to process.
-       * @param {Object} [defaults={}] - Default values to integrate into the configuration.
-       * @returns {Promise<Object>} A promise that resolves to the prepared configuration object.
-       */
-      prepareConfig: async (config = {}, defaults = {}) => {
-        // Is the configuration given as CCM dependency? => Resolve it first.
-        config = await ccm.helper.solveDependency(config);
-
-        // Recursively resolve and integrate nested configurations.
-        if (config.config) {
-          let base = await ccm.helper.prepareConfig(config.config);
-          delete config.config;
-          config = await ccm.helper.integrate(config, base);
-        }
-
-        // Integrate defaults into the configuration.
-        const result = await ccm.helper.integrate(config, defaults);
-
-        // Remove reserved `ccm` property from the resulting configuration.
-        delete result.ccm;
-
-        return result;
-      },
 
       /**
        * @summary solves ccmjs dependencies contained in an array or object
