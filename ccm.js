@@ -1083,15 +1083,16 @@
 
         const keys = path.split(".");
         const last = keys.pop();
+        const isIndex = key => /^\d+$/.test(key);
         let current = obj;
 
         for (let i = 0; i < keys.length; i++) {
 
           const key = keys[i];
-          const nextIsIndex = !isNaN(keys[i + 1]);
+          const nextIsIndex = isIndex(keys[i + 1]);
 
           // convert array index access
-          if (!isNaN(key) && Array.isArray(current)) {
+          if (isIndex(key) && Array.isArray(current)) {
             if (!current[key]) {
               if (arguments.length < 3) return;
               current[key] = nextIsIndex ? [] : {};
@@ -1265,7 +1266,7 @@
        */
       generateKey: () => {
         let key = crypto.randomUUID().replaceAll("-", "");
-        if (/^\d/.test(key)) key = "a" + key.slice(1); // ensure identifier does not start with a digit
+        if (/^\d/.test(key)) key = "a" + key.slice(1); // ensure identifier does not start with a digit (replace first char)
         return key;
       },
 
@@ -1603,12 +1604,9 @@
           }
 
           // RegExp string "/.../"
-          if (
-              typeof expected === "string" &&
-              expected.startsWith("/") &&
-              expected.endsWith("/")
-          ) {
-            const regex = new RegExp(expected.slice(1, -1));
+          const match = typeof expected === "string" && expected.match(/^\/(.+)\/([gimsuy]*)$/);
+          if (match) {
+            const regex = new RegExp(match[1], match[2]);
             const value = actual && typeof actual === "object"
                 ? actual.toString()
                 : actual;
@@ -1881,7 +1879,7 @@
        */
       runQuery: (query, objects) => {
         const results = [];
-        if (!objects) return results;
+        if (!objects || typeof objects !== "object") return results;
         for (const key in objects) {
           const obj = objects[key];
           if (ccm.helper.isSubset(query, obj))
@@ -2018,6 +2016,9 @@
           }
         }
 
+        if (typeof ccm[operation] !== "function")
+          throw new Error(`Unknown ccmjs operation: ${operation}`);
+
         // Execute ccm operation
         return ccm[operation](...args);
 
@@ -2067,8 +2068,10 @@
          * @param {*} obj
          * @returns {boolean}
          */
-        const isPlainObject = obj =>
-            Object.getPrototypeOf(obj) === Object.prototype;
+        const isPlainObject = obj => {
+          const proto = Object.getPrototypeOf(obj);
+          return proto === Object.prototype || proto === null;
+        };
 
         /**
          * Recursively cleans a value so it becomes JSON-safe.
