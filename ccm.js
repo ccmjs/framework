@@ -2923,30 +2923,21 @@
 
 /**
  * @namespace ccm.types
- * @description ccmjs-specific type definitions.
- */
-
-/**
- * @typedef {Object} ccm.types.ccmjs
- * @property {string} version
- * @property {Function} load
- * @property {Function} component
- * @property {Function} instance
- * @property {Function} start
- * @property {Function} store
- * @property {Function} get
- * @property {Object} helper
+ * @description ccmjs-specific type definitions
  */
 
 /**
  * @typedef {string} ccm.types.component_index
+ * @description Unique identifier of a registered component
+ * @example "quiz-4-0-0"
  */
 
 /**
  * @typedef {Object} ccm.types.component_obj
+ * @description ccmjs component definition object
  * @property {string} name - Component name
- * @property {Object|string} ccm - ccmjs framework reference or URL
- * @property {Object} config - Default configuration
+ * @property {string|ccm.types.framework} ccm - ccmjs framework reference or URL
+ * @property {ccm.types.config} config - Default configuration for instances
  * @property {Function} Instance - Instance constructor
  */
 
@@ -2962,45 +2953,72 @@
  */
 
 /**
+ * @typedef {Array} ccm.types.dependency
+ * @description ccmjs dependency definition
+ * @example ["ccm.load", "./file.json"]
+ * @example ["ccm.component", "./ccm.quiz.mjs"]
+ * @example ["ccm.instance", "./ccm.quiz.mjs", {}]
+ * @example ["ccm.start", "./ccm.quiz.mjs", {}]
+ * @example ["ccm.store", { name: "tasks" }]
+ * @example ["ccm.get", { name: "tasks" }, "key"]
+ */
+
+/**
+ * @typedef {Object} ccm.types.framework
+ * @description ccmjs framework instance
+ * @property {ccm.types.version_nr} version - Framework version
+ * @property {Function} load - Loads resources
+ * @property {Function} component - Registers a component
+ * @property {Function} instance - Creates an instance
+ * @property {Function} start - Creates and starts an instance
+ * @property {Function} store - Creates a datastore
+ * @property {Function} get - Retrieves datasets
+ * @property {Object} helper - Helper functions
+ */
+
+/**
  * @typedef {Object} ccm.types.instance
- * @property {string} id - Instance ID (unique within component)
- * @property {string} index - Global instance index
- * @property {ccm.types.ccmjs} ccm - Used ccmjs framework
+ * @description ccmjs component instance
+ * @property {string} id - Instance ID (unique within the component)
+ * @property {string} index - Unique instance identifier within the page
+ * @property {ccm.types.framework} ccm - Used ccmjs framework
  * @property {ccm.types.component_obj} component - Associated component
- * @property {ccm.types.instance} [parent] - Parent instance
- * @property {Object.<string,ccm.types.instance>} children - Child instances
  * @property {HTMLElement} host - Host DOM element
- * @property {ShadowRoot} [root] - Shadow DOM root
  * @property {HTMLElement} element - Content element
- * @property {Function} start - Start method
+ * @property {ShadowRoot} [root] - Shadow DOM root (if enabled)
+ * @property {Object.<string,ccm.types.instance>} children - Child instances
+ * @property {ccm.types.instance} [parent] - Parent instance
+ * @property {Function} start - Starts or re-runs the instance
  */
 
 /**
  * @typedef {Object} ccm.types.resource_obj
  * @description
- * Instead of a URL, a resource object can be passed to the method {@link ccm.load}, which then contains other information besides the URL, via which the loading of the resource is even more flexible controllable.
- * In the case of HTML, JSON and XML, the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch) is used to load the ressource. All properties in the resource object are also spread into the <code>options</code> object (2nd parameter of [fetch()](https://developer.mozilla.org/en-US/docs/Web/API/fetch)). This means that, for example, HTTP headers can also be set here.
- * @property {string} url - URL from which the resource should be loaded.
- * @property {Element|ccm.types.instance} [context] - Context in which the resource is loaded (default is <code>\<head></code>). Only relevant when loading CSS or JavaScript. CSS is loaded via <code>\<link></code> and JavaScript is loaded via <code>\<script></code>. When a [ccmjs instance]{@link ccm.types.instance} is passed, the resource is loaded in the Shadow DOM of that instance.
- * @property {string} [type] - Resource is loaded as <code>'css'</code>, <code>'image'</code>, <code>'js'</code>, <code>'module'</code>, <code>'json'</code> or <code>'xml'</code>. If not specified, the type is automatically recognized by the file extension. If the file extension is unknown, <code>'json'</code> is used by default.
- * @property {string} [attr] - Additional HTML attributes to be set for the HTML tag that loads the resource. Only relevant when loading CSS or JavaScript. CSS is loaded via <code>\<link></code> and JavaScript is loaded via <code>\<script></code>. With the additional attributes <code>integrity</code> and <code>crossorigin</code> the resource can be loaded with Subresource Integrity (SRI).
- * @property {string} [method] - The request method, e.g., <code>"GET"</code>, <code>"POST"</code>. The default is <code>"GET"</code>. Only relevant when loading data. <code>"JSONP"</code> is also supported.
- * @property {Object} [params] - HTTP parameters to send. Only relevant when loading data.
- * @tutorial loading-of-resources
+ * Resource configuration object for {@link ccm.load}.
+ *
+ * Instead of a URL, a resource object can be provided to control loading behavior.
+ *
+ * @property {string} url - Resource URL
+ * @property {Element|ccm.types.instance} [context] - DOM context for loading (default: <head>)
+ * @property {string} [type] - Resource type ("css", "image", "js", "module", "json", "xml")
+ * @property {Object} [attr] - Additional HTML attributes (e.g. integrity, crossorigin)
+ * @property {string} [method] - HTTP method (default: "GET").
+ * @property {Object} [params] - HTTP parameters
  */
 
 /**
  * @typedef {Object} ccm.types.store
- * @property {Function} get
- * @property {Function} set
- * @property {Function} del
- * @property {Function} count
- * @property {Function} clear
+ * @description ccmjs datastore interface
+ * @property {Function} get - Retrieves datasets
+ * @property {Function} set - Stores a dataset
+ * @property {Function} del - Deletes a dataset
+ * @property {Function} count - Counts datasets
+ * @property {Function} clear - Clears the datastore
  */
 
 /**
  * @typedef {string} ccm.types.version_nr
- * @description A version number that is conformed with Semantic Versioning 2.0.0 ({@link http://semver.org}).
+ * @description Semantic Versioning 2.0.0 compliant version string
  * @example "1.0.0"
  * @example "2.1.3"
  */
