@@ -2,9 +2,10 @@
 
 /**
  * @overview
- * Defines the global namespace [window.ccm]{@link ccm} for accessing ccmjs services.
+ * Provides the ccmjs core framework, including component loading, instance creation, and dependency resolution,
+ * and defines the global namespace {@link ccm}.
  *
- * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki} to learn more about ccmjs.
+ * See the {@link https://github.com/ccmjs/framework/wiki ccmjs Wiki} for more information.
  *
  * @author André Kless <andre.kless@web.de> (https://github.com/akless)
  * @copyright 2014–2026 André Kless
@@ -14,14 +15,17 @@
 
 {
   /**
-   * Encapsulates everything related to ccmjs.
-   *
-   * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki} to learn more about ccmjs.
+   * The global ccmjs namespace providing access to the core framework API.
    *
    * @global
    * @namespace
    */
   const ccm = {
+
+    // -----------------------------------------------------------------------------
+    // Core API
+    // -----------------------------------------------------------------------------
+
     /**
      * Retrieves the current version of ccmjs.
      *
@@ -477,7 +481,6 @@
       // Register the component if it is not already registered.
       if (!_components[component.index]) {
         _components[component.index] = component; // Store the component object encapsulated in ccmjs.
-        ccm.components[component.index] = {}; // Create global component namespaces.
         component.instances = 0; // Add a counter for component instances.
         component.ready && (await component.ready.call(component)); // Execute the "ready" callback if defined.
         delete component.ready; // Remove the "ready" callback after execution.
@@ -2153,6 +2156,10 @@
     },
   };
 
+  // -----------------------------------------------------------------------------
+  // Global Registration
+  // -----------------------------------------------------------------------------
+
   // Check if this is the first ccmjs version loaded on the web page.
   if (!window.ccm) {
     // Initialize the global `ccm` namespace.
@@ -2174,7 +2181,7 @@
             async connectedCallback() {
 
               // prevent multiple starts
-              if (this.firstChild) return;
+              if (this.hasChildNodes()) return;
 
               // embed component
               await ccm.helper.embed(this);
@@ -2185,10 +2192,12 @@
   }
 
   // Initialize the namespace for the current ccmjs version.
-  if (!window.ccm[ccm.version]) {
-    window.ccm[ccm.version] = ccm; // Set version-specific namespace.
-    ccm.components = {}; // Initialize the global namespace for loaded components.
-  }
+  if (!window.ccm[ccm.version])
+    window.ccm[ccm.version] = ccm;
+
+  // -----------------------------------------------------------------------------
+  // Private State
+  // -----------------------------------------------------------------------------
 
   /**
    * @description
@@ -2200,6 +2209,10 @@
    * @type {Object.<ccm.types.component_index, ccm.types.component_obj>}
    */
   const _components = {};
+
+  // -----------------------------------------------------------------------------
+  // Internal Utilities
+  // -----------------------------------------------------------------------------
 
   /**
    * When a requested component uses another ccmjs version.
@@ -2230,6 +2243,10 @@
           .catch(reject);
     });
   }
+
+  // -----------------------------------------------------------------------------
+  // Datastore Implementation
+  // -----------------------------------------------------------------------------
 
   /**
    * Abstract base class for datastore accessors in ccmjs.
