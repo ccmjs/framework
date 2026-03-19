@@ -2923,38 +2923,56 @@
 
 /**
  * @namespace ccm.types
- * @description ccmjs-specific Type Definitions
- */
-
-/**
- * @typedef {Object} ccm.types.component_index
- */
-
-/**
- * @typedef {Object} ccm.types.component_obj
- */
-
-/**
- * @typedef {Object} ccm.types.config
- */
-
-/**
- * @typedef {Array} ccm.types.dependency
- * @summary ccmjs dependency
- * @example ["ccm.load", ...]
- * @example ["ccm.component", ...]
- * @example ["ccm.instance", ...]
- * @example ["ccm.start", ...]
- * @example ["ccm.store", ...]
- * @example ["ccm.get", ...]
+ * @description ccmjs-specific type definitions.
  */
 
 /**
  * @typedef {Object} ccm.types.ccmjs
+ * @property {string} version
+ * @property {Function} load
+ * @property {Function} component
+ * @property {Function} instance
+ * @property {Function} start
+ * @property {Function} store
+ * @property {Function} get
+ * @property {Object} helper
+ */
+
+/**
+ * @typedef {string} ccm.types.component_index
+ */
+
+/**
+ * @typedef {Object} ccm.types.component_obj
+ * @property {string} name - Component name
+ * @property {Object|string} ccm - ccmjs framework reference or URL
+ * @property {Object} config - Default configuration
+ * @property {Function} Instance - Instance constructor
+ */
+
+/**
+ * @typedef {Object} ccm.types.config
+ * @description
+ * Configuration object used to create a ccmjs component instance.
+ *
+ * A configuration may contain plain values, nested objects and ccmjs dependencies.
+ *
+ * See {@link https://github.com/ccmjs/framework/wiki/ccmjs-Conventions#configuration-conventions}
+ * for detailed rules and conventions regarding configuration handling.
  */
 
 /**
  * @typedef {Object} ccm.types.instance
+ * @property {string} id - Instance ID (unique within component)
+ * @property {string} index - Global instance index
+ * @property {ccm.types.ccmjs} ccm - Used ccmjs framework
+ * @property {ccm.types.component_obj} component - Associated component
+ * @property {ccm.types.instance} [parent] - Parent instance
+ * @property {Object.<string,ccm.types.instance>} children - Child instances
+ * @property {HTMLElement} host - Host DOM element
+ * @property {ShadowRoot} [root] - Shadow DOM root
+ * @property {HTMLElement} element - Content element
+ * @property {Function} start - Start method
  */
 
 /**
@@ -2973,6 +2991,11 @@
 
 /**
  * @typedef {Object} ccm.types.store
+ * @property {Function} get
+ * @property {Function} set
+ * @property {Function} del
+ * @property {Function} count
+ * @property {Function} clear
  */
 
 /**
