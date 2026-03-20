@@ -72,7 +72,7 @@
 
           // Handle loading in the Shadow DOM of a ccmjs instance.
           if (ccm.helper.isInstance(resource.context))
-            resource.context = resource.context.element.parentNode;
+            resource.context = resource.context.element.parentElement;
 
           // Determine and call the operation to load the resource based on its type or file extension.
           getOperation()();
@@ -87,6 +87,7 @@
            * @param {*} result - The result of the last successfully loaded resource.
            */
           function sequential(result) {
+
             // Add the result of the last loaded resource to the result array if it exists.
             if (result !== null) results[i].push(result);
 
@@ -111,6 +112,7 @@
 
           /**
            * Returns the operation to load resource according to its type.
+           *
            * @returns {Function}
            */
           function getOperation() {
@@ -165,7 +167,6 @@
            * The CSS file is loaded in the specified context, and success or error callbacks are triggered accordingly.
            */
           function loadCSS() {
-
             const element = document.createElement("link");
             element.rel = "stylesheet";
             element.type = "text/css";
@@ -180,7 +181,6 @@
 
             element.onload = () => success(resource.url);
             element.onerror = error;
-
             resource.context.appendChild(element);
           }
 
@@ -238,21 +238,21 @@
            */
           async function loadModule() {
 
-            // Extract optional property keys from URL hash
+            // Extract optional property keys from URL hash.
             let [url, ...keys] = resource.url.split("#");
 
-            // Resolve relative URLs to absolute URLs
+            // Resolve relative URLs to absolute URLs.
             url = new URL(url, location.href).href;
 
             let result;
 
-            // Handle SRI verification
+            // Handle SRI verification.
             if (resource.attr?.integrity) {
 
-              // Fetch module source
+              // Fetch module source.
               const text = await (await fetch(url)).text();
 
-              // Compute SRI hash
+              // Compute SRI hash.
               const prefix = resource.attr.integrity.slice(
                   0,
                   resource.attr.integrity.indexOf("-")
@@ -264,10 +264,10 @@
               const base64 = btoa(String.fromCharCode(...new Uint8Array(hash)));
               const sri = `${prefix}-${base64}`;
 
-              // Verify integrity
+              // Verify integrity.
               if (sri !== resource.attr.integrity) return error();
 
-              // Create blob URL for dynamic import
+              // Create blob URL for dynamic import.
               const blobUrl = URL.createObjectURL(new Blob([text], { type: "text/javascript" }));
               result = await import(blobUrl);
               URL.revokeObjectURL(blobUrl);
@@ -275,18 +275,18 @@
               result = await import(url);
             }
 
-            // If only one specific deeper value has to be the result
+            // If only one specific deeper value has to be the result.
             if (keys.length === 1)
               result = ccm.helper.deepValue(result, keys[0]);
 
-            // If multiple properties should be returned
+            // If multiple properties should be returned.
             if (keys.length > 1) {
               const obj = {};
               keys.forEach(key => obj[key] = result[key]);
               result = obj;
             }
 
-            // Dynamic import returns cached module references → clone to avoid mutation
+            // Dynamic import returns cached module references → clone to avoid mutation.
             if (ccm.helper.isObject(result))
               result = ccm.helper.clone(result);
 
@@ -300,6 +300,7 @@
            * Supports both `GET` and `POST` methods, with optional parameters. Default is `GET`.
            */
           function loadJSON() {
+
             // Prepare the URL or request body based on the HTTP method.
             if (resource.params)
               resource.method === "POST"
@@ -324,6 +325,7 @@
            * @returns {string} - URL with appended query parameters.
            */
           function buildURL(url, data) {
+
             // Append query parameters to the URL.
             return data ? url + "?" + params(data).slice(0, -1) : url;
 
@@ -334,7 +336,7 @@
              *
              * @param {Object} obj - Object to convert
              * @param {string} [prefix] - Prefix for nested keys
-             * @returns {string} - Generated query string
+             * @returns {string} - Generated query string.
              */
             function params(obj, prefix) {
               let result = "";
@@ -361,14 +363,15 @@
           }
 
           /**
-           * Callback when loading of a resource was successful
+           * Callback when loading of a resource was successful.
            *
            * Processes the loaded data based on its type (e.g., XML) and updates the results array.
            * Triggers the next step in the loading process.
            *
-           * @param {*} data - Loaded resource data.
+           * @param {*} data - Loaded resource data
            */
           function success(data) {
+
             // If the data is not defined, then treat the loading of this resource as complete.
             if (data === undefined) return check();
 
@@ -389,12 +392,13 @@
           }
 
           /**
-           * Callback when loading of a resource failed
+           * Callback when loading of a resource failed.
            *
            * Marks the loading process as failed and updates the results array with an error object.
            * Triggers the next step in the loading process.
            */
           function error(e) {
+
             // Indicate that at least one resource failed to load.
             failed = true;
 
@@ -434,12 +438,13 @@
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
      * to learn more about embedding components with ccmjs.
      *
-     * @param {ccm.types.component_obj|string} component - Component object, index, or URL of the component to register.
-     * @param {ccm.types.config} [config={}] - Priority data for the component's default instance configuration.
+     * @param {ccm.types.component_obj|string} component - Component object, index, or URL of the component to register
+     * @param {ccm.types.config} [config={}] - Priority data for the component's default instance configuration
      * @returns {Promise<ccm.types.component_obj>} Clone of the registered component object.
      * @throws {Error} If the provided component is not valid.
      */
     component: async (component, config = {}) => {
+
       // Retrieve the component object via index, URL or directly as JavaScript object.
       component = await getComponentObject();
 
@@ -516,9 +521,11 @@
 
       /**
        * Retrieves the component object via index, URL or directly as JavaScript object.
+       *
        * @returns {Promise<ccm.types.component_obj>} Component object
        */
       async function getComponentObject() {
+
         // Return the component directly if it is not a string.
         if (typeof component !== "string") return component;
 
@@ -597,6 +604,7 @@
         config = {},
         area = document.createElement("div"),
     ) => {
+
       // Register the component.
       component = await ccm.component(component, { ccm: config?.ccm });
 
@@ -625,19 +633,19 @@
       config = await ccm.helper.prepareConfig(config, component.config);
 
       /**
-       * The created ccmjs instance.
+       * Created ccmjs instance
        * @type {ccm.types.instance}
        */
       const instance = new component.Instance();
 
       // Set ccmjs-specific properties for the instance.
-      instance.ccm = component.ccm; // Reference to the used ccmjs version.
-      instance.component = component; // The component the instance is created from.
+      instance.ccm = component.ccm; // Reference to the used ccmjs version
+      instance.component = component; // Component the instance is created from
       instance.id = ++_components[component.index].instances; // Instance ID. Unique within the component.
       instance.index = component.index + "-" + instance.id; // Instance index. Unique within the web page.
       if (!instance.init) instance.init = async () => {}; // Ensure the instance has an init method.
       instance.children = {}; // Store child instances used by this instance.
-      instance.parent = config.parent; // Reference to the parent instance.
+      instance.parent = config.parent; // Reference to parent instance
       delete config.parent; // Prevent cyclic recursion when resolving dependencies.
       instance.config = ccm.helper.stringify(config); // Store the original configuration.
 
@@ -665,7 +673,7 @@
       area.appendChild(instance.host); // Move the host element back to the target web page area.
       instance.element.appendChild(loading); // Move the loading icon to the content element.
 
-      // Apply configuration mapper if defined
+      // Apply configuration mapper if defined.
       const mapper = config.mapper;
       delete config.mapper;
       if (mapper)
@@ -679,27 +687,29 @@
       ]);
       for (const key of reserved) {
         if (key in config) {
-          console.warn(`ccmjs: config property '${key}' is reserved and was ignored.`);
+          console.warn(`[ccmjs] config property '${key}' is reserved and was ignored.`);
           delete config[key];
         }
       }
 
-      // Integrate configuration into instance
+      // Integrate configuration into instance.
       Object.assign(instance, config);
 
-      // Initialize the created and dependent instances if necessary.
+      // Initialize created and dependent instances if necessary.
       if (!instance.parent?.init) await initialize();
 
       return instance;
 
       /**
-       * @summary Initializes the created instance and all dependent ccmjs instances.
+       * Initializes the created instance and all dependent ccmjs instances.
+       *
        * @returns {Promise<void>} A promise that resolves when initialization is complete.
        */
       function initialize() {
         return new Promise((resolve) => {
+
           /**
-           * @summary Stores all found ccmjs instances.
+           * Stores all found ccmjs instances.
            * @type {ccm.types.instance[]}
            */
           const instances = [instance];
@@ -712,10 +722,12 @@
           init();
 
           /**
-           * @summary Finds all dependent ccmjs instances (breadth-first-order, recursive).
-           * @param {Array|Object} obj - The array or object to search.
+           * Finds all dependent ccmjs instances (breadth-first-order, recursive).
+           *
+           * @param {Array|Object} obj - Array or object to search
            */
           function find(obj) {
+
             /**
              * Stores relevant inner objects/arrays for breadth-first-order.
              * @type {Array.<Array|Object>}
@@ -744,18 +756,19 @@
           }
 
           /**
-           * @summary Calls the `init` methods of all ccmjs instances in sequence.
-           * @description
+           * Calls the `init` methods of all ccmjs instances in sequence.
+           *
            * This function processes a list of ccmjs instances and calls their `init` methods asynchronously.
            * Once all `init` methods are called, it proceeds to the `ready` method.
            * If an instance does not have an `init` method, it skips to the next instance.
            */
           function init() {
+
             // If all init methods are called, proceed to ready methods.
             if (i === instances.length) return ready();
 
             /**
-             * The next ccmjs instance to call the init method.
+             * Next ccmjs instance to call the init method.
              * @type {ccm.types.instance}
              */
             const next = instances[i++];
@@ -770,18 +783,19 @@
           }
 
           /**
-           * @summary Calls the `ready` methods of all ccmjs instances in reverse order.
-           * @description
+           * Calls the `ready` methods of all ccmjs instances in reverse order.
+           *
            * This function processes a stack of ccmjs instances, calling their `ready` methods asynchronously.
            * Once all `ready` methods are called, the promise is resolved.
            * If an instance does not have a `ready` method, it proceeds to the next instance.
            */
           function ready() {
+
             // If all ready methods are called, resolve the promise.
             if (!instances.length) return resolve();
 
             /**
-             * @summary The next ccmjs instance to call the `ready` method.
+             * Next ccmjs instance to call the `ready` method.
              * @type {ccm.types.instance}
              */
             const next = instances.pop();
@@ -795,12 +809,13 @@
                 : proceed();
 
             /**
-             * @summary Handles the next step after the instance is ready.
-             * @description
+             * Handles the next step after the instance is ready.
+             *
              * If the instance is marked to start directly, it calls its `start` method.
              * Otherwise, it continues with the next instance in the stack.
              */
             function proceed() {
+
               // If configured for immediate execution, start the instance first, then call ready.
               if (next._start) {
                 delete next._start;
@@ -823,12 +838,13 @@
      *
      * @param {ccm.types.component_obj|string} component - Component object, index, or URL of the component to register
      * @param {ccm.types.config} [config={}] - Priority data for instance configuration
-     * @param {Element} [area=document.createElement("div")] - Web page area where the component instance will be embedded (default: on-the-fly `<div>`)
+     * @param {Element} [area=document.createElement("div")] - Web page area where the component instance will be embedded (default: on-the-fly `<div>`).
      * @returns {Promise<ccm.types.instance>} A promise that resolves to the created and started instance.
      * @throws {Error} If the provided component is not valid.
      */
     start: async (component, config = {}, area) => {
-      // Register the component.
+
+      // Register component.
       component = await ccm.component(component, { ccm: config?.ccm });
 
       // Abort if the component is not valid.
@@ -891,7 +907,7 @@
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Data-Management}
      * to learn more about data management in ccmjs.
      *
-     * @param {Object} [config={}] - Datastore configuration
+     * @param {ccm.types.store_config} [config={}] - Datastore configuration
      * @param {string} [config.name] - Logical name of the datastore (required for OfflineStore and RemoteStore)
      * @param {string} [config.url] - Remote endpoint URL. Used together with `name` to create a RemoteStore.
      * @param {string} [config.db] - (RemoteStore only) Optional database identifier if the server supports multiple databases.
@@ -902,6 +918,7 @@
      * @returns {Promise<Datastore>} Resolves to an initialized datastore accessor implementing the common datastore API.
      */
     store: async (config = {}) => {
+
       // Resolve the configuration if it is a dependency.
       config = await ccm.helper.solveDependency(config);
 
@@ -946,7 +963,7 @@
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Data-Management}
      * to learn more about data management in ccmjs.
      *
-     * @param {Object} [config={}]- Datastore configuration (same as {@link ccm.store})
+     * @param {ccm.types.store_config} [config={}] - Datastore configuration (same as {@link ccm.store})
      * @param {ccm.types.key|Object} [key_or_query={}]
      * Either a dataset key or a query object.
      * If omitted or an empty object is provided, all datasets are returned.
@@ -986,10 +1003,9 @@
        *
        * @param {*} value - Value to clone
        * @param {Set<Object>} [hash] - Internal set used for cycle detection
-       * @returns {*} Deep copy of the provided value
+       * @returns {*} Deep copy of the provided value.
        */
       clone: (value, hash = new Set()) => {
-
         if (Array.isArray(value) || ccm.helper.isObject(value)) {
 
           // Do not clone special objects or already processed references
@@ -997,13 +1013,10 @@
             return value;
 
           hash.add(value);
-
           const copy = Array.isArray(value) ? [] : {};
-
           Object.keys(value).forEach(key => {
             copy[key] = ccm.helper.clone(value[key], hash);
           });
-
           return copy;
         }
 
@@ -1036,7 +1049,8 @@
        * be in datastore format.
        *
        * @param {ccm.types.dataset[]} arr - Array of datasets
-       * @returns {Object<string,ccm.types.dataset>|*} Datastore-compatible object or original value
+       * @returns {Object<string,ccm.types.dataset>|*} Datastore-compatible object or original value.
+       *
        * @example
        * ccm.helper.datasetsToStore([
        *   { key: "a", value: 1 },
@@ -1084,16 +1098,13 @@
        * @returns {*} Retrieved or set value.
        */
       deepValue: function (obj, path, value) {
-
         if (!obj || typeof path !== "string") return;
 
         const keys = path.split(".");
         const last = keys.pop();
         const isIndex = key => /^\d+$/.test(key);
         let current = obj;
-
         for (let i = 0; i < keys.length; i++) {
-
           const key = keys[i];
           const nextIsIndex = isIndex(keys[i + 1]);
 
@@ -1154,7 +1165,7 @@
        * inside the configuration are resolved before the component
        * instance is started.
        *
-       * @param {HTMLElement} element - The `<ccm-app>` element that hosts the component.
+       * @param {HTMLElement} element - `<ccm-app>` element that hosts the component
        * @returns {Promise<ccm.types.instance>} Promise resolving to the started component instance.
        *
        * @example
@@ -1174,10 +1185,7 @@
        */
       embed: async (element) => {
 
-        /**
-         * Read the component URL from the attribute.
-         * Abort if the attribute is missing.
-         */
+        // Read the component URL from the attribute. Abort if the attribute is missing.
         const component = element.getAttribute("component");
         if (!component)
           throw new Error("<ccm-app> missing 'component' attribute");
@@ -1189,7 +1197,7 @@
         try {
           config = JSON.parse(element.getAttribute("config") || "{}");
         } catch (e) {
-          console.warn("Invalid JSON in <ccm-app> config attribute:", e);
+          console.warn("[ccmjs] Invalid JSON in <ccm-app> config attribute:", e);
         }
 
         // Look for an inline JSON configuration script. Only direct child scripts are considered. If found, its JSON content overrides attribute values.
@@ -1198,7 +1206,7 @@
           try {
             Object.assign(config, JSON.parse(script.textContent.trim() || "{}"));
           } catch (e) {
-            console.warn("Invalid JSON in <ccm-app> application/json script:", e);
+            console.warn("[ccmjs] Invalid JSON in <ccm-app> application/json script:", e);
           }
         }
 
@@ -1223,7 +1231,7 @@
        * @returns {*} First defined property value found in the ancestor chain or `null` if not found.
        *
        * @example
-       * // find nearest user instance in ancestor chain
+       * // Find nearest user instance in ancestor chain.
        * const user = ccm.helper.findInAncestors(this, "user");
        */
       findInAncestors: (instance, prop) => {
@@ -1468,7 +1476,7 @@
        * - followed by lowercase letters, digits or underscores
        * - maximum length of 32 characters
        *
-       * @param {*} value - Value to check.
+       * @param {*} value - Value to check
        * @returns {boolean}
        *
        * @example
@@ -1487,14 +1495,12 @@
         const KEY_REGEX = /^[a-z][a-z0-9_]{0,31}$/;
 
         // single key
-        if (typeof value === "string") {
+        if (typeof value === "string")
           return KEY_REGEX.test(value);
-        }
 
         // compound key (array)
-        if (Array.isArray(value) && value.length) {
+        if (Array.isArray(value) && value.length)
           return value.every(k => typeof k === "string" && KEY_REGEX.test(k));
-        }
 
         return false;
       },
@@ -1506,8 +1512,8 @@
        * objects that must be passed by reference to preserve their identity
        * and behavior.
        *
-       * @param {*} value - Value to check.
-       * @returns {boolean} True if value should not be cloned.
+       * @param {*} value - Value to check
+       * @returns {boolean}
        *
        * @example
        * ccm.helper.isNonCloneable(window); // => true
@@ -1583,11 +1589,10 @@
        * - nested object comparison
        *
        * @param {Object} query - Query object (subset definition)
-       * @param {Object} target - Object to test against.
+       * @param {Object} target - Object to test against
        * @returns {boolean}
        */
       isSubset: (query, target) => {
-
         if (!ccm.helper.isObject(query) || !target) return false;
 
         for (const key in query) {
@@ -1656,7 +1661,7 @@
        *
        * @example
        * ccm.start(component, {
-       *   loading: () => document.createTextNode("Loading...")
+       *   loading: () => document.createTextNode("Loading..."),
        * });
        */
       loading: () => {
@@ -1720,21 +1725,21 @@
        *
        * @param {Object} source - Source object
        * @param {Object|Function} mapper - Mapping object or mapping function
-       * @returns {Object} New mapped object
+       * @returns {Object} New mapped object.
        */
       mapObject: (source, mapper) => {
 
-        // If mapper is a function, delegate transformation to it
+        // If mapper is a function, delegate transformation to it.
         if (typeof mapper === "function")
           return mapper(source);
 
-        // If mapper is not an object, return source unchanged
+        // If mapper is not an object, return source unchanged.
         if (!ccm.helper.isObject(mapper))
           return source;
 
         const result = {};
 
-        // Apply path-based mapping
+        // Apply path-based mapping.
         for (const from in mapper) {
           if (Object.hasOwn(mapper, from)) {
             const value = ccm.helper.deepValue(source, from);
@@ -1796,7 +1801,6 @@
           url: baseURL,
           filename
         };
-
         if (sri) result.sri = sri;
 
         // Remove prefix "ccm." and suffix ".js/.mjs"
@@ -1836,9 +1840,9 @@
        * This function does NOT resolve nested dependencies within the configuration.
        * For that, use `ccm.helper.solveDependencies()` afterward.
        *
-       * @param {Object} config - Configuration or dependency to prepare
-       * @param {Object} defaults - Default configuration
-       * @returns {Promise<Object>} Prepared configuration.
+       * @param {ccm.types.config|ccm.types.dependency} config - Configuration or dependency to prepare
+       * @param {ccm.types.config} defaults - Default configuration
+       * @returns {Promise<ccm.types.config>} Prepared configuration.
        */
       prepareConfig: async (config = {}, defaults = {}) => {
 
@@ -1848,9 +1852,8 @@
         let base = {};
 
         // Resolve base configuration recursively if present.
-        if (config && config.config) {
+        if (config && config.config)
           base = await ccm.helper.prepareConfig(config.config);
-        }
 
         // Create a shallow copy of config without the `config` property (avoid mutation).
         const local = { ...config };
@@ -1914,10 +1917,10 @@
        */
       solveDependencies: async (obj, instance) => {
 
-        // Clone input to avoid mutation of original configuration
+        // Clone input to avoid mutation of original configuration.
         obj = ccm.helper.clone(obj);
 
-        // Nothing to resolve → return as is
+        // Nothing to resolve → return as is.
         if (!Array.isArray(obj) && !ccm.helper.isObject(obj))
           return obj;
 
@@ -1932,11 +1935,10 @@
          */
         async function resolveRecursive(current, path = "") {
 
-          // Skip non-cloneable objects (DOM, instances, etc.)
+          // Skip non-cloneable objects (DOM, instances, etc.).
           if (ccm.helper.isNonCloneable(current)) return current;
 
           const tasks = [];
-
           for (const key in current) {
             if (!Object.hasOwn(current, key)) continue;
 
@@ -1954,25 +1956,24 @@
                       .catch(error => {
                         failed = true;
 
-                        // Emit warning with context
+                        // Emit warning with context.
                         console.warn(
-                            `ccmjs: failed to resolve dependency at '${currentPath}'`,
+                            `[ccmjs] failed to resolve dependency at '${currentPath}'`,
                             { dependency: value, error }
                         );
 
-                        // Store error in place of resolved value
+                        // Store error in place of resolved value.
                         current[key] = error;
                       })
               );
             }
 
-            // Recurse into nested structures
-            else if (Array.isArray(value) || ccm.helper.isObject(value)) {
+            // Recurse into nested structures.
+            else if (Array.isArray(value) || ccm.helper.isObject(value))
               tasks.push(resolveRecursive(value, currentPath));
-            }
           }
 
-          // Wait for all async tasks (resolved or failed)
+          // Wait for all async tasks (resolved or failed).
           await Promise.allSettled(tasks);
 
           return current;
@@ -1980,7 +1981,7 @@
 
         const result = await resolveRecursive(obj);
 
-        // Reject if any dependency failed, otherwise resolve normally
+        // Reject if any dependency failed, otherwise resolve normally.
         return failed ? Promise.reject(result) : result;
       },
 
@@ -1991,19 +1992,19 @@
        * and prepares parameters depending on the operation type.
        *
        * @param {Array} dependency - Dependency to resolve
-       * @param {Object} instance - Instance used as context for resolution
+       * @param {Object} [instance] - Instance used as context for resolution
        * @returns {Promise<*>} Resolved dependency result.
        */
       solveDependency: async (dependency, instance) => {
 
-        // Not a dependency → return as is
+        // Not a dependency → return as is.
         if (!ccm.helper.isDependency(dependency)) return dependency;
 
-        // Extract operation and arguments (without mutating original array)
+        // Extract operation and arguments (without mutating original array).
         const [op, ...args] = dependency;
         const operation = op.substring("ccm.".length);
 
-        // Prepare arguments depending on operation
+        // Prepare arguments depending on operation.
         switch (operation) {
           case "load":
             if (instance) setContext(args);
@@ -2029,7 +2030,7 @@
         if (typeof ccm[operation] !== "function")
           throw new Error(`Unknown ccmjs operation: ${operation}`);
 
-        // Execute ccm operation
+        // Execute ccm operation.
         return ccm[operation](...args);
 
         /**
@@ -2069,7 +2070,7 @@
        */
       stringify: (value, replacer, space) => {
 
-        /** Tracks visited objects to prevent circular reference crashes */
+        // Tracks visited objects to prevent circular reference crashes.
         const seen = new WeakSet();
 
         /**
@@ -2087,33 +2088,33 @@
          * Recursively cleans a value so it becomes JSON-safe.
          *
          * @param {*} val
-         * @returns {*} cleaned value or `undefined` (to remove property)
+         * @returns {*} cleaned value or `undefined` (to remove property).
          */
         const clean = val => {
 
-          // --- Allow valid primitive values ---
+          // Allow valid primitive values.
           if (
               val === null ||
               typeof val === "string" ||
               typeof val === "number" ||
               typeof val === "boolean"
           ) {
-            // Remove invalid numbers (NaN, Infinity)
+            // Remove invalid numbers (NaN, Infinity).
             if (typeof val === "number" && !isFinite(val)) return undefined;
             return val;
           }
 
-          // --- Remove unsupported primitive types ---
+          // Remove unsupported primitive types.
           if (
               val === undefined ||
               typeof val === "function" ||
               typeof val === "symbol"
           ) return undefined;
 
-          // --- Remove framework-specific non-cloneable ---
+          // Remove framework-specific non-cloneable.
           if (ccm.helper.isNonCloneable?.(val)) return undefined;
 
-          // --- Handle arrays ---
+          // Handle arrays.
           if (Array.isArray(val)) {
             const arr = [];
             for (const item of val) {
@@ -2123,14 +2124,14 @@
             return arr;
           }
 
-          // --- Handle objects ---
+          // Handle objects.
           if (val && typeof val === "object") {
 
-            // Prevent circular references
+            // Prevent circular references.
             if (seen.has(val)) return undefined;
             seen.add(val);
 
-            // Only allow plain objects
+            // Only allow plain objects.
             if (!isPlainObject(val)) return undefined;
 
             const obj = {};
@@ -2138,7 +2139,7 @@
               if (!Object.hasOwn(val, key)) continue;
               const cleaned = clean(val[key]);
 
-              // Remove property entirely if not serializable
+              // Remove property entirely if not serializable.
               if (cleaned !== undefined)
                 obj[key] = cleaned;
             }
@@ -2162,6 +2163,7 @@
 
   // Check if this is the first ccmjs version loaded on the web page.
   if (!window.ccm) {
+
     // Initialize the global `ccm` namespace.
     window.ccm = ccm;
 
@@ -2170,6 +2172,7 @@
       window.customElements.define(
           "ccm-app",
           class extends HTMLElement {
+
             /**
              * Handles the connection of the `<ccm-app>` element to the DOM.
              *
@@ -2180,10 +2183,10 @@
              */
             async connectedCallback() {
 
-              // prevent multiple starts
+              // Prevent multiple starts.
               if (this.hasChildNodes()) return;
 
-              // embed component
+              // Embed component.
               await ccm.helper.embed(this);
             }
           },
@@ -2200,7 +2203,6 @@
   // -----------------------------------------------------------------------------
 
   /**
-   * @description
    * A private object that stores all registered components for the current version of ccmjs.
    * Each component is indexed by its unique identifier.
    *
@@ -2222,7 +2224,7 @@
    * @param {string} method - Name of the method to be called ('component', 'instance' or 'start')
    * @param {ccm.types.component_obj|string} component - Object, index or URL of the component
    * @param {ccm.types.config} config - Priority data for instance configuration
-   * @param {Element} [element] - Web page area where the component will be embedded (default: on-the-fly <div>).
+   * @param {Element} [element] - Web page area where the component will be embedded (default: on-the-fly <div>)
    * @returns {Promise<ccm.types.component|ccm.types.instance>} Promise that resolves to the created component or instance.
    */
   async function backwardsCompatibility(
@@ -2238,7 +2240,7 @@
           component,
           config,
           major < 18 ? resolve : element,
-      ) // before version 18, callbacks were used instead of promises (and there was no 3rd parameter for ccm.instance and ccm.start)
+      ) // Before version 18, callbacks were used instead of promises (and there was no 3rd parameter for ccm.instance and ccm.start).
           ?.then(resolve)
           .catch(reject);
     });
@@ -2254,11 +2256,13 @@
    * Defines the asynchronous data access API used by all datastore implementations.
    *
    * Concrete subclasses implement the actual persistence strategy:
+   *
    * - {@link InMemoryStore} – volatile in-memory storage
    * - {@link OfflineStore}  – browser-based persistence (IndexedDB)
    * - {@link RemoteStore}   – remote server persistence via HTTP/WebSocket
    *
    * Design contract:
+   *
    * - All methods are asynchronous and return Promises.
    * - Each dataset must contain a unique `key`.
    * - `get(key)` resolves to a dataset or `null`.
@@ -2267,6 +2271,7 @@
    * - `del()` resolves to the deleted dataset or `null`.
    *
    * Subclasses may provide additional capabilities such as:
+   *
    * - `names()`            – list available stores
    * - `dbs()`              – list available databases
    * - `connect()`          – establish a live connection (RemoteStore)
@@ -2279,10 +2284,10 @@
    * @abstract
    */
   class Datastore {
+
     /**
      * Initializes the datastore accessor.
      *
-     * @description
      * Called once during setup by {@link ccm.store}.
      * Subclasses may override this method to perform initialization logic
      * such as opening database connections or preparing internal state.
@@ -2367,6 +2372,7 @@
    *
    * @class InMemoryStore
    * @extends Datastore
+   *
    * @example
    * const store = await ccm.store({
    *   datasets: [
@@ -2410,14 +2416,12 @@
      */
     async get(key_or_query = {}) {
       let result;
-
       if (ccm.helper.isObject(key_or_query))
         result = ccm.helper.runQuery(key_or_query, this.datasets);
       else {
         this._checkKey(key_or_query);
         result = this.datasets[key_or_query] || null;
       }
-
       return ccm.helper.clone(result);
     }
 
@@ -2430,15 +2434,14 @@
      *
      * The returned dataset is a cloned copy of the stored data.
      *
-     * @param {ccm.types.dataset} priodata - Dataset to create or update.
+     * @param {ccm.types.dataset} priodata - Dataset to create or update
      * @returns {Promise<ccm.types.dataset>} A promise that resolves to the created or updated dataset.
      */
     async set(priodata) {
       if (!priodata.key) priodata.key = ccm.helper.generateKey();
-
       this._checkKey(priodata.key);
 
-      // Integrate with existing dataset if it exists, otherwise create new entry
+      // Integrate with existing dataset if it exists, otherwise create new entry.
       const existing = this.datasets[priodata.key];
       this.datasets[priodata.key] = existing
           ? await ccm.helper.integrate(priodata, existing)
@@ -2525,33 +2528,30 @@
      * @returns {Promise<void>}
      */
     async init() {
-
       super.init();
 
-      // Open database to inspect existing object stores
+      // Open database to inspect existing object stores.
       const db = await this.#pReq(indexedDB.open(this.dbName));
 
-      // If store already exists, use the connection directly
+      // If store already exists, use the connection directly.
       if (db.objectStoreNames.contains(this.name)) {
         this.#setupDatabase(db);
         return;
       }
 
-      // Otherwise upgrade database version to create the object store
+      // Otherwise upgrade database version to create the object store.
       const newVersion = db.version + 1;
       db.close();
 
       const request = indexedDB.open(this.dbName, newVersion);
       let upgradeComplete;
-
       request.onupgradeneeded = event => {
         const upgradeDB = event.target.result;
         const tx = event.target.transaction;
-
         if (!upgradeDB.objectStoreNames.contains(this.name))
           upgradeDB.createObjectStore(this.name, { keyPath: "key" });
 
-        // Ensure upgrade transaction finishes before continuing
+        // Ensure upgrade transaction finishes before continuing.
         upgradeComplete = new Promise(resolve => tx.oncomplete = resolve);
       };
 
@@ -2749,10 +2749,9 @@
      */
     async get(key_or_query = {}, projection, options) {
       if (!ccm.helper.isObject(key_or_query)) this._checkKey(key_or_query);
-
       const params = { get: key_or_query };
 
-      // Forward optional query modifiers to the server
+      // Forward optional query modifiers to the server.
       if (projection) params.projection = projection;
       if (options) params.options = options;
 
@@ -2770,7 +2769,6 @@
     async set(priodata) {
       if (!priodata.key) priodata.key = ccm.helper.generateKey();
       this._checkKey(priodata.key);
-
       return this.#send({ set: priodata });
     }
 
@@ -2830,20 +2828,21 @@
      */
     async #send(params = {}) {
 
-      // Attach framework version for compatibility checks
+      // Attach framework version for compatibility checks.
       params.ccm = this.ccm || ccm.version;
 
-      // Attach database and store identifiers
+      // Attach database and store identifiers.
       params.db = this.db || "";
       params.store = this.name;
 
-      // Attach authentication token if available
+      // Attach authentication token if available.
       if (this.user?.isLoggedIn()) params.token = this.user.getState().token;
       if (this.token) params.token = this.token;
 
       try {
         return await ccm.load({ url: this.url, params });
       } catch (e) {
+
         // Handle authentication errors by retrying login
         if (this.user && (e.status === 401 || e.status === 403)) {
           try {
@@ -2852,9 +2851,12 @@
             params.token = this.user.getState().token;
             return await ccm.load({ url: this.url, params });
           } catch (e) {
+
             // If login fails, restart the root component
-            if (this.parent) await ccm.helper.findRoot(this).start();
-            else throw e;
+            if (this.parent)
+              await ccm.helper.findRoot(this).start();
+            else
+              throw e;
           }
         } else throw e;
       }
@@ -2867,10 +2869,10 @@
      */
     connect() {
 
-      // Convert HTTP endpoint to WebSocket endpoint
+      // Convert HTTP endpoint to WebSocket endpoint.
       this.socket = new WebSocket(this.url.replace(/^http/, "ws"));
 
-      // Subscribe to datastore observation when connection opens
+      // Subscribe to datastore observation when connection opens.
       this.socket.onopen = () => {
         this.socket.send(
             JSON.stringify({
@@ -2881,7 +2883,7 @@
         );
       };
 
-      // Handle incoming update notifications
+      // Handle incoming update notifications.
       this.socket.onmessage = (message) => {
         try {
           this.onchange && this.onchange(JSON.parse(message.data));
@@ -2890,15 +2892,15 @@
         }
       };
 
-      // Log WebSocket errors
+      // Log WebSocket errors.
       this.socket.onerror = (err) => {
         console.error("WebSocket error:", err);
       };
 
-      // Attempt a single automatic reconnect if the connection drops
+      // Attempt a single automatic reconnect if the connection drops.
       this.socket.onclose = (event) => {
         console.warn(
-            `WebSocket closed, code=${event.code}, reason=${event.reason}`,
+            `[ccmjs] WebSocket closed, code=${event.code}, reason=${event.reason}`,
         );
         if (!this._manualClose && !this._reconnectAttempted) {
           this._reconnectAttempted = true;
@@ -3014,6 +3016,30 @@
  * @property {Function} del - Deletes a dataset
  * @property {Function} count - Counts datasets
  * @property {Function} clear - Clears the datastore
+ */
+
+/**
+ * @typedef {Object} ccm.types.store_config
+ * @description
+ * Configuration object for creating a datastore via {@link ccm.store}.
+ *
+ * The selected datastore implementation depends on the provided properties:
+ *
+ * - no `name` → InMemoryStore
+ * - `name` only → OfflineStore (IndexedDB)
+ * - `name` + `url` → RemoteStore
+ *
+ * @property {string} [name] - Datastore name (required for persistent stores)
+ * @property {string} [url] - Server endpoint for remote datastore
+ * @property {string} [db] - Optional database identifier (remote only)
+ * @property {Object|ccm.types.dataset[]} [datasets] - Initial datasets (in-memory store)
+ * @property {Object} [observe] - Query for observing dataset changes (remote only)
+ * @property {Function} [onchange] - Callback for observed dataset changes
+ * @property {ccm.types.instance} [user] - User instance for authentication (remote only)
+ * @property {ccm.types.instance} [parent] - Parent instance (internal use)
+ *
+ * See {@link https://github.com/ccmjs/framework/wiki/Data-Management}
+ * for detailed datastore configuration rules.
  */
 
 /**
