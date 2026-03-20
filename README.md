@@ -7,13 +7,14 @@
 ![Runtime](https://img.shields.io/badge/runtime-browser-blue)
 ![Version Isolation](https://img.shields.io/badge/versioning-isolated-important)
 
+> Buildless. Composable. Runtime.  
+> No installation. No build. Just include and start.
+
 **ccmjs** is a lightweight JavaScript framework that implements the **Client-side Component Model (CCM)** — an architecture for building modular, reusable, and dynamically composed web applications.
 
 Unlike typical frontend frameworks, **ccmjs operates entirely at runtime** and does not require build tools, bundlers, or compilation.
 
 Components can be loaded, configured, and composed dynamically at runtime — even across different framework versions.
-
-> No installation. No build. Just include and start.
 
 # 🚀 Quick Start
 
