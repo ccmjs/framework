@@ -77,7 +77,7 @@ This allows applications to be composed from independently evolving components w
 
 ## Why CCM?
 
-Most frontend frameworks assume
+Most frontend frameworks rely on
 
 - a single global runtime
 - a static dependency graph
