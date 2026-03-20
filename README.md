@@ -7,16 +7,14 @@
 ![Runtime](https://img.shields.io/badge/runtime-browser-blue)
 ![Version Isolation](https://img.shields.io/badge/versioning-isolated-important)
 
-> Buildless. Composable. Runtime.  
+> **Buildless. Composable. Runtime.**  
 > No installation. No build. Just include and start.
 
 **ccmjs** is a lightweight JavaScript framework that implements the **Client-side Component Model (CCM)** — an architecture for building modular, reusable, and dynamically composed web applications.
 
-Unlike typical frontend frameworks, **ccmjs operates entirely at runtime** and does not require build tools, bundlers, or compilation.
+Components are loaded, configured, and composed dynamically at runtime — even across different framework versions.
 
-Components can be loaded, configured, and composed dynamically at runtime — even across different framework versions.
-
-# 🚀 Quick Start
+## 🚀 Quick Start
 
 Include ccmjs:
 
@@ -30,33 +28,7 @@ Start a component:
 ccm.start(component, config, document.body);
 ```
 
-# What is CCM?
-
-The **Client-side Component Model (CCM)** is an architectural approach for building web applications from independent, reusable components that are composed at runtime.
-
-Each component
-
-- defines its own configuration schema
-- declares dependencies declaratively
-- can be loaded dynamically
-- runs in an isolated runtime environment
-
-This allows applications to be composed from independently evolving components while maintaining compatibility across versions.
-
-**ccmjs** provides the reference implementation of this model in JavaScript.
-
-# Key Features
-
-- Runtime component loading
-- Declarative configuration (JSON-based)
-- Automatic dependency resolution
-- Version isolation (framework + components)
-- Multiple versions can coexist
-- No build step required
-- Fully client-side execution
-- Instance-level DOM isolation (Shadow DOM)
-
-# Quick Example
+## 💡 Quick Example
 
 ```html
 <!DOCTYPE html>
@@ -88,39 +60,22 @@ ccm.start(component, config, document.body);
 
 This loads the quiz component dynamically, instantiates it, and renders it into the page.
 
-# Core API
+## What is CCM?
 
-| Function | Purpose |
-|--------|--------|
-| `ccm.load()` | Load resources dynamically |
-| `ccm.component()` | Register or load components |
-| `ccm.instance()` | Create component instances |
-| `ccm.start()` | Create and start component instances |
-| `ccm.store()` | Create datastore accessors |
-| `ccm.get()` | One-time data retrieval |
+The **Client-side Component Model (CCM)** is an architectural approach for building web applications from independent, reusable components that are composed at runtime.
 
-# First Steps
+Each component
 
-1. Include the framework in your page
+- defines its own configuration schema
+- declares dependencies declaratively
+- can be loaded dynamically
+- runs in an isolated runtime environment
 
-```html
-<script src="https://ccmjs.github.io/framework/ccm.js"></script>
-```
+This allows applications to be composed from independently evolving components while maintaining compatibility across versions.
 
-2. Start a component
+**ccmjs** provides the reference implementation of this model in JavaScript.
 
-```js
-ccm.start(componentURL, config, element);
-```
-
-That's it — the framework performs the full lifecycle automatically:
-
-- load the component
-- resolve dependencies
-- create an instance
-- render it.
-
-# Why CCM?
+## Why CCM?
 
 Most frontend frameworks assume
 
@@ -144,10 +99,32 @@ This enables
 - integration of independently developed components
 - dynamic applications that evolve over time
 
-# Documentation
+## Key Features
+
+- Runtime component loading
+- Declarative configuration (JSON-based)
+- Automatic dependency resolution
+- Version isolation (framework + components)
+- Multiple versions can coexist
+- No build step required
+- Fully client-side execution
+- Instance-level DOM isolation (Shadow DOM)
+
+## Core API
+
+| Function | Purpose |
+|--------|--------|
+| `ccm.load()` | Load resources dynamically |
+| `ccm.component()` | Register or load components |
+| `ccm.instance()` | Create component instances |
+| `ccm.start()` | Create and start component instances |
+| `ccm.store()` | Create datastore accessors |
+| `ccm.get()` | One-time data retrieval |
+
+## Documentation
 
 Full documentation is available in the [ccmjs Wiki](https://github.com/ccmjs/framework/wiki).
 
-# License
+## License
 
 ccmjs is released under the **MIT License**.
