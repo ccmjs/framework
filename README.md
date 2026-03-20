@@ -44,11 +44,12 @@ const config = {
   feedback: true,
   questions: [
     {
-      text: "Does this example work?",
+      text: "Does this example work immediately without setup?",
       input: "radio",
       answers: [
-        { text: "Yes", correct: true },
-        { text: "No" }
+        { text: "Yes — no installation, no build step required", correct: true },
+        { text: "No — it requires bundling first" },
+        { text: "No — it needs a server-side runtime" }
       ]
     }
   ]
