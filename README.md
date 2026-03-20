@@ -47,9 +47,9 @@ This allows applications to be composed from independently evolving components w
 - Runtime component loading
 - Declarative configuration (JSON-based)
 - Automatic dependency resolution
-- Version isolation for framework and components
-- Multiple component versions can coexist
-- No build step or bundling required
+- Version isolation (framework + components)
+- Multiple versions can coexist
+- No build step required
 - Fully client-side execution
 - Instance-level DOM isolation (Shadow DOM)
 
