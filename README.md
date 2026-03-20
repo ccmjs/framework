@@ -13,6 +13,8 @@ Unlike typical frontend frameworks, **ccmjs operates entirely at runtime** and d
 
 Components can be loaded, configured, and composed dynamically at runtime — even across different framework versions.
 
+> No installation. No build. Just include and start.
+
 # 🚀 Quick Start
 
 Include ccmjs:
