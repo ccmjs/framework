@@ -7,7 +7,7 @@
 ![Runtime](https://img.shields.io/badge/runtime-browser-blue)
 ![Version Isolation](https://img.shields.io/badge/versioning-isolated-important)
 
-**ccmjs** is a lightweight JavaScript framework implementing the **Client-side Component Model (CCM)** — a conceptual architecture for modular, reusable, and dynamically composed web components.
+**ccmjs** is a lightweight JavaScript framework that implements the **Client-side Component Model (CCM)** — an architecture for building modular, reusable, and dynamically composed web applications.
 
 Unlike typical frontend frameworks, **ccmjs operates entirely at runtime** and does not require build tools, bundlers, or compilation.
 
@@ -15,7 +15,7 @@ Components can be loaded, configured, and composed dynamically at runtime — ev
 
 # What is CCM?
 
-The **Client-side Component Model (CCM)** is a conceptual framework for building web applications from independent, reusable components.
+The **Client-side Component Model (CCM)** is an architectural approach for building web applications from independent, reusable components that are composed at runtime.
 
 Each component
 
@@ -37,6 +37,7 @@ This allows applications to be composed from independently evolving components w
 - Multiple component versions can coexist
 - No build step or bundling required
 - Fully client-side execution
+- Instance-level DOM isolation (Shadow DOM)
 
 # Quick Example
 
@@ -48,7 +49,7 @@ This allows applications to be composed from independently evolving components w
 <script src="https://ccmjs.github.io/framework/ccm.js"></script>
 
 <script>
-const component = "https://ccmjs.github.io/quiz/ccm.quiz.js";
+const component = "https://ccmjs.github.io/quiz/ccm.quiz.mjs";
 
 const config = {
   feedback: true,
@@ -78,7 +79,7 @@ This loads the quiz component dynamically, instantiates it, and renders it into 
 | `ccm.component()` | Register or load components |
 | `ccm.instance()` | Create component instances |
 | `ccm.start()` | Create and start component instances |
-| `ccm.store()` | Access datastores |
+| `ccm.store()` | Create datastore accessors |
 | `ccm.get()` | One-time data retrieval |
 
 # First Steps
@@ -95,7 +96,7 @@ This loads the quiz component dynamically, instantiates it, and renders it into 
 ccm.start(componentURL, config, element);
 ```
 
-That's it — the framework will automatically
+That's it — the framework performs the full lifecycle automatically:
 
 - load the component
 - resolve dependencies
@@ -109,6 +110,7 @@ Most frontend frameworks assume
 - a single global runtime
 - a static dependency graph
 - a build pipeline
+- no shared global runtime state
 
 ccmjs instead focuses on **runtime composition**.
 
@@ -127,9 +129,7 @@ This enables
 
 # Documentation
 
-Full documentation is available in the Wiki
-
-https://github.com/ccmjs/framework/wiki
+Full documentation is available in the [ccmjs Wiki](https://github.com/ccmjs/framework/wiki).
 
 # License
 
