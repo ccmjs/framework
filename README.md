@@ -61,7 +61,7 @@ ccm.start(component, config, document.body);
 
 This loads the quiz component dynamically, instantiates it, and renders it into the page.
 
-## What is CCM?
+## 🧠 What is CCM?
 
 The **Client-side Component Model (CCM)** is an architectural approach for building web applications from independent, reusable components that are composed at runtime.
 
@@ -76,7 +76,7 @@ This allows applications to be composed from independently evolving components w
 
 **ccmjs** provides the reference implementation of this model in JavaScript.
 
-## Why CCM?
+## 🎯 Why CCM?
 
 Most frontend frameworks rely on
 
@@ -100,7 +100,7 @@ This enables
 - integration of independently developed components
 - dynamic applications that evolve over time
 
-## Key Features
+## ⭐ Key Features
 
 - Runtime component loading
 - Declarative configuration (JSON-based)
@@ -111,7 +111,7 @@ This enables
 - Fully client-side execution
 - Instance-level DOM isolation (Shadow DOM)
 
-## Core API
+## 🧩 Core API
 
 | Function | Purpose |
 |--------|--------|
@@ -122,10 +122,10 @@ This enables
 | `ccm.store()` | Create datastore accessors |
 | `ccm.get()` | One-time data retrieval |
 
-## Documentation
+## 📚 Documentation
 
 Full documentation is available in the [ccmjs Wiki](https://github.com/ccmjs/framework/wiki).
 
-## License
+## 📄 License
 
 ccmjs is released under the **MIT License**.
