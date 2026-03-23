@@ -2,10 +2,11 @@
 
 ![version](https://img.shields.io/badge/version-28.0.0-blue)
 ![License](https://img.shields.io/github/license/ccmjs/framework)
-![Wiki](https://img.shields.io/badge/docs-wiki-brightgreen)
-![No Build](https://img.shields.io/badge/build-none-lightgrey)
+![Docs](https://img.shields.io/badge/docs-wiki-brightgreen)
+![Build](https://img.shields.io/badge/build-none-lightgrey)
 ![Runtime](https://img.shields.io/badge/runtime-browser-blue)
-![Version Isolation](https://img.shields.io/badge/versioning-isolated-important)
+![Declarative](https://img.shields.io/badge/config-declarative-blueviolet)
+![Versioning](https://img.shields.io/badge/versioning-isolated-important)
 
 > **Buildless. Composable. Runtime.**  
 > No installation. No build. Just include and start.
