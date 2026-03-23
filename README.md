@@ -13,7 +13,7 @@
 
 **ccmjs** is a lightweight JavaScript framework that implements the **Client-side Component Model (CCM)** — an architecture for building modular, reusable, and dynamically composed web applications.
 
-Components are loaded, configured, and composed dynamically at runtime — even across different framework and component versions.
+Components are loaded, configured, and instantiated dynamically at runtime — even across different framework and component versions.
 
 ## 🚀 Quick Start
 
@@ -62,66 +62,21 @@ ccm.start(component, config, document.body);
 
 This loads the quiz component dynamically, instantiates it, and renders it into the page.
 
-## 🧠 What is CCM?
+## ✨ Beyond the Basics
 
-The **Client-side Component Model (CCM)** is an architectural approach for building web applications from independent, reusable components that are composed at runtime.
+ccmjs also provides:
 
-Each component
+- 🔍 Full code transparency (inspect original source at runtime)
+- 🗄️ Flexible data management (in-memory, local, or remote)
+- 🔐 Security by design (isolation, SRI, encapsulation)
+- 🧩 Dynamic composition of complex applications
+- 🌐 Integration of independently developed components
 
-- defines its own configuration schema
-- declares dependencies declaratively
-- can be loaded dynamically
-- runs in an isolated runtime environment
+On top of that, ccmjs can be used to build:
 
-This allows applications to be composed from independently evolving components while maintaining compatibility across versions.
-
-**ccmjs** provides the reference implementation of this model in JavaScript.
-
-## 🎯 Why CCM?
-
-Most frontend frameworks rely on
-
-- a single global runtime
-- a static dependency graph
-- a build pipeline
-- no shared global runtime state
-
-ccmjs instead focuses on **runtime composition**.
-
-Components can be
-
-- loaded on demand
-- configured declaratively
-- instantiated dynamically
-- isolated by version
-
-This enables
-
-- long-term compatibility
-- integration of independently developed components
-- dynamic applications that evolve over time
-
-## ⭐ Key Features
-
-- Runtime component loading
-- Declarative configuration (JSON-based)
-- Automatic dependency resolution
-- Version isolation (framework + components)
-- Multiple versions can coexist
-- No build step required
-- Fully client-side execution
-- Instance-level DOM isolation (Shadow DOM)
-
-## 🧩 Core API
-
-| Function | Purpose |
-|--------|--------|
-| `ccm.load()` | Load resources dynamically |
-| `ccm.component()` | Register or load components |
-| `ccm.instance()` | Create component instances |
-| `ccm.start()` | Create and start component instances |
-| `ccm.store()` | Create datastore accessors |
-| `ccm.get()` | One-time data retrieval |
+- 🧱 Digital Makerspaces (for non-developers)
+- 💾 Data-sovereign applications
+- 🖥️ Modular web-based environments (e.g. web desktops)
 
 ## 📚 Documentation
 
