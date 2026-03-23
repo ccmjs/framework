@@ -13,7 +13,7 @@
 
 **ccmjs** is a lightweight JavaScript framework that implements the **Client-side Component Model (CCM)** — an architecture for building modular, reusable, and dynamically composed web applications.
 
-Components are loaded, configured, and composed dynamically at runtime — even across different framework versions.
+Components are loaded, configured, and composed dynamically at runtime — even across different framework and component versions.
 
 ## 🚀 Quick Start
 
@@ -26,7 +26,7 @@ Include ccmjs:
 Start a component:
 
 ```js
-ccm.start(component, config, document.body);
+ccm.start(component, config, area);
 ```
 
 ## 💡 Quick Example
