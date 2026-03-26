@@ -144,10 +144,12 @@
                 return loadCSS;
               case "jpg":
               case "jpeg":
-              case "gif":
               case "png":
+              case "gif":
               case "svg":
-              case "bmp":
+              case "webp":
+              case "avif":
+              case "apng":
                 return loadImage;
               case "js":
                 return loadJS;
