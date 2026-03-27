@@ -11,7 +11,7 @@
 > **Buildless. Composable. Runtime.**  
 > No installation. No build. Just include and start.
 
-**ccmjs** is a lightweight JavaScript framework that implements the **Client-side Component Model (CCM)** — an architecture for building modular, reusable, and dynamically composed web applications.
+**ccmjs** is a lightweight JavaScript framework that implements the **Client-side Component Model (CCM)** — an architecture for building modular, reusable, and dynamically composed web apps.
 
 Components are loaded, configured, and instantiated dynamically at runtime — even across different framework and component versions.
 
@@ -68,13 +68,13 @@ ccmjs also provides:
 - 🔍 Full code transparency (inspect original source at runtime)
 - 🗄️ Flexible data management (in-memory, local, or remote)
 - 🔐 Security by design (isolation, SRI, encapsulation)
-- 🧩 Dynamic composition of complex applications
+- 🧩 Dynamic composition of complex apps
 - 🌐 Integration of independently developed components
 
 On top of that, ccmjs can be used to build:
 
 - 🧱 Digital Makerspaces (for non-developers)
-- 💾 Data-sovereign applications
+- 💾 Data-sovereign apps
 - 🖥️ Modular web-based environments (e.g. web desktops)
 
 ## 📚 Documentation
