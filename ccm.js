@@ -700,6 +700,9 @@
       // Initialize created and dependent instances if necessary.
       if (!instance.parent?.init) await initialize();
 
+      // Remove loading icon from content element
+      loading.remove();
+
       return instance;
 
       /**
