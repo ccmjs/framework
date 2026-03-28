@@ -628,7 +628,7 @@
         );
 
       // Render a loading icon in the web page area.
-      const loading = config.loading?.() || ccm.helper.loading();
+      const loading = ccm.helper.loading();
       area.replaceChildren(loading);
 
       // Prepare the instance configuration.
