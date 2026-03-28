@@ -658,7 +658,7 @@
       instance.host = document.createElement("div");
 
       // Create a shadow root for the instance if required.
-      if (config.root !== "none")
+      if (config.root !== false)
         instance.root = instance.host.attachShadow({
           mode: config.root || "open",
         });
