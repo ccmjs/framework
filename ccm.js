@@ -684,7 +684,7 @@
       // Remove reserved properties from the configuration to prevent conflicts with instance properties.
       const reserved = new Set([
         "children", "component", "element",
-        "host", "init", "instance", "meta",
+        "host", "init", "instance",
         "parent", "ready", "root", "start"
       ]);
       for (const key of reserved) {
@@ -2841,7 +2841,7 @@
       params.store = this.name;
 
       // Attach authentication token if available.
-      if (this.user?.isLoggedIn()) params.token = this.user.getState().token;
+      if (this.user?.isLoggedIn()) params.token = this.user.getAppState().token;
       if (this.token) params.token = this.token;
 
       try {
@@ -2853,7 +2853,7 @@
           try {
             await this.user.logout();
             await this.user.login();
-            params.token = this.user.getState().token;
+            params.token = this.user.getAppState().token;
             return await ccm.load({ url: this.url, params });
           } catch (e) {
 
