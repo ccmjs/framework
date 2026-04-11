@@ -179,10 +179,7 @@
               }
             }
 
-            element.onload = () => {
-              element.remove();
-              success(resource.url);
-            };
+            element.onload = () => success(resource.url);
             element.onerror = error;
             resource.context.appendChild(element);
           }
@@ -383,7 +380,7 @@
               data = new window.DOMParser().parseFromString(data, "text/xml");
 
             // Update the result array with the processed data.
-            results[i] = data;
+            if (Array.isArray(results)) results[i] = data;
 
             // Treat the loading of this resource as complete and check if all resources have been loaded.
             check();
