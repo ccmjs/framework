@@ -31,7 +31,7 @@
      * Returns the version number of ccmjs as a string following Semantic Versioning 2.0.0.
      * Use this as a synchronous, stable accessor for the ccmjs version.
      *
-     * @returns {ccm.types.version_nr} Version number of ccmjs.
+     * @returns {ccm.types.versionNr} Version number of ccmjs.
      */
     version: "28.0.0",
 
@@ -44,7 +44,7 @@
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Loading-Resources}
      * to learn more about loading resources in ccmjs.
      *
-     * @param {...(string|ccm.types.resource_obj)} resources - Resources to load. Either the URL or a [resource object]{@link ccm.types.resource_obj} can be passed for a resource.
+     * @param {...(string|ccm.types.resourceObj)} resources - Resources to load. Either the URL or a [resource object]{@link ccm.types.resourceObj} can be passed for a resource.
      * @returns {Promise<*>} A promise that resolves with the loaded resources or rejects if loading of at least one resource fails.
      */
     load: async (...resources) => {
@@ -130,14 +130,14 @@
             }
 
             // Infer the type from the file extension of the resource URL when no type is given.
-            const file_extension = resource.url
+            const fileExtension = resource.url
               .split(/[#?]/)[0] // Remove query parameters and hash from URL.
               .split(".") // Split the URL by dots to get the file extension.
               .at(-1) // Get the last part as the file extension.
               .trim(); // Remove any surrounding whitespace.
 
             // Match the file extension to the corresponding loading operation.
-            switch (file_extension) {
+            switch (fileExtension) {
               case "css":
                 return loadCSS;
               case "jpg":
@@ -432,9 +432,9 @@
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
      * to learn more about embedding components with ccmjs.
      *
-     * @param {ccm.types.component_obj|string} component - Component object, index, or URL of the component to register
+     * @param {ccm.types.componentObj|string} component - Component object, index, or URL of the component to register
      * @param {ccm.types.config} [config={}] - Priority data for the component's default instance configuration
-     * @returns {Promise<ccm.types.component_obj>} Clone of the registered component object.
+     * @returns {Promise<ccm.types.componentObj>} Clone of the registered component object.
      * @throws {Error} If the provided component is not valid.
      */
     component: async (component, config = {}) => {
@@ -515,7 +515,7 @@
       /**
        * Retrieves the component object via index, URL or directly as JavaScript object.
        *
-       * @returns {Promise<ccm.types.component_obj>} Component object
+       * @returns {Promise<ccm.types.componentObj>} Component object
        */
       async function getComponentObject() {
         // Return the component directly if it is not a string.
@@ -525,36 +525,36 @@
          * Extracts metadata from the component URL.
          * @type {{name: string, index: string, version: string, filename: string, url: string, minified: boolean, sri: string}}
          */
-        const url_data = /\.m?js(#.*)?$/.test(component)
+        const urlData = /\.m?js(#.*)?$/.test(component)
           ? ccm.helper.parseComponentURL(component)
           : null;
 
         /**
          * Index of the component
-         * @type {ccm.types.component_index}
+         * @type {ccm.types.componentIndex}
          */
-        const index = url_data?.index || component;
+        const index = urlData?.index || component;
 
         // Return a clone of the registered component object if already registered.
         if (_components[index]) return ccm.helper.clone(_components[index]);
 
         // Abort if the component URL is not provided.
-        if (!url_data) return component;
+        if (!urlData) return component;
 
         // Load the component from the URL.
         let result = await ccm.load({
-          url: url_data.url,
+          url: urlData.url,
           type: "module",
           // If the SRI hash is provided, load the component with SRI.
-          attr: url_data.sri && {
-            integrity: url_data.sri,
+          attr: urlData.sri && {
+            integrity: urlData.sri,
             crossorigin: "anonymous",
           },
         });
         if (result?.component) result = result.component;
         else {
           // Component file did not return the component object => try to get the component from window.ccm.files. (backwards compatibility)
-          const filename = `ccm.${url_data.name}.js`;
+          const filename = `ccm.${urlData.name}.js`;
           if (!window.ccm.files) window.ccm.files = {};
           window.ccm.files[filename] = null; // marks the component as 'loading'
           window.ccm.files = new Proxy(window.ccm.files, {
@@ -566,11 +566,11 @@
               return Reflect.set(...arguments);
             },
           });
-          await ccm.load(url_data.url);
+          await ccm.load(urlData.url);
           delete window.ccm.files[filename];
         }
 
-        result.url = url_data.url; // A component remembers its URL.
+        result.url = urlData.url; // A component remembers its URL.
         return result;
       }
     },
@@ -585,7 +585,7 @@
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
      * to learn more about embedding components in ccmjs.
      *
-     * @param {ccm.types.component_obj|string} component - Component object, index, or URL of the component to register
+     * @param {ccm.types.componentObj|string} component - Component object, index, or URL of the component to register
      * @param {ccm.types.config} [config={}] - Priority data for instance configuration
      * @param {Element} [area=document.createElement("div")] - Web page area where the component instance will be embedded (default: on-the-fly `<div>`)
      * @returns {Promise<ccm.types.instance>} A promise that resolves to the created instance.
@@ -833,7 +833,7 @@
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Embedding-Components}
      * to learn more about embedding components in ccmjs.
      *
-     * @param {ccm.types.component_obj|string} component - Component object, index, or URL of the component to register
+     * @param {ccm.types.componentObj|string} component - Component object, index, or URL of the component to register
      * @param {ccm.types.config} [config={}] - Priority data for instance configuration
      * @param {Element} [area=document.createElement("div")] - Web page area where the component instance will be embedded (default: on-the-fly `<div>`).
      * @returns {Promise<ccm.types.instance>} A promise that resolves to the created and started instance.
@@ -903,7 +903,7 @@
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Data-Management}
      * to learn more about data management in ccmjs.
      *
-     * @param {ccm.types.store_config} [config={}] - Datastore configuration
+     * @param {ccm.types.storeConfig} [config={}] - Datastore configuration
      * @param {string} [config.name] - Logical name of the datastore (required for OfflineStore and RemoteStore)
      * @param {string} [config.url] - Remote endpoint URL. Used together with `name` to create a RemoteStore.
      * @param {string} [config.db] - (RemoteStore only) Optional database identifier if the server supports multiple databases.
@@ -960,8 +960,8 @@
      * See [this wiki page]{@link https://github.com/ccmjs/framework/wiki/Data-Management}
      * to learn more about data management in ccmjs.
      *
-     * @param {ccm.types.store_config} [config={}] - Datastore configuration (same as {@link ccm.store})
-     * @param {ccm.types.key|Object} [key_or_query={}]
+     * @param {ccm.types.storeConfig} [config={}] - Datastore configuration (same as {@link ccm.store})
+     * @param {ccm.types.key|Object} [keyOrQuery={}]
      * Either a dataset key or a query object.
      * If omitted or an empty object is provided, all datasets are returned.
      * @param {Object} [projection]
@@ -973,10 +973,10 @@
      * Interpretation depends on the datastore implementation and may be ignored by some store types.
      * @returns {Promise<ccm.types.dataset|ccm.types.dataset[]>} Resolves to the requested dataset or an array of datasets.
      */
-    get: (config = {}, key_or_query = {}, projection, options) =>
+    get: (config = {}, keyOrQuery = {}, projection, options) =>
       ccm
         .store(config)
-        .then((store) => store.get(key_or_query, projection, options)),
+        .then((store) => store.get(keyOrQuery, projection, options)),
 
     /**
      * Contains ccmjs-relevant helper functions.
@@ -1491,14 +1491,14 @@
        * ccm.helper.isKey("1abc"); // => false
        */
       isKey: (value) => {
-        const KEY_REGEX = /^[a-z][a-z0-9_]{0,31}$/;
+        const keyRegex = /^[a-z][a-z0-9_]{0,31}$/;
 
         // single key
-        if (typeof value === "string") return KEY_REGEX.test(value);
+        if (typeof value === "string") return keyRegex.test(value);
 
         // compound key (array)
         if (Array.isArray(value) && value.length)
-          return value.every((k) => typeof k === "string" && KEY_REGEX.test(k));
+          return value.every((k) => typeof k === "string" && keyRegex.test(k));
 
         return false;
       },
@@ -1773,9 +1773,9 @@
         // Extract filename
         const filename = baseURL.split("/").at(-1);
 
-        const REGEX =
+        const regex =
           /^ccm\.([a-z][a-z0-9_]*)(?:-(\d+\.\d+\.\d+))?(?:\.min)?\.(?:mjs|js)$/;
-        const match = filename.match(REGEX);
+        const match = filename.match(regex);
 
         // Validate filename
         if (!match) throw new Error("invalid component filename: " + filename);
@@ -2180,7 +2180,7 @@
    *
    * @memberOf ccm
    * @private
-   * @type {Object.<ccm.types.component_index, ccm.types.component_obj>}
+   * @type {Object.<ccm.types.componentIndex, ccm.types.componentObj>}
    */
   const _components = {};
 
@@ -2194,7 +2194,7 @@
    *
    * @param {number} version - Major number of the necessary ccmjs version
    * @param {string} method - Name of the method to be called ('component', 'instance' or 'start')
-   * @param {ccm.types.component_obj|string} component - Object, index or URL of the component
+   * @param {ccm.types.componentObj|string} component - Object, index or URL of the component
    * @param {ccm.types.config} config - Priority data for instance configuration
    * @param {Element} [element] - Web page area where the component will be embedded (default: on-the-fly <div>)
    * @returns {Promise<ccm.types.component|ccm.types.instance>} Promise that resolves to the created component or instance.
@@ -2381,16 +2381,16 @@
      * Returned datasets are cloned to prevent external mutation of
      * the internal store state.
      *
-     * @param {ccm.types.key|Object} [key_or_query={}] - Dataset key or query object. Defaults to `{}` which returns all datasets.
+     * @param {ccm.types.key|Object} [keyOrQuery={}] - Dataset key or query object. Defaults to `{}` which returns all datasets.
      * @returns {Promise<ccm.types.dataset|null|ccm.types.dataset[]>} Promise that resolves to the requested dataset(s).
      */
-    async get(key_or_query = {}) {
+    async get(keyOrQuery = {}) {
       let result;
-      if (ccm.helper.isObject(key_or_query))
-        result = ccm.helper.runQuery(key_or_query, this.datasets);
+      if (ccm.helper.isObject(keyOrQuery))
+        result = ccm.helper.runQuery(keyOrQuery, this.datasets);
       else {
-        this._checkKey(key_or_query);
-        result = this.datasets[key_or_query] || null;
+        this._checkKey(keyOrQuery);
+        result = this.datasets[keyOrQuery] || null;
       }
       return ccm.helper.clone(result);
     }
@@ -2535,17 +2535,17 @@
      * - If a key is provided, resolves to the matching dataset or `null`.
      * - If a query object is provided, retrieves all datasets and filters them in memory.
      *
-     * @param {ccm.types.key|Object} [key_or_query={}] - Dataset key or query object. Defaults to `{}` which returns all datasets.
+     * @param {ccm.types.key|Object} [keyOrQuery={}] - Dataset key or query object. Defaults to `{}` which returns all datasets.
      * @returns {Promise<ccm.types.dataset|null|ccm.types.dataset[]>}
      */
-    async get(key_or_query = {}) {
-      if (ccm.helper.isObject(key_or_query))
+    async get(keyOrQuery = {}) {
+      if (ccm.helper.isObject(keyOrQuery))
         return ccm.helper.runQuery(
-          key_or_query,
+          keyOrQuery,
           await this.#pReq(this.#getStore().getAll()),
         );
-      this._checkKey(key_or_query);
-      return (await this.#pReq(this.#getStore().get(key_or_query))) || null;
+      this._checkKey(keyOrQuery);
+      return (await this.#pReq(this.#getStore().get(keyOrQuery))) || null;
     }
 
     /**
@@ -2719,14 +2719,14 @@
      * Optional `projection` and `options` parameters correspond to MongoDB-style
      * query extensions and are forwarded directly to the server.
      *
-     * @param {ccm.types.key|Object} [key_or_query={}] - Dataset key or query object
+     * @param {ccm.types.key|Object} [keyOrQuery={}] - Dataset key or query object
      * @param {Object} [projection] - Fields to include or exclude
      * @param {Object} [options] - Additional query options (e.g. sort, limit)
      * @returns {Promise<ccm.types.dataset|ccm.types.dataset[]>}
      */
-    async get(key_or_query = {}, projection, options) {
-      if (!ccm.helper.isObject(key_or_query)) this._checkKey(key_or_query);
-      const params = { get: key_or_query };
+    async get(keyOrQuery = {}, projection, options) {
+      if (!ccm.helper.isObject(keyOrQuery)) this._checkKey(keyOrQuery);
+      const params = { get: keyOrQuery };
 
       // Forward optional query modifiers to the server.
       if (projection) params.projection = projection;
@@ -2900,13 +2900,13 @@
  */
 
 /**
- * @typedef {string} ccm.types.component_index
+ * @typedef {string} ccm.types.componentIndex
  * @description Unique identifier of a registered component
  * @example "quiz-4-0-0"
  */
 
 /**
- * @typedef {Object} ccm.types.component_obj
+ * @typedef {Object} ccm.types.componentObj
  * @description ccmjs component definition object
  * @property {string} name - Component name
  * @property {string|ccm.types.framework} ccm - ccmjs framework reference or URL
@@ -2939,7 +2939,7 @@
 /**
  * @typedef {Object} ccm.types.framework
  * @description ccmjs framework instance
- * @property {ccm.types.version_nr} version - Framework version
+ * @property {ccm.types.versionNr} version - Framework version
  * @property {Function} load - Loads resources
  * @property {Function} component - Registers a component
  * @property {Function} instance - Creates an instance
@@ -2955,7 +2955,7 @@
  * @property {string} id - Instance ID (unique within the component)
  * @property {string} index - Unique instance identifier within the page
  * @property {ccm.types.framework} ccm - Used ccmjs framework
- * @property {ccm.types.component_obj} component - Associated component
+ * @property {ccm.types.componentObj} component - Associated component
  * @property {HTMLElement} host - Host DOM element
  * @property {HTMLElement} element - Content element
  * @property {ShadowRoot} [root] - Shadow DOM root (if enabled)
@@ -2965,7 +2965,7 @@
  */
 
 /**
- * @typedef {Object} ccm.types.resource_obj
+ * @typedef {Object} ccm.types.resourceObj
  * @description
  * Resource configuration object for {@link ccm.load}.
  *
@@ -2990,7 +2990,7 @@
  */
 
 /**
- * @typedef {Object} ccm.types.store_config
+ * @typedef {Object} ccm.types.storeConfig
  * @description
  * Configuration object for creating a datastore via {@link ccm.store}.
  *
@@ -3014,7 +3014,7 @@
  */
 
 /**
- * @typedef {string} ccm.types.version_nr
+ * @typedef {string} ccm.types.versionNr
  * @description Semantic Versioning 2.0.0 compliant version string
  * @example "1.0.0"
  * @example "2.1.3"
