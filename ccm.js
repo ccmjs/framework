@@ -1043,7 +1043,7 @@
        * be in datastore format.
        *
        * @param {ccm.types.dataset[]} arr - Array of datasets
-       * @returns {Object<string,ccm.types.dataset>|*} Datastore-compatible object or original value.
+       * @returns {Object.<string,ccm.types.dataset>|*} Datastore-compatible object or original value.
        *
        * @example
        * ccm.helper.datasetsToStore([
