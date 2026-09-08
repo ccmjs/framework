@@ -2739,13 +2739,15 @@
      *
      * Generates a key if none is provided and forwards the dataset to the server.
      *
-     * @param {ccm.types.dataset} priodata - Dataset to create or update
+     * @param {ccm.types.dataset} priodata - Dataset to create or update.
+     * @param {*} [update] - Backend-specific update instructions forwarded to the server.
+     * @param {*} [options] - Backend-specific options forwarded to the server.
      * @returns {Promise<ccm.types.dataset>}
      */
-    async set(priodata) {
+    async set(priodata, update, options) {
       if (!priodata.key) priodata.key = ccm.helper.generateKey();
       this._checkKey(priodata.key);
-      return this.#send({ set: priodata });
+      return this.#send({ set: priodata, update, options });
     }
 
     /**
