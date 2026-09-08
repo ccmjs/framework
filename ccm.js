@@ -2713,12 +2713,12 @@
      * - If a key is provided, resolves to the matching dataset or `null`.
      * - If a query object is provided, resolves to an array of matching datasets.
      *
-     * Optional `projection` and `options` parameters correspond to MongoDB-style
-     * query extensions and are forwarded directly to the server.
+     * Optional `projection` and `options` parameters are forwarded directly
+     * to the server and may be interpreted by the backend implementation.
      *
-     * @param {ccm.types.key|Object} [keyOrQuery={}] - Dataset key or query object
-     * @param {Object} [projection] - Fields to include or exclude
-     * @param {Object} [options] - Additional query options (e.g. sort, limit)
+     * @param {ccm.types.key|Object} [query={}] - Dataset key or query object.
+     * @param {*} [projection] - Backend-specific projection forwarded to the server.
+     * @param {*} [options] - Backend-specific query options forwarded to the server.
      * @returns {Promise<ccm.types.dataset|ccm.types.dataset[]>}
      */
     async get(query = {}, projection, options) {
