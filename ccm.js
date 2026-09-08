@@ -961,7 +961,7 @@
      * to learn more about data management in ccmjs.
      *
      * @param {ccm.types.storeConfig} [config={}] - Datastore configuration (same as {@link ccm.store})
-     * @param {ccm.types.key|Object} [keyOrQuery={}]
+     * @param {ccm.types.key|Object} [query={}]
      * Either a dataset key or a query object.
      * If omitted or an empty object is provided, all datasets are returned.
      * @param {Object} [projection]
@@ -973,10 +973,8 @@
      * Interpretation depends on the datastore implementation and may be ignored by some store types.
      * @returns {Promise<ccm.types.dataset|ccm.types.dataset[]>} Resolves to the requested dataset or an array of datasets.
      */
-    get: (config = {}, keyOrQuery = {}, projection, options) =>
-      ccm
-        .store(config)
-        .then((store) => store.get(keyOrQuery, projection, options)),
+    get: (config = {}, query = {}, projection, options) =>
+      ccm.store(config).then((store) => store.get(query, projection, options)),
 
     /**
      * Contains ccmjs-relevant helper functions.
@@ -2380,16 +2378,16 @@
      * Returned datasets are cloned to prevent external mutation of
      * the internal store state.
      *
-     * @param {ccm.types.key|Object} [keyOrQuery={}] - Dataset key or query object. Defaults to `{}` which returns all datasets.
+     * @param {ccm.types.key|Object} [query={}] - Dataset key or query object. Defaults to `{}` which returns all datasets.
      * @returns {Promise<ccm.types.dataset|null|ccm.types.dataset[]>} Promise that resolves to the requested dataset(s).
      */
-    async get(keyOrQuery = {}) {
+    async get(query = {}) {
       let result;
-      if (ccm.helper.isObject(keyOrQuery))
-        result = ccm.helper.runQuery(keyOrQuery, this.datasets);
+      if (ccm.helper.isObject(query))
+        result = ccm.helper.runQuery(query, this.datasets);
       else {
-        this._checkKey(keyOrQuery);
-        result = this.datasets[keyOrQuery] || null;
+        this._checkKey(query);
+        result = this.datasets[query] || null;
       }
       return ccm.helper.clone(result);
     }
@@ -2534,17 +2532,17 @@
      * - If a key is provided, resolves to the matching dataset or `null`.
      * - If a query object is provided, retrieves all datasets and filters them in memory.
      *
-     * @param {ccm.types.key|Object} [keyOrQuery={}] - Dataset key or query object. Defaults to `{}` which returns all datasets.
+     * @param {ccm.types.key|Object} [query={}] - Dataset key or query object. Defaults to `{}` which returns all datasets.
      * @returns {Promise<ccm.types.dataset|null|ccm.types.dataset[]>}
      */
-    async get(keyOrQuery = {}) {
-      if (ccm.helper.isObject(keyOrQuery))
+    async get(query = {}) {
+      if (ccm.helper.isObject(query))
         return ccm.helper.runQuery(
-          keyOrQuery,
+          query,
           await this.#pReq(this.#getStore().getAll()),
         );
-      this._checkKey(keyOrQuery);
-      return (await this.#pReq(this.#getStore().get(keyOrQuery))) || null;
+      this._checkKey(query);
+      return (await this.#pReq(this.#getStore().get(query))) || null;
     }
 
     /**
@@ -2723,9 +2721,9 @@
      * @param {Object} [options] - Additional query options (e.g. sort, limit)
      * @returns {Promise<ccm.types.dataset|ccm.types.dataset[]>}
      */
-    async get(keyOrQuery = {}, projection, options) {
-      if (!ccm.helper.isObject(keyOrQuery)) this._checkKey(keyOrQuery);
-      const params = { get: keyOrQuery };
+    async get(query = {}, projection, options) {
+      if (!ccm.helper.isObject(query)) this._checkKey(query);
+      const params = { get: query };
 
       // Forward optional query modifiers to the server.
       if (projection) params.projection = projection;
