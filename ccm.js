@@ -907,7 +907,6 @@
      * @param {ccm.types.storeConfig} [config={}] - Datastore configuration
      * @param {string} [config.name] - Logical name of the datastore (required for OfflineStore and RemoteStore)
      * @param {string} [config.url] - Remote endpoint URL. Used together with `name` to create a RemoteStore.
-     * @param {string} [config.db] - (RemoteStore only) Optional database identifier if the server supports multiple databases.
      * @param {Object.<string,ccm.types.dataset>|ccm.types.dataset[]} [config.datasets] - (InMemoryStore only) Initial datasets, either as associative object `{ key: dataset }` or array `[ { key, ... }, ... ]`.
      * @param {Object} [config.observe] - (RemoteStore only) Query defining which datasets should be observed via WebSocket.
      * @param {function(Object):void} [config.onchange] - (RemoteStore only) Callback invoked when an observed dataset changes.
@@ -2246,7 +2245,6 @@
    * Subclasses may provide additional capabilities such as:
    *
    * - `names()`            – list available stores
-   * - `dbs()`              – list available databases
    * - `connect()`          – establish a live connection (RemoteStore)
    * - `close()`            – close active connections
    *
@@ -2303,10 +2301,10 @@
      * Provides identifying information about the underlying storage.
      * Mainly useful for debugging, logging, or remote synchronization.
      *
-     * @returns {{name?: string, url?: string, db?: string}}
+     * @returns {{name?: string, url?: string}}
      */
     source() {
-      return { name: this.name, url: this.url, db: this.db };
+      return { name: this.name, url: this.url };
     }
 
     /**
@@ -2777,16 +2775,7 @@
      * @returns {Promise<string[]>}
      */
     async names() {
-      return this.#send({ names: this.db });
-    }
-
-    /**
-     * Lists available databases on the server.
-     *
-     * @returns {Promise<string[]>}
-     */
-    async dbs() {
-      return this.#send({ names: "dbs" });
+      return this.#send({ names: true });
     }
 
     /**
@@ -2794,7 +2783,6 @@
      *
      * Automatically attaches:
      * - framework version (`ccm`)
-     * - database identifier (`db`)
      * - store name (`store`)
      * - authentication token (if available)
      *
@@ -2809,7 +2797,6 @@
       params.ccm = this.ccm || ccm.version;
 
       // Attach database and store identifiers.
-      params.db = this.db || "";
       params.store = this.name;
 
       // Attach authentication token if available.
@@ -3003,7 +2990,6 @@
  *
  * @property {string} [name] - Datastore name (required for persistent stores)
  * @property {string} [url] - Server endpoint for remote datastore
- * @property {string} [db] - Optional database identifier (remote only)
  * @property {Object|ccm.types.dataset[]} [datasets] - Initial datasets (in-memory store)
  * @property {Object} [observe] - Query for observing dataset changes (remote only)
  * @property {Function} [onchange] - Callback for observed dataset changes
