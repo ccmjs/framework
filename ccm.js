@@ -2835,7 +2835,6 @@
       this.socket.onopen = () => {
         this.socket.send(
           JSON.stringify({
-            db: this.db,
             store: this.name,
             observe: this.observe,
           }),
