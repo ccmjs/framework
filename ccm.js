@@ -2687,6 +2687,16 @@
    */
   class RemoteStore extends Datastore {
     /**
+     * Shared WebSocket connections indexed by server URL for this framework instance
+     *
+     * @type {Map<string, object>}
+     */
+    static #connections = new Map();
+
+    /** @type {object|null} */
+    #connection = null;
+
+    /**
      * Initializes the remote datastore connection.
      *
      * - Resolves the user instance from the component hierarchy.
@@ -2823,59 +2833,150 @@
     }
 
     /**
-     * Establishes a WebSocket connection for realtime datastore updates.
-     *
-     * The server will push notifications when datasets matching the configured `observe` query change.
+     * Observes this datastore using the shared connection for its server URL.
      */
     connect() {
-      // Convert HTTP endpoint to WebSocket endpoint.
-      this.socket = new WebSocket(this.url.replace(/^http/, "ws"));
+      if (this.#connection) return;
 
-      // Subscribe to datastore observation when connection opens.
-      this.socket.onopen = () => {
-        this.socket.send(
-          JSON.stringify({
-            store: this.name,
-            observe: this.observe,
-          }),
-        );
+      const url = new URL(this.url, document.baseURI);
+      url.protocol = url.protocol.replace(/^http/, "ws");
+      url.hash = "";
+      const key = url.href;
+      let connection = RemoteStore.#connections.get(key);
+
+      if (!connection) {
+        connection = {
+          url: key,
+          stores: new Set(),
+          requests: new Map(),
+          subscriptions: new Map(),
+          nextRequest: 0,
+          reconnected: false,
+          socket: null,
+        };
+        RemoteStore.#connections.set(key, connection);
+      }
+
+      this.#connection = connection;
+      connection.stores.add(this);
+
+      if (!connection.socket) RemoteStore.#openConnection(connection);
+      if (connection.socket.readyState === WebSocket.OPEN)
+        RemoteStore.#subscribe(connection, this);
+    }
+
+    /**
+     * Opens a shared connection and restores its active subscriptions.
+     *
+     * @param {object} connection - Shared connection state
+     */
+    static #openConnection(connection) {
+      const socket = new WebSocket(connection.url);
+      connection.socket = socket;
+
+      socket.onopen = () => {
+        for (const store of connection.stores)
+          RemoteStore.#subscribe(connection, store);
       };
 
-      // Handle incoming update notifications.
-      this.socket.onmessage = (message) => {
+      socket.onmessage = (event) => {
+        let message;
         try {
-          this.onchange && this.onchange(JSON.parse(message.data));
-        } catch (e) {
-          console.error("Failed to parse WebSocket message:", message.data, e);
+          message = JSON.parse(event.data);
+        } catch (error) {
+          console.error(
+            "Failed to parse WebSocket message:",
+            event.data,
+            error,
+          );
+          return;
+        }
+        if (!message || typeof message !== "object" || Array.isArray(message))
+          return;
+
+        // Associate an acknowledgement with the datastore that requested it
+        if (message.request !== undefined) {
+          const store = connection.requests.get(message.request);
+          connection.requests.delete(message.request);
+          if (!store) return;
+          if (message.error !== undefined) {
+            console.error("Observe subscription failed:", message.error);
+            return;
+          }
+          if (
+            Number.isInteger(message.subscription) &&
+            message.subscription > 0
+          )
+            connection.subscriptions.set(message.subscription, store);
+          return;
+        }
+
+        // Deliver only dataset changes to the matching datastore
+        const store = connection.subscriptions.get(message.subscription);
+        if (store && Object.hasOwn(message, "dataset")) {
+          try {
+            store.onchange?.(message.dataset);
+          } catch (error) {
+            console.error("Observe callback failed:", error);
+          }
         }
       };
 
-      // Log WebSocket errors.
-      this.socket.onerror = (err) => {
-        console.error("WebSocket error:", err);
-      };
+      socket.onerror = (error) => console.error("WebSocket error:", error);
+      socket.onclose = () => {
+        // Ignore an old connection that was deliberately closed or replaced
+        if (RemoteStore.#connections.get(connection.url) !== connection) return;
+        connection.requests.clear();
+        connection.subscriptions.clear();
+        connection.socket = null;
 
-      // Attempt a single automatic reconnect if the connection drops.
-      this.socket.onclose = (event) => {
-        console.warn(
-          `[ccmjs] WebSocket closed, code=${event.code}, reason=${event.reason}`,
-        );
-        if (!this._manualClose && !this._reconnectAttempted) {
-          this._reconnectAttempted = true;
-          this.connect();
+        // Attempt one automatic reconnect for all remaining datastores together
+        if (connection.stores.size && !connection.reconnected) {
+          connection.reconnected = true;
+          RemoteStore.#openConnection(connection);
+        } else {
+          RemoteStore.#connections.delete(connection.url);
+          for (const store of connection.stores) store.#connection = null;
+          connection.stores.clear();
         }
       };
     }
 
     /**
-     * Closes the active WebSocket connection.
+     * Sends an observe request and remembers its originating datastore.
+     *
+     * @param {object} connection - Shared connection state
+     * @param {RemoteStore} store - Datastore to observe
+     */
+    static #subscribe(connection, store) {
+      const request = connection.nextRequest++;
+      connection.requests.set(request, store);
+      connection.socket.send(
+        JSON.stringify({
+          request,
+          store: store.name,
+          observe: store.observe,
+        }),
+      );
+    }
+
+    /**
+     * Stops local observation and closes the connection after its last user leaves.
+     *
+     * The server currently removes subscriptions only when the socket closes.
      */
     close() {
-      if (this.socket) {
-        this._manualClose = true;
-        this.socket.close();
-        delete this._manualClose;
-        this.socket = null;
+      const connection = this.#connection;
+      if (!connection) return;
+      this.#connection = null;
+      connection.stores.delete(this);
+      for (const entries of [connection.requests, connection.subscriptions])
+        for (const [id, store] of entries)
+          if (store === this) entries.delete(id);
+
+      if (!connection.stores.size) {
+        RemoteStore.#connections.delete(connection.url);
+        connection.socket?.close();
       }
     }
   }
