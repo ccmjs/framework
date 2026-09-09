@@ -306,7 +306,20 @@
 
             // Perform the fetch request and handle the response.
             fetch(resource.url, resource)
-              .then((response) => response.text())
+              .then(async (response) => {
+                const text = await response.text();
+                if (!response.ok) {
+                  let message = response.statusText;
+                  try {
+                    const body = JSON.parse(text);
+                    if (typeof body.error === "string") message = body.error;
+                  } catch {}
+                  throw Object.assign(new Error(message), {
+                    status: response.status,
+                  });
+                }
+                return text;
+              })
               .then(success)
               .catch(error);
           }
@@ -2803,18 +2816,23 @@
      * @private
      */
     async #send(params = {}) {
-      // Attach framework version for compatibility checks.
+      // Attach the framework version for compatibility checks
       params.ccm = this.ccm || ccm.version;
 
-      // Attach database and store identifiers.
-      params.store = this.name;
+      // Store listing applies to the server, all other operations select a store
+      if (!("names" in params)) params.store = this.name;
 
       // Attach authentication token if available.
       if (this.user?.isLoggedIn()) params.token = this.user.getAppState().token;
       if (this.token) params.token = this.token;
 
       try {
-        return await ccm.load({ url: this.url, params });
+        return await ccm.load({
+          url: this.url,
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          params,
+        });
       } catch (e) {
         // Handle authentication errors by retrying login
         if (this.user && (e.status === 401 || e.status === 403)) {
@@ -2822,7 +2840,12 @@
             await this.user.logout();
             await this.user.login();
             params.token = this.user.getAppState().token;
-            return await ccm.load({ url: this.url, params });
+            return await ccm.load({
+              url: this.url,
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              params,
+            });
           } catch (e) {
             // If login fails, restart the root component
             if (this.parent) await ccm.helper.findRoot(this).start();
