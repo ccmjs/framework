@@ -2823,7 +2823,7 @@
       if (!("names" in params)) params.store = this.name;
 
       // Attach authentication token if available.
-      if (this.user?.isLoggedIn()) params.token = this.user.getAppState().token;
+      if (this.user?.isLoggedIn()) params.token = this.user.getToken();
       if (this.token) params.token = this.token;
 
       try {
@@ -2839,7 +2839,7 @@
           try {
             await this.user.logout();
             await this.user.login();
-            params.token = this.user.getAppState().token;
+            params.token = this.user.getToken();
             return await ccm.load({
               url: this.url,
               method: "POST",
@@ -2974,13 +2974,14 @@
     static #subscribe(connection, store) {
       const request = connection.nextRequest++;
       connection.requests.set(request, store);
-      connection.socket.send(
-        JSON.stringify({
-          request,
-          store: store.name,
-          observe: store.observe,
-        }),
-      );
+      const params = {
+        request,
+        store: store.name,
+        observe: store.observe,
+      };
+      if (store.user?.isLoggedIn()) params.token = store.user.getToken();
+      if (store.token) params.token = store.token;
+      connection.socket.send(JSON.stringify(params));
     }
 
     /**
