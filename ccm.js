@@ -922,7 +922,7 @@
      * @param {string} [config.url] - Remote endpoint URL. Used together with `name` to create a RemoteStore.
      * @param {Object.<string,ccm.types.dataset>|ccm.types.dataset[]} [config.datasets] - (InMemoryStore only) Initial datasets, either as associative object `{ key: dataset }` or array `[ { key, ... }, ... ]`.
      * @param {Object} [config.observe] - (RemoteStore only) Query defining which datasets should be observed via WebSocket.
-     * @param {function(Error):void} [config.onerror] - (RemoteStore only) Reports an ended observe subscription; renew authentication and connect again.
+     * @param {function(Error):void} [config.onerror] - (RemoteStore only) Reports an observe failure after the single re-login attempt, if available.
      * @param {function(Object):void} [config.onchange] - (RemoteStore only) Callback invoked when an observed dataset changes.
      * @param {Object} [config.user] - (RemoteStore only) Component instance used for authentication.
      * @returns {Promise<Datastore>} Resolves to an initialized datastore accessor implementing the common datastore API.
@@ -2707,6 +2707,13 @@
      */
     static #connections = new Map();
 
+    // One login dialog per user, shared by HTTP requests and subscriptions.
+    static #logins = new WeakMap();
+    #observeToken;
+    #observeRetried = false;
+    #observeRecovery = false;
+    #observeVersion = 0;
+
     /** @type {object|null} */
     #connection = null;
 
@@ -2834,25 +2841,36 @@
           headers: { "Content-Type": "application/json" },
           params,
         });
-      } catch (e) {
-        // Handle authentication errors by retrying login
-        if (this.user && (e.status === 401 || e.status === 403)) {
-          try {
-            await this.user.logout();
-            await this.user.login();
-            params.token = this.user.getToken();
-            return await ccm.load({
-              url: this.url,
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              params,
-            });
-          } catch (e) {
-            // If login fails, restart the root component
-            if (this.parent) await ccm.helper.findRoot(this).start();
-            else throw e;
-          }
-        } else throw e;
+      } catch (error) {
+        if (!this.user || (error.status !== 401 && error.status !== 403)) throw error;
+        await this.#relogin(params.token);
+        params.token = this.user.getToken();
+        if (this.token) this.token = params.token;
+        // Retry once. Login cancellation and a second failure reach the caller.
+        return ccm.load({
+          url: this.url,
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          params,
+        });
+      }
+    }
+
+    /** Shares concurrent login attempts and reuses an already renewed token. */
+    async #relogin(failedToken) {
+      const user = this.user;
+      const pending = RemoteStore.#logins.get(user);
+      if (pending) return pending;
+      if (user.isLoggedIn() && user.getToken() !== failedToken) return;
+      const login = Promise.resolve().then(async () => {
+        await user.logout();
+        await user.login();
+      });
+      RemoteStore.#logins.set(user, login);
+      try {
+        await login;
+      } finally {
+        RemoteStore.#logins.delete(user);
       }
     }
 
@@ -2881,6 +2899,9 @@
         RemoteStore.#connections.set(key, connection);
       }
 
+      this.#observeVersion++;
+      this.#observeRetried = false;
+      this.#observeRecovery = false;
       this.#connection = connection;
       connection.stores.add(this);
 
@@ -2924,29 +2945,24 @@
           connection.requests.delete(message.request);
           if (!store) return;
           if (message.error !== undefined) {
-            console.error("Observe subscription failed:", message.error);
+            store.#observeFailed(message);
             return;
           }
           if (
             Number.isInteger(message.subscription) &&
             message.subscription > 0
-          )
+          ) {
+            store.#observeRetried = false;
             connection.subscriptions.set(message.subscription, store);
+          }
           return;
         }
 
         // Deliver only dataset changes to the matching datastore
         const store = connection.subscriptions.get(message.subscription);
         if (store && message.error !== undefined) {
-          // Remove it from reconnects too; authentication must be renewed first.
-          store.close();
-          const error = Object.assign(new Error(message.error), { status: message.status });
-          try {
-            if (store.onerror) store.onerror(error);
-            else console.error("Observe subscription ended:", error);
-          } catch (callbackError) {
-            console.error("Observe error callback failed:", callbackError);
-          }
+          connection.subscriptions.delete(message.subscription);
+          store.#observeFailed(message);
           return;
         }
         if (store && Object.hasOwn(message, "dataset")) {
@@ -2978,6 +2994,37 @@
       };
     }
 
+    /** Renew authentication once, then resubscribe without restarting the app. */
+    async #observeFailed(message) {
+      if (this.#observeRecovery) return;
+      const version = this.#observeVersion;
+      let error = Object.assign(new Error(message.error), { status: message.status });
+      if (this.user && !this.#observeRetried && (error.status === 401 || error.status === 403)) {
+        this.#observeRetried = true;
+        this.#observeRecovery = true;
+        try {
+          await this.#relogin(this.#observeToken);
+          if (version !== this.#observeVersion) return;
+          if (this.token) this.token = this.user.getToken();
+          this.#observeRecovery = false;
+          const connection = this.#connection;
+          if (connection?.socket?.readyState === WebSocket.OPEN)
+            RemoteStore.#subscribe(connection, this);
+          return;
+        } catch (failure) {
+          error = failure;
+        }
+      }
+      if (version !== this.#observeVersion) return;
+      this.close();
+      try {
+        if (this.onerror) await this.onerror(error);
+        else console.error("Observe subscription ended:", error);
+      } catch (callbackError) {
+        console.error("Observe error callback failed:", callbackError);
+      }
+    }
+
     /**
      * Sends an observe request and remembers its originating datastore.
      *
@@ -2985,6 +3032,7 @@
      * @param {RemoteStore} store - Datastore to observe
      */
     static #subscribe(connection, store) {
+      if (store.#observeRecovery) return;
       const request = connection.nextRequest++;
       connection.requests.set(request, store);
       const params = {
@@ -2994,6 +3042,7 @@
       };
       if (store.user?.isLoggedIn()) params.token = store.user.getToken();
       if (store.token) params.token = store.token;
+      store.#observeToken = params.token;
       connection.socket.send(JSON.stringify(params));
     }
 
@@ -3003,6 +3052,8 @@
      * The server currently removes subscriptions only when the socket closes.
      */
     close() {
+      this.#observeVersion++;
+      this.#observeRecovery = false;
       const connection = this.#connection;
       if (!connection) return;
       this.#connection = null;
@@ -3129,7 +3180,7 @@
  * @property {string} [url] - Server endpoint for remote datastore
  * @property {Object|ccm.types.dataset[]} [datasets] - Initial datasets (in-memory store)
  * @property {Object} [observe] - Query for observing dataset changes (remote only)
- * @property {Function} [onerror] - Callback for ended observe subscriptions; status 401 indicates token expiration
+ * @property {Function} [onerror] - Callback for observe failures after re-login or without a configured user
  * @property {Function} [onchange] - Callback for observed dataset changes
  * @property {ccm.types.instance} [user] - User instance for authentication (remote only)
  * @property {ccm.types.instance} [parent] - Parent instance (internal use)
