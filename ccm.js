@@ -922,6 +922,7 @@
      * @param {string} [config.url] - Remote endpoint URL. Used together with `name` to create a RemoteStore.
      * @param {Object.<string,ccm.types.dataset>|ccm.types.dataset[]} [config.datasets] - (InMemoryStore only) Initial datasets, either as associative object `{ key: dataset }` or array `[ { key, ... }, ... ]`.
      * @param {Object} [config.observe] - (RemoteStore only) Query defining which datasets should be observed via WebSocket.
+     * @param {function(Error):void} [config.onerror] - (RemoteStore only) Reports an ended observe subscription; renew authentication and connect again.
      * @param {function(Object):void} [config.onchange] - (RemoteStore only) Callback invoked when an observed dataset changes.
      * @param {Object} [config.user] - (RemoteStore only) Component instance used for authentication.
      * @returns {Promise<Datastore>} Resolves to an initialized datastore accessor implementing the common datastore API.
@@ -2936,6 +2937,18 @@
 
         // Deliver only dataset changes to the matching datastore
         const store = connection.subscriptions.get(message.subscription);
+        if (store && message.error !== undefined) {
+          // Remove it from reconnects too; authentication must be renewed first.
+          store.close();
+          const error = Object.assign(new Error(message.error), { status: message.status });
+          try {
+            if (store.onerror) store.onerror(error);
+            else console.error("Observe subscription ended:", error);
+          } catch (callbackError) {
+            console.error("Observe error callback failed:", callbackError);
+          }
+          return;
+        }
         if (store && Object.hasOwn(message, "dataset")) {
           try {
             store.onchange?.(message.dataset);
@@ -3116,6 +3129,7 @@
  * @property {string} [url] - Server endpoint for remote datastore
  * @property {Object|ccm.types.dataset[]} [datasets] - Initial datasets (in-memory store)
  * @property {Object} [observe] - Query for observing dataset changes (remote only)
+ * @property {Function} [onerror] - Callback for ended observe subscriptions; status 401 indicates token expiration
  * @property {Function} [onchange] - Callback for observed dataset changes
  * @property {ccm.types.instance} [user] - User instance for authentication (remote only)
  * @property {ccm.types.instance} [parent] - Parent instance (internal use)
