@@ -296,13 +296,20 @@
            *
            * Sends an HTTP request to fetch the JSON data and handles the response.
            * Supports both `GET` and `POST` methods, with optional parameters. Default is `GET`.
+           * JSON request bodies default to application/json unless Content-Type is supplied.
            */
           function loadJSON() {
             // Prepare the URL or request body based on the HTTP method.
-            if (resource.params)
-              resource.method === "POST"
-                ? (resource.body = JSON.stringify(resource.params))
-                : (resource.url = buildURL(resource.url, resource.params));
+            if (resource.params) {
+              if (resource.method === "POST") {
+                resource.body = JSON.stringify(resource.params);
+                resource.headers = new Headers(resource.headers);
+                if (!resource.headers.has("Content-Type"))
+                  resource.headers.set("Content-Type", "application/json");
+              } else {
+                resource.url = buildURL(resource.url, resource.params);
+              }
+            }
 
             // Perform the fetch request and handle the response.
             fetch(resource.url, resource)
@@ -2838,7 +2845,6 @@
         return await ccm.load({
           url: this.url,
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           params,
         });
       } catch (error) {
@@ -2850,7 +2856,6 @@
         return ccm.load({
           url: this.url,
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           params,
         });
       }
