@@ -2863,7 +2863,7 @@
 
     /** Shares concurrent login attempts and reuses an already renewed token. */
     async #relogin(failedToken) {
-      const user = this.user;
+      const user = this.user.getSessionOwner?.() ?? this.user;
       const pending = RemoteStore.#logins.get(user);
       if (pending) return pending;
       if (user.isLoggedIn() && user.getToken() !== failedToken) return;
