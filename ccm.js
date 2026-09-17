@@ -7,9 +7,9 @@
  *
  * See the {@link https://github.com/ccmjs/framework/wiki ccmjs Wiki} for more information.
  *
- * @author André Kless <andre.kless@web.de> (https://github.com/akless)
+ * @author André Kless <andre.kless@web.de>
  * @copyright 2014–2026 André Kless
- * @license The MIT License (MIT)
+ * @license MIT
  * @version 28.0.0
  */
 
