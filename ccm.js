@@ -1427,6 +1427,7 @@
        * - maximum length of 32 characters
        *
        * @param {*} value - Value to check
+       * @param {boolean} [allowArray=true] - Whether compound array keys are accepted.
        * @returns {boolean}
        *
        * @example
@@ -1436,19 +1437,22 @@
        * ccm.helper.isKey(["app1", "user1"]); // => true
        *
        * @example
+       * ccm.helper.isKey(["app1", "user1"], false); // => false
+       *
+       * @example
        * ccm.helper.isKey("_internal"); // => false
        *
        * @example
        * ccm.helper.isKey("1abc"); // => false
        */
-      isKey: (value) => {
+      isKey: (value, allowArray = true) => {
         const keyRegex = /^[a-z][a-z0-9_]{0,31}$/;
 
         // single key
         if (typeof value === "string") return keyRegex.test(value);
 
         // compound key (array)
-        if (Array.isArray(value) && value.length) return value.every((k) => typeof k === "string" && keyRegex.test(k));
+        if (allowArray && Array.isArray(value) && value.length) return Array.from(value).every((k) => typeof k === "string" && keyRegex.test(k));
 
         return false;
       },
