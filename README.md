@@ -81,6 +81,16 @@ On top of that, ccmjs can be used to build:
 
 Full documentation is available in the [ccmjs Wiki](https://github.com/ccmjs/framework/wiki).
 
+## 📌 Use a specific version
+
+To pin your app to a specific framework release, load it from jsDelivr:
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/ccmjs/framework@v28.0.0/ccm-28.0.0.min.js"></script>
+```
+
+This URL selects version **28.0.0**. For another release, replace the version in both the tag (`@v28.0.0`) and the filename (`ccm-28.0.0.min.js`). You can also use this URL as the `ccm` dependency in a component.
+
 ## 📄 License
 
 ccmjs is released under the **MIT License**.
