@@ -70,10 +70,10 @@
           if (!resource.context) resource.context = document.head;
 
           // Handle loading in the Shadow DOM of a ccmjs instance.
-          if (ccm.helper.isInstance(resource.context)) resource.context = resource.context.element.parentElement;
+          if (ccm.helper.isInstance(resource.context)) resource.context = resource.context.element.parentNode;
 
           // Determine and call the operation to load the resource based on its type or file extension.
-          getOperation()();
+          Promise.resolve(getOperation()()).catch(error);
 
           /**
            * Recursively loads a resource one after the other.
@@ -262,8 +262,11 @@
 
               // Create blob URL for dynamic import.
               const blobUrl = URL.createObjectURL(new Blob([text], { type: "text/javascript" }));
-              result = await import(blobUrl);
-              URL.revokeObjectURL(blobUrl);
+              try {
+                result = await import(blobUrl);
+              } finally {
+                URL.revokeObjectURL(blobUrl);
+              }
             } else {
               result = await import(url);
             }
@@ -1071,7 +1074,7 @@
         let current = obj;
         for (let i = 0; i < keys.length; i++) {
           const key = keys[i];
-          const nextIsIndex = isIndex(keys[i + 1]);
+          const nextIsIndex = isIndex(keys[i + 1] ?? last);
 
           // convert array index access
           if (isIndex(key) && Array.isArray(current)) {
@@ -1315,7 +1318,7 @@
       isComponent: (value) =>
         ccm.helper.isObject(value) &&
         typeof value.name === "string" &&
-        value.name &&
+        value.name.length > 0 &&
         (typeof value.ccm === "string" || ccm.helper.isFramework(value.ccm)) &&
         ccm.helper.isObject(value.config) &&
         typeof value.Instance === "function",
@@ -2846,7 +2849,9 @@
         }
         if (store && Object.hasOwn(message, "dataset")) {
           try {
-            store.onchange?.(message.dataset);
+            Promise.resolve(store.onchange?.(message.dataset)).catch((error) =>
+              console.error("Observe callback failed:", error),
+            );
           } catch (error) {
             console.error("Observe callback failed:", error);
           }
