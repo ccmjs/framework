@@ -91,6 +91,25 @@ To pin your app to a specific framework release, load it from jsDelivr:
 
 This URL selects version **28.0.0**. For another release, replace the version in both the tag (`@v28.0.0`) and the filename (`ccm-28.0.0.min.js`). You can also use this URL as the `ccm` dependency in a component.
 
+<details>
+<summary>Optional: Verify integrity with SRI</summary>
+
+Subresource Integrity (SRI) lets the browser verify that the downloaded file
+matches the expected contents:
+
+```html
+<script
+  src="https://cdn.jsdelivr.net/gh/ccmjs/framework@v28.0.0/ccm-28.0.0.min.js"
+  integrity="sha384-HDMeDDgKlR2OFJ3ECMwmA6wknqpfpeCiSZYlUhQaFg9FKrvHJp8MMSwrxibvWJ2G"
+  crossorigin="anonymous"
+></script>
+```
+
+This hash applies to the minified **28.0.0** file. When changing versions, update
+both the URL and the integrity hash.
+
+</details>
+
 ## 📄 License
 
 ccmjs is released under the **MIT License**.
