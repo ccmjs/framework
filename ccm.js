@@ -887,6 +887,7 @@
      * @param {Object} [config.observe] - (RemoteStore only) Query defining which datasets should be observed via WebSocket.
      * @param {function(Error):void} [config.onerror] - (RemoteStore only) Reports an observe failure after the single re-login attempt, if available.
      * @param {function(Object):void} [config.onchange] - (RemoteStore only) Callback invoked when an observed dataset changes.
+     * @param {function(string):void} [config.onconnectionchange] - (RemoteStore only) Receives connecting, connected (observation acknowledged), or disconnected.
      * @param {Object} [config.user] - (RemoteStore only) Component instance used for authentication.
      * @param {boolean} [deferInit=false] - Internal dependency resolution flag; component lifecycle initializes the store.
      * @returns {Promise<Datastore>} Datastore accessor; direct calls resolve after initialization.
@@ -2607,6 +2608,7 @@
     #observeRetried = false;
     #observeRecovery = false;
     #observeVersion = 0;
+    #connectionState = "disconnected";
 
     /** @type {object|null} */
     #connection = null;
@@ -2766,11 +2768,24 @@
       }
     }
 
+    /** Returns connecting, connected (server-confirmed observation), or disconnected. */
+    getConnectionState() { return this.#connectionState; }
+
+    /** Reports observation state without allowing UI callbacks to interrupt the transport. */
+    #setConnectionState(state) {
+      if (state === this.#connectionState) return;
+      this.#connectionState = state;
+      try {
+        Promise.resolve(this.onconnectionchange?.(state)).catch(error =>
+          console.error("Connection state callback failed:", error));
+      } catch (error) { console.error("Connection state callback failed:", error); }
+    }
+
     /**
      * Observes this datastore using the shared connection for its server URL.
      */
     connect() {
-      if (this.#connection) return;
+      if (this.#connection || !window.WebSocket) return;
 
       const url = new URL(this.url, document.baseURI);
       url.protocol = url.protocol.replace(/^http/, "ws");
@@ -2796,6 +2811,7 @@
       this.#observeRecovery = false;
       this.#connection = connection;
       connection.stores.add(this);
+      this.#setConnectionState("connecting");
 
       if (!connection.socket) RemoteStore.#openConnection(connection);
       if (connection.socket.readyState === WebSocket.OPEN) RemoteStore.#subscribe(connection, this);
@@ -2836,6 +2852,7 @@
           if (Number.isInteger(message.subscription) && message.subscription > 0) {
             store.#observeRetried = false;
             connection.subscriptions.set(message.subscription, store);
+            store.#setConnectionState("connected");
           }
           return;
         }
@@ -2858,13 +2875,17 @@
         }
       };
 
-      socket.onerror = (error) => console.error("WebSocket error:", error);
+      socket.onerror = (error) => {
+        for (const store of connection.stores) store.#setConnectionState("disconnected");
+        console.error("WebSocket error:", error);
+      };
       socket.onclose = () => {
         // Ignore an old connection that was deliberately closed or replaced
         if (RemoteStore.#connections.get(connection.url) !== connection) return;
         connection.requests.clear();
         connection.subscriptions.clear();
         connection.socket = null;
+        for (const store of connection.stores) store.#setConnectionState("disconnected");
 
         // Attempt one automatic reconnect for all remaining datastores together
         if (connection.stores.size && !connection.reconnected) {
@@ -2881,6 +2902,7 @@
     /** Renew authentication once, then resubscribe without restarting the app. */
     async #observeFailed(message) {
       if (this.#observeRecovery) return;
+      this.#setConnectionState("disconnected");
       const version = this.#observeVersion;
       let error = Object.assign(new Error(message.error), { status: message.status });
       if (this.user && !this.#observeRetried && (error.status === 401 || error.status === 403)) {
@@ -2916,6 +2938,7 @@
      */
     static #subscribe(connection, store) {
       if (store.#observeRecovery) return;
+      store.#setConnectionState("connecting");
       const request = connection.nextRequest++;
       connection.requests.set(request, store);
       const params = {
@@ -2938,7 +2961,7 @@
       this.#observeVersion++;
       this.#observeRecovery = false;
       const connection = this.#connection;
-      if (!connection) return;
+      if (!connection) { this.#setConnectionState("disconnected"); return; }
       this.#connection = null;
       connection.stores.delete(this);
       for (const entries of [connection.requests, connection.subscriptions])
@@ -2948,6 +2971,7 @@
         RemoteStore.#connections.delete(connection.url);
         connection.socket?.close();
       }
+      this.#setConnectionState("disconnected");
     }
   }
 }
@@ -3064,6 +3088,7 @@
  * @property {Object} [observe] - Query for observing dataset changes (remote only)
  * @property {Function} [onerror] - Callback for observe failures after re-login or without a configured user
  * @property {Function} [onchange] - Callback for observed dataset changes
+ * @property {Function} [onconnectionchange] - Callback receiving connecting, connected, or disconnected (remote only)
  * @property {ccm.types.instance} [user] - User instance for authentication (remote only)
  * @property {ccm.types.instance} [parent] - Parent instance (internal use)
  *
