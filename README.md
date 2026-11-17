@@ -1,6 +1,6 @@
 # ccmjs Framework
 
-![version](https://img.shields.io/badge/version-28.0.0-blue)
+![version](https://img.shields.io/badge/version-28.1.0-blue)
 ![License](https://img.shields.io/github/license/ccmjs/framework)
 ![Docs](https://img.shields.io/badge/docs-wiki-brightgreen)
 ![Build](https://img.shields.io/badge/build-none-lightgrey)
@@ -80,6 +80,8 @@ On top of that, ccmjs can be used to build:
 ## 📚 Documentation
 
 Full documentation is available in the [ccmjs Wiki](https://github.com/ccmjs/framework/wiki).
+
+See the [changelog](CHANGELOG.md) for changes in each version.
 
 ## 📌 Use a specific version
 
