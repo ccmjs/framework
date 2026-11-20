@@ -33,7 +33,7 @@
      *
      * @returns {ccm.types.versionNr} Version number of ccmjs.
      */
-    version: "28.1.0",
+    version: () => "28.1.0",
 
     /**
      * Asynchronous Loading of Resources
@@ -461,11 +461,9 @@
       delete config.ccm;
 
       // Determine the ccmjs version the component must use (considering backwards compatibility).
-      let version;
-      if (ccm.helper.isFramework(component.ccm)) {
-        const v = component.ccm.version;
-        version = typeof v === "function" ? v() : v;
-      } else version = component.ccm.match(/-(\d+\.\d+\.\d+)/)?.at(1);
+      const version = ccm.helper.isFramework(component.ccm)
+        ? component.ccm.version()
+        : component.ccm.match(/-(\d+\.\d+\.\d+)/)?.at(1);
 
       // Load the required ccmjs version if not already present in the web page.
       if (!window.ccm[version]) {
@@ -475,7 +473,7 @@
       }
 
       // If the component uses a different ccmjs version, handle backwards compatibility.
-      if (version && version !== ccm.version) return backwardsCompatibility(version, "component", component, config);
+      if (version && version !== ccm.version()) return backwardsCompatibility(version, "component", component, config);
 
       // Set the component index based on its name and version.
       component.index = component.name + (component.version ? "-" + component.version.join("-") : "");
@@ -590,8 +588,8 @@
       if (!ccm.helper.isComponent(component)) return component;
 
       // Handle backwards compatibility if the component uses another ccmjs version.
-      const version = typeof component.ccm.version === "function" ? component.ccm.version() : component.ccm.version;
-      if (version && version !== ccm.version)
+      const version = component.ccm.version();
+      if (version && version !== ccm.version())
         return backwardsCompatibility(version, "instance", component, config, area);
 
       // Render a loading icon in the web page area.
@@ -834,8 +832,9 @@
       if (!ccm.helper.isComponent(component)) return component;
 
       // Handle backwards compatibility if the component uses another ccmjs version.
-      const version = typeof component.ccm.version === "function" ? component.ccm.version() : component.ccm.version;
-      if (version && version !== ccm.version) return backwardsCompatibility(version, "start", component, config, area);
+      const version = component.ccm.version();
+      if (version && version !== ccm.version())
+        return backwardsCompatibility(version, "start", component, config, area);
 
       // Create an instance out of the component.
       const instance = await ccm.instance(component, config, area);
@@ -1456,7 +1455,8 @@
         if (typeof value === "string") return keyRegex.test(value);
 
         // compound key (array)
-        if (allowArray && Array.isArray(value) && value.length) return Array.from(value).every((k) => typeof k === "string" && keyRegex.test(k));
+        if (allowArray && Array.isArray(value) && value.length)
+          return Array.from(value).every((k) => typeof k === "string" && keyRegex.test(k));
 
         return false;
       },
@@ -2103,7 +2103,7 @@
   }
 
   // Initialize the namespace for the current ccmjs version.
-  if (!window.ccm[ccm.version]) window.ccm[ccm.version] = ccm;
+  if (!window.ccm[ccm.version()]) window.ccm[ccm.version()] = ccm;
 
   // -----------------------------------------------------------------------------
   // Private State
@@ -2136,7 +2136,8 @@
    */
   async function backwardsCompatibility(version, method, component, config, element) {
     return new Promise((resolve, reject) => {
-      const major = parseInt(version.split(".")[0]);
+      const major = parseInt(version, 10);
+      if (major < 28) window.ccm.callbacks ??= {};
       window.ccm[version][method](component, config, major < 18 ? resolve : element) // Before version 18, callbacks were used instead of promises (and there was no 3rd parameter for ccm.instance and ccm.start).
         ?.then(resolve)
         .catch(reject);
@@ -2721,7 +2722,7 @@
      */
     async #send(params = {}) {
       // Attach the framework version for compatibility checks
-      params.ccm = this.ccm || ccm.version;
+      params.ccm = this.ccm || ccm.version();
 
       // Store listing applies to the server, all other operations select a store
       if (!("names" in params)) params.store = this.name;
@@ -2769,16 +2770,21 @@
     }
 
     /** Returns connecting, connected (server-confirmed observation), or disconnected. */
-    getConnectionState() { return this.#connectionState; }
+    getConnectionState() {
+      return this.#connectionState;
+    }
 
     /** Reports observation state without allowing UI callbacks to interrupt the transport. */
     #setConnectionState(state) {
       if (state === this.#connectionState) return;
       this.#connectionState = state;
       try {
-        Promise.resolve(this.onconnectionchange?.(state)).catch(error =>
-          console.error("Connection state callback failed:", error));
-      } catch (error) { console.error("Connection state callback failed:", error); }
+        Promise.resolve(this.onconnectionchange?.(state)).catch((error) =>
+          console.error("Connection state callback failed:", error),
+        );
+      } catch (error) {
+        console.error("Connection state callback failed:", error);
+      }
     }
 
     /**
@@ -2961,7 +2967,10 @@
       this.#observeVersion++;
       this.#observeRecovery = false;
       const connection = this.#connection;
-      if (!connection) { this.#setConnectionState("disconnected"); return; }
+      if (!connection) {
+        this.#setConnectionState("disconnected");
+        return;
+      }
       this.#connection = null;
       connection.stores.delete(this);
       for (const entries of [connection.requests, connection.subscriptions])
@@ -3021,7 +3030,7 @@
 /**
  * @typedef {Object} ccm.types.framework
  * @description ccmjs framework instance
- * @property {ccm.types.versionNr} version - Framework version
+ * @property {function(): ccm.types.versionNr} version - Returns the framework version
  * @property {Function} load - Loads resources
  * @property {Function} component - Registers a component
  * @property {Function} instance - Creates an instance
