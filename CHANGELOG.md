@@ -2,6 +2,25 @@
 
 Notable changes to the ccmjs framework are documented here, newest first.
 
+## 29.0.0 (Unreleased)
+
+### Breaking changes
+
+- `ccm.version` is a function again. Update code written for 28.x to call
+  `ccm.version()` wherever it needs the version string. When working with
+  multiple framework versions, use
+  `typeof ccm.version === "function" ? ccm.version() : ccm.version`.
+- Component registration, instantiation and startup now expect a callable
+  version accessor on framework objects. Framework objects from 28.0.0 and
+  28.1.0 expose a string and are incompatible with those calls.
+
+### Fixed
+
+- Set the loading marker in `window.ccm.files` before a legacy component script
+  first executes, so it can detect that the framework is loading it.
+- Initialize `window.ccm.callbacks` when delegating to framework versions
+  before 28 that rely on the shared callback registry.
+
 ## 28.1.0
 
 ### Added

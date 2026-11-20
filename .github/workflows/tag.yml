@@ -11,8 +11,8 @@ permissions:
 jobs:
   release:
     # Replace BOTH references with an existing release tag or the same full commit SHA.
-    uses: ccmjs/component-release/.github/workflows/release.yml@v2.0.0
+    uses: ccmjs/component-release/.github/workflows/release.yml@v2.2.0
     with:
-      tooling-ref: v2.0.0
+      tooling-ref: v2.2.0
       framework: true
       dry-run: ${{ inputs.dry-run }}

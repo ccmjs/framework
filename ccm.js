@@ -10,7 +10,7 @@
  * @author André Kless <andre.kless@web.de>
  * @copyright 2014–2026 André Kless
  * @license MIT
- * @version 28.1.0
+ * @version 29.0.0
  */
 
 {
@@ -33,7 +33,7 @@
      *
      * @returns {ccm.types.versionNr} Version number of ccmjs.
      */
-    version: () => "28.1.0",
+    version: () => "29.0.0",
 
     /**
      * Asynchronous Loading of Resources

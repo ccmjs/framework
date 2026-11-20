@@ -1,6 +1,6 @@
 # ccmjs Framework
 
-![version](https://img.shields.io/badge/version-28.1.0-blue)
+![version](https://img.shields.io/badge/version-29.0.0-blue)
 ![License](https://img.shields.io/github/license/ccmjs/framework)
 ![Docs](https://img.shields.io/badge/docs-wiki-brightgreen)
 ![Build](https://img.shields.io/badge/build-none-lightgrey)
