@@ -530,6 +530,11 @@
         // Abort if the component URL is not provided.
         if (!urlData) return component;
 
+        // Legacy components check this marker on their first execution.
+        const filename = `ccm.${urlData.name}.js`;
+        window.ccm.files ??= {};
+        window.ccm.files[filename] = null;
+
         // Load the component from the URL.
         let result = await ccm.load({
           url: urlData.url,
@@ -543,8 +548,6 @@
         if (result?.component) result = result.component;
         else {
           // Component file did not return the component object => try to get the component from window.ccm.files. (backwards compatibility)
-          const filename = `ccm.${urlData.name}.js`;
-          if (!window.ccm.files) window.ccm.files = {};
           window.ccm.files[filename] = null; // marks the component as 'loading'
           window.ccm.files = new Proxy(window.ccm.files, {
             set(obj, key, value) {
