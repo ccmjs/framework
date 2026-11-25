@@ -2,7 +2,16 @@
 
 Notable changes to the ccmjs framework are documented here, newest first.
 
-## 29.0.0 (Unreleased)
+## 29.1.0
+
+### Added
+
+- Each instance host exposes its component name in the `data-ccm-component`
+  attribute. For example, `data-ccm-component="teambuild"` identifies a
+  Teambuild host in browser DevTools, including when its shadow root is closed
+  or Shadow DOM is disabled with `root: false`.
+
+## 29.0.0
 
 ### Breaking changes
 
