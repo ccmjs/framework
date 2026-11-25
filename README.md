@@ -88,10 +88,10 @@ See the [changelog](CHANGELOG.md) for changes in each version.
 To pin your app to a specific framework release, load it from jsDelivr:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/ccmjs/framework@v29.0.0/ccm-29.0.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/ccmjs/framework@v29.1.0/ccm-29.1.0.min.js"></script>
 ```
 
-This URL selects version **29.0.0**. For another release, replace the version in both the tag (`@v29.0.0`) and the filename (`ccm-29.0.0.min.js`). You can also use this URL as the `ccm` dependency in a component.
+This URL selects version **29.1.0**. For another release, replace the version in both the tag (`@v29.1.0`) and the filename (`ccm-29.1.0.min.js`). You can also use this URL as the `ccm` dependency in a component.
 
 <details>
 <summary>Optional: Verify integrity with SRI</summary>
@@ -101,13 +101,13 @@ matches the expected contents:
 
 ```html
 <script
-  src="https://cdn.jsdelivr.net/gh/ccmjs/framework@v29.0.0/ccm-29.0.0.min.js"
-  integrity="sha384-UH+Guq02u61Y8mQOMH+Xd6cJVKUyCSJ1MZeOq2KmM4e5y1rq/KgO6ay0G8I7D57W"
+  src="https://cdn.jsdelivr.net/gh/ccmjs/framework@v29.1.0/ccm-29.1.0.min.js"
+  integrity="sha384-+Ra3mH+gwP++yhMqYTOSnzIpDlhdMQINbkbEI8POBy4y7CYFng/c+KxtSJXiLsJA"
   crossorigin="anonymous"
 ></script>
 ```
 
-This hash applies to the minified **29.0.0** file. When changing versions, update
+This hash applies to the minified **29.1.0** file. When changing versions, update
 both the URL and the integrity hash.
 
 </details>
